@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "window": {
+    "from": "2026-04-01",
+    "to": "2026-09-30",
+    "monthsCovered": 6,
+    "sources": ["mpesa"]
+  },
+  "onboarding": {
+    "debts": [],
+    "chamaMemberships": [],
+    "goal": {
+      "kind": "long_horizon",
+      "horizonMonths": 24,
+      "notes": "Wants to start, but the history cannot support a Bitcoin habit yet."
+    }
+  },
+  "income": {
+    "sources": [
+      {
+        "value": {
+          "label": "Odd jobs",
+          "kind": "other",
+          "monthlyKes": { "floor": 1500, "typical": 4000, "ceiling": 7500 },
+          "regularity": "irregular"
+        },
+        "confidence": "medium",
+        "observations": 6
+      }
+    ],
+    "monthlyKes": { "floor": 1500, "typical": 4000, "ceiling": 7500 }
+  },
+  "commitments": [
+    {
+      "label": "Landlord Demo",
+      "category": "rent",
+      "amountKes": 800,
+      "cadence": "irregular",
+      "confidence": "low",
+      "observations": 1
+    }
+  ],
+  "spending": {
+    "byCategory": [
+      {
+        "category": "groceries",
+        "monthlyKes": { "floor": 800, "typical": 1400, "ceiling": 2000 },
+        "volatility": "high"
+      },
+      {
+        "category": "airtime",
+        "monthlyKes": { "floor": 20, "typical": 50, "ceiling": 100 },
+        "volatility": "medium"
+      }
+    ],
+    "flexibleMonthlyKes": { "floor": 900, "typical": 1500, "ceiling": 2200 }
+  },
+  "resilience": {
+    "monthsOfExpensesCovered": 0.2,
+    "borrowingReliance": "frequent",
+    "fulizaObservations": 5,
+    "bufferFirst": true
+  },
+  "surplus": {
+    "monthlyKes": { "floor": 0, "typical": 0, "ceiling": 400 },
+    "bufferFirst": true
+  },
+  "walletEvents": [],
+  "scenarios": [],
+  "proofs": []
+}

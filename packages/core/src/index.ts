@@ -54,4 +54,4 @@ export { runScenario, type PricePoint, type RunScenarioInput } from "./scenario"
 
 export { DEMO_STATEMENT_FILE, DEMO_STATEMENT_PASSWORD } from "./statement-fixture";
 
-export { demoProfile } from "./demo-profile";
+export { demoProfile, demoProfiles, thinDemoProfile } from "./demo-profile";

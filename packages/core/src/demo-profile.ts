@@ -12,10 +12,15 @@
  * A scheduled buy must stay under the floor, so the draft plan is 1,500.
  * One Fuliza use is in the SMS. It does not make borrowing look frequent.
  * Scenarios stay empty until runScenario exists. This file does not invent a backtest.
+ *
+ * Brian Otieno is a second invented person. His profile is the thin case:
+ * Fuliza is frequent, the surplus floor is 0, and bufferFirst is true.
+ * There is no investment plan, so the app can say he is not ready yet.
  */
 
 import type { FinancialProfile } from "./financial-profile.schema";
 import amina from "./fixtures/profiles/amina.profile.json";
+import brian from "./fixtures/profiles/brian.profile.json";
 
 /**
  * JSON imports widen literals (`1` becomes `number`), so `satisfies` cannot
@@ -34,3 +39,15 @@ function loadDemoProfile(value: unknown): FinancialProfile {
 
 /** Synthetic profile used by the demo shell. Not a real person. */
 export const demoProfile = loadDemoProfile(amina);
+
+/**
+ * Thin synthetic profile. Buffer comes before any Bitcoin habit.
+ * Not a real person.
+ */
+export const thinDemoProfile = loadDemoProfile(brian);
+
+/** The two hand-written profiles. Keys match the `?profile=` demo switch. */
+export const demoProfiles = {
+  amina: demoProfile,
+  brian: thinDemoProfile,
+} as const;

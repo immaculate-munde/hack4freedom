@@ -8,7 +8,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { demoProfile } from "./demo-profile";
+import { demoProfile, thinDemoProfile } from "./demo-profile";
 import { PAST_PERFORMANCE_DISCLAIMER } from "./financial-profile.schema";
 
 const smsDir = join(dirname(fileURLToPath(import.meta.url)), "fixtures", "sms");
@@ -136,5 +136,15 @@ describe("demo financial profile", () => {
     expect(demoProfile).not.toHaveProperty("priceTarget");
     expect(demoProfile).not.toHaveProperty("sellSignal");
     expect(PAST_PERFORMANCE_DISCLAIMER).toMatch(/not indicate future results/i);
+  });
+
+  it("includes a thin profile where the buffer has to come first", () => {
+    expect(thinDemoProfile.resilience.bufferFirst).toBe(true);
+    expect(thinDemoProfile.surplus.bufferFirst).toBe(true);
+    expect(thinDemoProfile.surplus.monthlyKes.floor).toBe(0);
+    expect(thinDemoProfile.resilience.borrowingReliance).toBe("frequent");
+    expect(thinDemoProfile.resilience.fulizaObservations).toBeGreaterThanOrEqual(4);
+    expect(thinDemoProfile.investmentPlan).toBeUndefined();
+    expect(thinDemoProfile.window.monthsCovered).toBe(6);
   });
 });
