@@ -1,0 +1,17 @@
+{
+  "name": "@pesasense/wallet",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Non-custodial buy flow. BitcoinOnRamp interface, mock adapter, Bitika placeholder.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}

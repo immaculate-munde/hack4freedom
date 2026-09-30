@@ -1,0 +1,20 @@
+{
+  "name": "@pesasense/nostr",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Encrypted profile storage and anonymous aggregate jobs. No raw transactions.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@pesasense/core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}
