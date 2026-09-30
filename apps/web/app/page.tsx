@@ -50,9 +50,9 @@ export default async function HomePage({
   if (selection.status === "not-ready") {
     return (
       <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col px-5 py-10 sm:px-8">
-        <h1 className="font-serif text-5xl tracking-tight text-pine">STAK</h1>
+        <h1 className="font-serif text-5xl tracking-tight text-pine">PesaSense</h1>
         <p className="mt-2 font-serif text-xl text-ink/80">
-          Start Tiny, Accumulate Kesho
+          Private surplus. Small Bitcoin saves.
         </p>
         <section className="mt-8 rounded-3xl border border-sand bg-white/70 p-6">
           <h2 className="font-serif text-2xl text-pine">No profile yet</h2>
@@ -106,9 +106,9 @@ function SurplusScreen({
           On this device
         </p>
       </div>
-      <h1 className="mt-3 font-serif text-5xl tracking-tight text-pine">STAK</h1>
+      <h1 className="mt-3 font-serif text-5xl tracking-tight text-pine">PesaSense</h1>
       <p className="mt-2 font-serif text-xl text-ink/80">
-        Start Tiny, Accumulate Kesho
+        Private surplus. Small Bitcoin saves.
       </p>
       <p className="mt-4 max-w-md text-sm leading-6 text-ink/70">
         {isDemo
@@ -184,6 +184,20 @@ function SurplusScreen({
           </p>
         </div>
       </section>
+
+      {!resilience.bufferFirst && surplus.monthlyKes.floor >= 10 ? (
+        <p className="mt-6 flex flex-col gap-3 sm:flex-row">
+          <a
+            className="btn btn-primary inline-flex"
+            href={demoId === "brian" ? "/invest?profile=brian" : "/invest"}
+          >
+            Invest from surplus
+          </a>
+          <a className="btn btn-secondary inline-flex" href="/wallet">
+            PesaSense wallet
+          </a>
+        </p>
+      ) : null}
 
       {isDemo ? (
         <p className="mt-6 text-sm text-moss">
