@@ -1,8 +1,3 @@
-/**
- * Wallet package entry.
- * The on-ramp interface lives here so the web app never talks to a partner directly.
- */
-
 export type {
   BitcoinOnRamp,
   OnRampPurchase,
@@ -13,4 +8,26 @@ export type {
 } from "./onramp";
 
 export { MockBitcoinOnRamp } from "./mock-onramp";
-export { BitikaBitcoinOnRamp } from "./bitika-onramp";
+export { BitikaBitcoinOnRamp, BitikaLiquidityError } from "./bitika-onramp";
+export {
+  BITIKA_BASE_URL,
+  BITIKA_MAX_KES,
+  BITIKA_MIN_KES,
+  assertBitikaKeyAllowed,
+  bitikaModeFromKey,
+} from "./bitika-config";
+export {
+  mapBitikaStatus,
+  normalizeBitikaTransaction,
+  purchaseFromBitika,
+} from "./bitika-status";
+export {
+  parseDestination,
+  resolveLightningAddress,
+  type ParsedDestination,
+} from "./lightning-address";
+export {
+  maskPhone,
+  toBitikaPhone,
+  toBitcoinCoKeLightningAddress,
+} from "./phone";
