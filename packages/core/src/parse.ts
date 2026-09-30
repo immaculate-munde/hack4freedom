@@ -21,7 +21,10 @@ export interface ParseStatementInput {
  * whatever the user types. Do not assume it is a national ID or a code
  * Safaricom sends.
  *
- * TODO: recognize Paybill, Buy Goods, Sent To, Received, Fuliza and airtime.
+ * TODO: decrypt fixtures/statements/amina-statement.pdf in the browser with pdf.js.
+ * The demo password is DEMO_STATEMENT_PASSWORD. Do not hard-code a national ID.
+ * Statement rows say "Pay Bill", which is different from an SMS "for account" line.
+ * Then recognize paybill, buy goods, sent, received, Fuliza, airtime and reversals.
  */
 export function parseStatement(input: ParseStatementInput): Transaction[] {
   throw new Error(
