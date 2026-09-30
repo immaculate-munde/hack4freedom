@@ -1,9 +1,18 @@
 /**
  * Home screen.
- * Loads the synthetic profile and shows the safe surplus as a range.
- * The floor is the worst typical month. A habit has to stay under it.
+ *
+ * Demo data is the default, behind PROFILE_SOURCE.
+ * Set PROFILE_SOURCE=parsed to stop using the hand-written profiles.
+ * This is a server-only flag so it can change without rebuilding the client.
+ * `?profile=brian` shows the thin demo profile. It is ignored in parsed mode.
  */
-import { demoProfile, PAST_PERFORMANCE_DISCLAIMER } from "@pesasense/core";
+import {
+  demoProfiles,
+  PAST_PERFORMANCE_DISCLAIMER,
+  profileSourceFromEnv,
+  selectProfile,
+  type FinancialProfile,
+} from "@pesasense/core";
 
 /** Format a whole-shilling amount the way a Kenyan reader expects. */
 function formatKes(amount: number): string {
@@ -24,8 +33,62 @@ function formatDay(isoDate: string): string {
   }).format(new Date(`${isoDate}T00:00:00Z`));
 }
 
-export default function HomePage() {
-  const { surplus, income, resilience, window, investmentPlan } = demoProfile;
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ profile?: string }>;
+}) {
+  const params = await searchParams;
+  const source = profileSourceFromEnv(process.env.PROFILE_SOURCE);
+  const demoId = params.profile === "brian" ? "brian" : "amina";
+  const persona = demoId === "brian" ? "Brian (invented)" : "Amina (invented)";
+  const selection =
+    source === "parsed"
+      ? selectProfile({ source: "parsed", messages: [] })
+      : selectProfile({ source: "demo", profile: demoProfiles[demoId] });
+
+  if (selection.status === "not-ready") {
+    return (
+      <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col px-5 py-10 sm:px-8">
+        <h1 className="font-serif text-5xl tracking-tight text-pine">STAK</h1>
+        <p className="mt-2 font-serif text-xl text-ink/80">
+          Start Tiny, Accumulate Kesho
+        </p>
+        <section className="mt-8 rounded-3xl border border-sand bg-white/70 p-6">
+          <h2 className="font-serif text-2xl text-pine">No profile yet</h2>
+          <p className="mt-3 text-sm leading-6 text-ink/80">
+            Parsed mode is on, and there is no statement to read. Demo numbers are not
+            shown here.
+          </p>
+          <p className="mt-3 text-xs leading-5 text-ink/60">{selection.reason}</p>
+        </section>
+      </main>
+    );
+  }
+
+  return (
+    <SurplusScreen
+      profile={selection.profile}
+      isDemo={selection.isDemo}
+      persona={persona}
+      demoId={demoId}
+    />
+  );
+}
+
+/** The surplus range for one profile. Demo runs show a badge. */
+function SurplusScreen({
+  profile,
+  isDemo,
+  persona,
+  demoId,
+}: {
+  profile: FinancialProfile;
+  isDemo: boolean;
+  persona: string;
+  demoId: "amina" | "brian";
+}) {
+  const { surplus, income, resilience, window, investmentPlan } = profile;
   const { floor, typical, ceiling } = surplus.monthlyKes;
   const span = Math.max(ceiling - floor, 1);
   // Place the typical marker between the floor and the ceiling of the range.
@@ -33,16 +96,24 @@ export default function HomePage() {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col px-5 py-10 sm:px-8">
-      <p className="text-xs font-medium tracking-[0.16em] text-moss uppercase">
-        Synthetic demo · on this device
-      </p>
+      <div className="flex items-center gap-3">
+        {isDemo ? (
+          <p className="inline-flex rounded-full bg-brass/15 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-brass uppercase">
+            Demo data
+          </p>
+        ) : null}
+        <p className="text-xs font-medium tracking-[0.16em] text-moss uppercase">
+          On this device
+        </p>
+      </div>
       <h1 className="mt-3 font-serif text-5xl tracking-tight text-pine">STAK</h1>
       <p className="mt-2 font-serif text-xl text-ink/80">
         Start Tiny, Accumulate Kesho
       </p>
       <p className="mt-4 max-w-md text-sm leading-6 text-ink/70">
-        A private picture of Amina&apos;s invented M-Pesa history, and the range she
-        could set aside. This is a description, not a recommendation.
+        {isDemo
+          ? `A private picture of ${persona}'s M-Pesa history, and the range they could set aside. This is a description, not a recommendation.`
+          : "A private picture of this history, and the range that could be set aside. This is a description, not a recommendation."}
       </p>
 
       <section className="mt-8 rounded-3xl border border-sand bg-white/70 p-6 shadow-sm">
@@ -86,12 +157,13 @@ export default function HomePage() {
         </div>
 
         <p className="mt-5 text-sm leading-6 text-ink/80">
-          The floor is the tightest month in this history, {formatKes(floor)}. A
-          scheduled buy stays under that number
-          {investmentPlan
-            ? `, so the draft habit is ${formatKes(investmentPlan.amountKes)} a ${investmentPlan.cadence.replace("_", " ")}`
-            : ""}
-          .
+          {resilience.bufferFirst
+            ? "This history is not ready for a Bitcoin habit. The buffer comes first."
+            : `The floor is the tightest month in this history, ${formatKes(floor)}. A scheduled buy stays under that number${
+                investmentPlan
+                  ? `, so the draft habit is ${formatKes(investmentPlan.amountKes)} a ${investmentPlan.cadence}`
+                  : ""
+              }.`}
         </p>
       </section>
 
@@ -112,6 +184,20 @@ export default function HomePage() {
           </p>
         </div>
       </section>
+
+      {isDemo ? (
+        <p className="mt-6 text-sm text-moss">
+          {demoId === "brian" ? (
+            <a className="underline" href="/">
+              View Amina&apos;s surplus
+            </a>
+          ) : (
+            <a className="underline" href="/?profile=brian">
+              View the thin profile
+            </a>
+          )}
+        </p>
+      ) : null}
 
       <p className="mt-8 text-xs leading-5 text-ink/60">
         {PAST_PERFORMANCE_DISCLAIMER}
