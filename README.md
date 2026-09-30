@@ -1,6 +1,6 @@
-# STAK
+# PesaSense
 
-Start Tiny, Accumulate Kesho. Working name: PesaSense.
+A private, on-device financial profile and a small Bitcoin habit for Kenya.
 
 A private, on-device financial profile that helps someone in Kenya start a small Bitcoin habit, without trading and without the app holding their money.
 
@@ -38,7 +38,7 @@ The demo path for the hackathon is: statement in, profile out, plan set, first p
 
 ## Principles
 
-- **Non-custodial.** STAK never holds funds or private keys. The person holds their keys.
+- **Non-custodial.** PesaSense never holds funds or private keys. The person holds their keys.
 - **Accumulate, do not trade.** Scheduled small buys only. No price alerts, candlestick charts, sell prompts, order books or leverage.
 - **Manual approval.** Every purchase needs an explicit yes.
 - **Privacy by design.** Raw statements and transactions stay on the device. The platform stores no raw file and no password. A profile is encrypted before any sync.
@@ -154,7 +154,7 @@ Shown later, before any investing prompt. Copy below is from team research and i
 - **To verify:** CBK licenses providers that handle custodial wallets, payment processing and fiat-to-crypto rails. CMA oversees exchanges, brokers and investment managers.
 - **To verify:** Holding Bitcoin in a non-custodial wallet, peer-to-peer transfers and mining currently sit outside direct licensing.
 - **To verify:** Kenya's Virtual Asset Service Providers Act (2025) is the licensing framework. Team research puts the compliance deadline for existing operators at **4 November 2026**.
-- STAK is advisory and non-custodial. It should state the compliance status of its on-ramp partner in plain language.
+- PesaSense is advisory and non-custodial. It should state the compliance status of its on-ramp partner in plain language.
 
 Other items we will not guess:
 
@@ -203,4 +203,4 @@ After the hackathon, not instead of the demo path:
 
 ## Disclaimer
 
-STAK provides education, not financial advice. Bitcoin can lose value. Past performance does not indicate future results.
+PesaSense provides education, not financial advice. Bitcoin can lose value. Past performance does not indicate future results.

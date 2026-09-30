@@ -20,3 +20,113 @@ body {
   background: var(--color-paper);
   color: var(--color-ink);
 }
+
+/* Shared controls: clear hover, press, and focus affordances */
+@layer components {
+  .btn {
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition:
+      background-color 120ms ease,
+      border-color 120ms ease,
+      color 120ms ease,
+      box-shadow 120ms ease,
+      transform 80ms ease,
+      opacity 120ms ease;
+  }
+
+  .btn:hover:not(:disabled) {
+    box-shadow: 0 4px 14px rgb(26 36 32 / 12%);
+  }
+
+  .btn:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+
+  .btn:focus-visible {
+    outline: 2px solid var(--color-pine);
+    outline-offset: 2px;
+  }
+
+  .btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+    box-shadow: none;
+    transform: none;
+  }
+
+  .btn-primary {
+    border-radius: 1rem;
+    background-color: var(--color-pine);
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-paper);
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background-color: var(--color-moss);
+  }
+
+  .btn-secondary {
+    border-radius: 1rem;
+    border: 1px solid var(--color-sand);
+    background-color: transparent;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-pine);
+  }
+
+  .btn-secondary:hover:not(:disabled) {
+    border-color: var(--color-moss);
+    background-color: rgb(231 224 212 / 45%);
+  }
+
+  .btn-accent {
+    border-radius: 1rem;
+    background-color: var(--color-brass);
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-ink);
+  }
+
+  .btn-accent:hover:not(:disabled) {
+    filter: brightness(1.05);
+  }
+
+  .btn-ghost {
+    font-size: 0.875rem;
+    color: var(--color-moss);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .btn-ghost:hover:not(:disabled) {
+    color: var(--color-pine);
+  }
+
+  .field {
+    width: 100%;
+    border-radius: 0.75rem;
+    border: 1px solid var(--color-sand);
+    background-color: var(--color-paper);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    transition:
+      border-color 120ms ease,
+      box-shadow 120ms ease;
+  }
+
+  .field:hover {
+    border-color: color-mix(in srgb, var(--color-moss) 35%, var(--color-sand));
+  }
+
+  .field:focus {
+    outline: none;
+    border-color: var(--color-moss);
+    box-shadow: 0 0 0 3px rgb(61 107 84 / 18%);
+  }
+}
