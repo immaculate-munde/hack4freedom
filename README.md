@@ -51,16 +51,16 @@ The demo path for the hackathon is: statement in, profile out, plan set, first p
 
 ## Features
 
-| Area                | What it does                                                                         | Hackathon status                                          |
-| ------------------- | ------------------------------------------------------------------------------------ | --------------------------------------------------------- |
-| Ingestion           | Paste SMS or upload a statement. Output a list of transactions.                      | Stub. Fixtures are ready.                                 |
-| Profile and surplus | Income, commitments, spending, resilience, surplus range.                            | Contract and one synthetic profile. Engine not built yet. |
-| Education           | Buffer, then everyday saving, then a long horizon.                                   | Not built yet.                                            |
-| Scenarios           | Client-side historical range from a bundled Bitcoin price file.                      | Stub. No invented backtest numbers.                       |
-| Investing           | Non-custodial. Phase 1: paste a Lightning address. Buy through an on-ramp interface. | Interface and mock only.                                  |
-| Nostr               | Encrypt the profile (NIP-44). One anonymous aggregate job (NIP-90).                  | Save and load are stubs.                                  |
-| Chama ledger        | Records and coordinates. Never holds money.                                          | Cut from this scaffold. Mock later.                       |
-| Reliability badge   | Opt-in public badge after a chama cycle.                                             | Mock later. Not started.                                  |
+| Area                | What it does                                                                         | Hackathon status                                                                                 |
+| ------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| Ingestion           | Paste SMS or upload a statement. Output a list of transactions.                      | Stub. SMS fixtures and an encrypted demo PDF are ready.                                          |
+| Profile and surplus | Income, commitments, spending, resilience, surplus range.                            | Contract, Amina's profile, and a thin buffer-first profile. Engine spec is in `profile.spec.ts`. |
+| Education           | Buffer, then everyday saving, then a long horizon.                                   | Not built yet.                                                                                   |
+| Scenarios           | Client-side historical range from a bundled Bitcoin price file.                      | Stub. No invented backtest numbers.                                                              |
+| Investing           | Non-custodial. Phase 1: paste a Lightning address. Buy through an on-ramp interface. | Interface and mock only.                                                                         |
+| Nostr               | Encrypt the profile (NIP-44). One anonymous aggregate job (NIP-90).                  | Save and load are stubs.                                                                         |
+| Chama ledger        | Records and coordinates. Never holds money.                                          | Cut from this scaffold. Mock later.                                                              |
+| Reliability badge   | Opt-in public badge after a chama cycle.                                             | Mock later. Not started.                                                                         |
 
 Crypto history import is a stretch. USSD, Telegram, WhatsApp, and spending Bitcoin through other apps are out of scope for the hackathon.
 
@@ -104,7 +104,9 @@ pnpm install
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). The home screen loads an invented profile (Amina) and shows her surplus range.
+Open [http://localhost:3000](http://localhost:3000). The home screen loads an invented profile (Amina) and shows her surplus range, with a **Demo data** badge. Add `?profile=brian` to see the thin profile, where the buffer has to come first.
+
+Set `PROFILE_SOURCE=parsed` to turn the demo profiles off. That path calls the parser and does not fall back to the hand-written numbers. Until those functions exist, the screen says no profile has been built yet.
 
 ```bash
 pnpm test
@@ -112,7 +114,9 @@ pnpm typecheck
 pnpm lint
 ```
 
-`pnpm dev` runs the web app. `pnpm test` runs Vitest across the packages.
+`pnpm dev` runs the web app. `pnpm test` runs Vitest across the packages. The profile acceptance spec is skipped until `buildProfile` stops throwing, then it runs with the rest.
+
+The SMS fixtures follow published M-Pesa receipt shapes, including reversals, a failed send, Fuliza, and a withdrawal whose date comes before the word "Withdraw". The encrypted statement is `packages/core/src/fixtures/statements/amina-statement.pdf`. Its demo password is `demo-statement`, not a national ID.
 
 All fixtures are synthetic. Do not replace them with a real M-Pesa statement.
 
@@ -125,8 +129,9 @@ This is the scaffold, not the demo path finished.
 - pnpm monorepo, shared TypeScript, ESLint, Prettier and Vitest
 - Transaction, confidence and shilling-range types, plus the financial profile contract
 - Stubs for parsing, profile building, surplus, scenarios, the on-ramp, and Nostr save/load
-- Three fake M-Pesa SMS fixtures and one complete mock profile
-- A minimal PWA shell that shows that profile's surplus range
+- Three fake M-Pesa SMS fixtures, one encrypted statement PDF, Amina's profile, and Brian's thin profile
+- A PWA shell that badges demo data and can switch to parsed mode with `PROFILE_SOURCE=parsed`
+- An acceptance test that compares `buildProfile()` with those profiles once the engine exists
 
 **Mocked, not implemented**
 
@@ -170,6 +175,13 @@ Six people can work in parallel against the stubs:
 4. Invest and learn screens (`apps/web`)
 5. Wallet and on-ramp (`packages/wallet`)
 6. Nostr and chama (`packages/nostr`, and later a Postgres ledger)
+
+### Where to start
+
+1. **Parser.** SMS shapes are in `packages/core/src/fixtures/sms/`. The PDF and its password are in `statement-fixture.ts`. Do not invent a password rule.
+2. **Profile engine.** `packages/core/src/profile.spec.ts` is the spec. It is skipped while `buildProfile` throws. When it runs, Amina's and Brian's hand-written profiles are what the SMS should come close to. Do not edit those JSON files to match a wrong result.
+3. **App shell and learn screens.** `/?profile=brian` is the "not ready yet" case. `PROFILE_SOURCE=parsed` is the switch off demo data.
+4. **Invest, wallet, Nostr.** The stubs still throw. Bitika stays blocked until its docs are in the repo.
 
 ### Working together
 
