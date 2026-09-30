@@ -1,0 +1,128 @@
+{
+  "version": 1,
+  "window": {
+    "from": "2026-04-01",
+    "to": "2026-09-30",
+    "monthsCovered": 6,
+    "sources": ["mpesa"]
+  },
+  "onboarding": {
+    "debts": [
+      {
+        "label": "Study loan",
+        "balanceKes": 48000,
+        "monthlyPaymentKes": 3000
+      }
+    ],
+    "chamaMemberships": [
+      {
+        "name": "Chama Sisters",
+        "monthlyContributionKes": 2000,
+        "kind": "merry_go_round"
+      }
+    ],
+    "goal": {
+      "kind": "long_horizon",
+      "horizonMonths": 36,
+      "notes": "Wants a small habit she can leave alone for a few years."
+    }
+  },
+  "income": {
+    "sources": [
+      {
+        "value": {
+          "label": "ACME DIGITAL LTD",
+          "kind": "salary",
+          "monthlyKes": { "floor": 40000, "typical": 45000, "ceiling": 48000 },
+          "regularity": "monthly"
+        },
+        "confidence": "high",
+        "observations": 6,
+        "userConfirmed": true
+      }
+    ],
+    "monthlyKes": { "floor": 40000, "typical": 45000, "ceiling": 48000 }
+  },
+  "commitments": [
+    {
+      "label": "Greenview Apartments",
+      "category": "rent",
+      "amountKes": 15000,
+      "cadence": "monthly",
+      "confidence": "high",
+      "observations": 6,
+      "userConfirmed": true
+    },
+    {
+      "label": "Study loan",
+      "category": "loan",
+      "amountKes": 3000,
+      "cadence": "monthly",
+      "confidence": "high",
+      "observations": 6,
+      "userConfirmed": true
+    },
+    {
+      "label": "City Power Demo",
+      "category": "utilities",
+      "amountKes": 1500,
+      "cadence": "monthly",
+      "confidence": "high",
+      "observations": 6
+    },
+    {
+      "label": "Chama Sisters",
+      "category": "chama",
+      "amountKes": 2000,
+      "cadence": "monthly",
+      "confidence": "high",
+      "observations": 6,
+      "userConfirmed": true
+    }
+  ],
+  "spending": {
+    "byCategory": [
+      {
+        "category": "groceries",
+        "monthlyKes": { "floor": 6000, "typical": 7000, "ceiling": 9000 },
+        "volatility": "medium"
+      },
+      {
+        "category": "transport",
+        "monthlyKes": { "floor": 2000, "typical": 2500, "ceiling": 4000 },
+        "volatility": "high"
+      },
+      {
+        "category": "airtime",
+        "monthlyKes": { "floor": 800, "typical": 1000, "ceiling": 1500 },
+        "volatility": "low"
+      },
+      {
+        "category": "eating out",
+        "monthlyKes": { "floor": 1200, "typical": 1500, "ceiling": 2000 },
+        "volatility": "medium"
+      }
+    ],
+    "flexibleMonthlyKes": { "floor": 11000, "typical": 12000, "ceiling": 16500 }
+  },
+  "resilience": {
+    "monthsOfExpensesCovered": 2.3,
+    "borrowingReliance": "occasional",
+    "fulizaObservations": 1,
+    "bufferFirst": false
+  },
+  "surplus": {
+    "monthlyKes": { "floor": 2000, "typical": 11500, "ceiling": 15500 },
+    "bufferFirst": false
+  },
+  "investmentPlan": {
+    "amountKes": 1500,
+    "cadence": "monthly",
+    "horizonYears": 3,
+    "destination": "amina@walletdemo.invalid",
+    "status": "draft"
+  },
+  "walletEvents": [],
+  "scenarios": [],
+  "proofs": []
+}

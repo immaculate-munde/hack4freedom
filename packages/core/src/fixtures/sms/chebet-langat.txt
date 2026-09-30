@@ -1,0 +1,41 @@
+QC30CC01 Confirmed. Ksh2,000.00 sent to MWANGAZA CHAMA 254700000601 on 3/4/26 at 7:10 PM. New M-PESA balance is Ksh14,200.00. Transaction cost, Ksh10.00.
+
+QC30CC02 Confirmed. Ksh1,100.00 sent to CITY POWER DEMO for account 77881 on 6/4/26 at 6:24 PM. New M-PESA balance is Ksh13,092.00. Transaction cost, Ksh8.00.
+
+QC30CC03 Confirmed. Ksh2,800.00 paid to CORNER GROCERS. on 10/4/26 at 11:16 AM. New M-PESA balance is Ksh10,292.00.
+
+QC30CC04 Confirmed. You bought Ksh150.00 of airtime for 254700000701 on 14/4/26 at 8:02 AM. New M-PESA balance is Ksh9,400.00.
+
+QC30CC05 Confirmed. You have received Ksh38,000.00 from NORTHWIND STORES DEMO 254700000801 on 25/4/26 at 9:01 AM. New M-PESA balance is Ksh44,100.00.
+
+QC30CC06 Confirmed. Ksh18,000.00 sent to HILLTOP ACADEMY DEMO for account TERM-2 on 5/5/26 at 9:12 AM. New M-PESA balance is Ksh22,400.00. Transaction cost, Ksh34.00. Paybill.
+
+QC30CC07 Confirmed. Ksh2,000.00 sent to MWANGAZA CHAMA 254700000601 on 3/5/26 at 7:05 PM. New M-PESA balance is Ksh20,390.00. Transaction cost, Ksh10.00.
+
+QC30CC08 Confirmed. Buy Goods payment of Ksh640.00 to STAGE KIOSK DEMO on 16/5/26 at 5:40 PM. New M-PESA balance is Ksh11,200.00.
+
+QC30CC09 Confirmed. You have received Ksh38,000.00 from NORTHWIND STORES DEMO 254700000801 on 25/5/26 at 9:06 AM. New M-PESA balance is Ksh46,800.00.
+
+QC30CC10 Confirmed. Ksh2,000.00 sent to MWANGAZA CHAMA 254700000601 on 3/6/26 at 7:22 PM. New M-PESA balance is Ksh28,100.00. Transaction cost, Ksh10.00.
+
+QC30CC11 Confirmed. Ksh1,250.00 sent to CITY POWER DEMO for account 77881 on 8/6/26 at 6:11 PM. New M-PESA balance is Ksh18,400.00. Transaction cost, Ksh8.00.
+
+QC30CC12 Confirmed. You have received Ksh36,000.00 from NORTHWIND STORES DEMO 254700000801 on 25/6/26 at 9:04 AM. New M-PESA balance is Ksh41,200.00.
+
+QC30CC13 Confirmed. Ksh2,000.00 sent to MWANGAZA CHAMA 254700000601 on 3/7/26 at 7:18 PM. New M-PESA balance is Ksh24,600.00. Transaction cost, Ksh10.00.
+
+QC30CC14 Confirmed. You bought Ksh100.00 of airtime for 254700000701 on 19/7/26 at 7:44 AM. New M-PESA balance is Ksh9,800.00.
+
+QC30CC15 Confirmed. You have received Ksh40,000.00 from NORTHWIND STORES DEMO 254700000801 on 25/7/26 at 9:09 AM. New M-PESA balance is Ksh47,500.00.
+
+QC30CC16 Confirmed. Ksh18,000.00 sent to HILLTOP ACADEMY DEMO for account TERM-3 on 5/8/26 at 9:20 AM. New M-PESA balance is Ksh24,100.00. Transaction cost, Ksh34.00. Paybill.
+
+QC30CC17 Confirmed. Ksh2,000.00 sent to MWANGAZA CHAMA 254700000601 on 3/8/26 at 7:02 PM. New M-PESA balance is Ksh22,090.00. Transaction cost, Ksh10.00.
+
+QC30CC18 Confirmed. Fuliza M-PESA amount of Ksh200.00 was used to complete a Buy Goods payment to CORNER GROCERS on 22/8/26 at 1:26 PM. Outstanding Fuliza M-PESA is Ksh200.00. Access fee charged Ksh10.00.
+
+QC30CC19 Confirmed. You have received Ksh38,000.00 from NORTHWIND STORES DEMO 254700000801 on 25/8/26 at 9:03 AM. New M-PESA balance is Ksh43,000.00.
+
+QC30CC20 Confirmed. Ksh2,000.00 sent to MWANGAZA CHAMA 254700000601 on 3/9/26 at 7:16 PM. New M-PESA balance is Ksh26,400.00. Transaction cost, Ksh10.00.
+
+QC30CC21 Confirmed. You have received Ksh38,000.00 from NORTHWIND STORES DEMO 254700000801 on 25/9/26 at 9:08 AM. New M-PESA balance is Ksh49,200.00.
