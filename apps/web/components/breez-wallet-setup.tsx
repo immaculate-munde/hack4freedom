@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useBreezWallet } from "../contexts/breez-wallet-context";
 import { assertValidMnemonic, normalizeMnemonic } from "../lib/breez/mnemonic";
+import { SeedPhraseBackup } from "./seed-phrase-backup";
 
 export function BreezWalletSetup({ compact }: { compact?: boolean }) {
   const wallet = useBreezWallet();
@@ -36,27 +37,14 @@ export function BreezWalletSetup({ compact }: { compact?: boolean }) {
 
   if (wallet.pendingMnemonic) {
     return (
-      <div className="rounded-2xl border border-sand bg-paper/80 p-4 text-sm">
-        <p className="font-medium text-pine">Write this down before you continue</p>
-        <p className="mt-2 text-ink/70 leading-6">
-          These 12 words recover your wallet. PesaSense cannot reset them. Store them
-          offline.
-        </p>
-        <p className="mt-3 break-words rounded-xl bg-sand/60 px-3 py-3 font-mono text-xs leading-6">
-          {wallet.pendingMnemonic}
-        </p>
-        <button
-          type="button"
-          className="btn btn-primary mt-4 w-full"
-          disabled={busy}
-          onClick={() => {
-            setBusy(true);
-            void wallet.confirmBackupAndUnlock().finally(() => setBusy(false));
-          }}
-        >
-          {busy ? "Opening wallet…" : "I saved my words — open wallet"}
-        </button>
-      </div>
+      <SeedPhraseBackup
+        mnemonic={wallet.pendingMnemonic}
+        busy={busy}
+        onConfirm={() => {
+          setBusy(true);
+          void wallet.confirmBackupAndUnlock().finally(() => setBusy(false));
+        }}
+      />
     );
   }
 
