@@ -1,4 +1,4 @@
-QA10AA01 Confirmed. Ksh15,000.00 sent to GREENVIEW APARTMENTS for account RENT on 2/4/26 at 8:12 AM. New M-PESA balance is Ksh7,400.00. Transaction cost, Ksh22.00.
+QA10AA01 Confirmed. Ksh15,000.00 sent to GREENVIEW APARTMENTS for account RENT on 2/4/26 at 8:12 AM. New M-PESA balance is Ksh7,400.00. Transaction cost, Ksh22.00. Amount you can transact within the day is 284,978.00.
 
 QA10AA02 Confirmed. Ksh1,450.00 sent to CITY POWER DEMO for account 44021 on 3/4/26 at 7:40 PM. New M-PESA balance is Ksh5,950.00. Transaction cost, Ksh8.00.
 
@@ -8,9 +8,13 @@ QA10AA04 Confirmed. You bought Ksh100.00 of airtime for 254700000101 on 8/4/26 a
 
 QA10AA05 Confirmed. Ksh2,000.00 sent to CHAMA SISTERS 254700000201 on 12/4/26 at 7:40 PM. New M-PESA balance is Ksh640.00. Transaction cost, Ksh10.00.
 
-QA10AA06 Confirmed. Buy Goods payment of Ksh850.00 to STAGE KIOSK DEMO on 18/4/26 at 6:22 PM. New M-PESA balance is Ksh1,790.00.
+QA10AA06 Confirmed. Ksh850.00 paid to STAGE KIOSK DEMO. on 18/4/26 at 6:22 PM. New M-PESA balance is Ksh1,790.00. Transaction cost, Ksh0.00.
 
-QA10AA07 Confirmed. You have received Ksh45,000.00 from ACME DIGITAL LTD 254700000301 on 28/4/26 at 8:05 AM. New M-PESA balance is Ksh46,790.00.
+QA10AA07 Confirmed.
+You have received Ksh45,000.00 from
+ACME DIGITAL LTD 254700000301
+on 28/4/26 at 8:05 AM
+New M-PESA balance is Ksh46,790.00. To reverse, forward this message to 456.
 
 QA10AA08 Confirmed. Ksh15,000.00 sent to GREENVIEW APARTMENTS for account RENT on 2/5/26 at 8:04 AM. New M-PESA balance is Ksh31,768.00. Transaction cost, Ksh22.00.
 
@@ -26,13 +30,15 @@ QA10AA13 Confirmed. You have received Ksh42,000.00 from ACME DIGITAL LTD 2547000
 
 QA10AA14 Confirmed. Ksh15,000.00 sent to GREENVIEW APARTMENTS for account RENT on 2/6/26 at 8:09 AM. New M-PESA balance is Ksh48,006.00. Transaction cost, Ksh22.00.
 
-QA10AA15 Confirmed. Fuliza M-PESA amount of Ksh500.00 was used to complete a payment to CORNER GROCERS on 6/6/26 at 2:17 PM. Outstanding Fuliza M-PESA is Ksh500.00. Access fee charged Ksh25.00.
+QA10AA15 Confirmed. Fuliza M-PESA amount of Ksh500.00 has been used to pay to CORNER GROCERS. Your outstanding Fuliza M-PESA balance is Ksh500.00. Access Fee charged Ksh25.00.
 
-QA10AA16 Confirmed. You have received Ksh8,000.00 from AUNTIE DEMO 254700000401 on 15/6/26 at 11:20 AM. New M-PESA balance is Ksh12,400.00.
+QA10AA16 Confirmed. You have received KSh8,000.00 from AUNTIE DEMO 254700000401 on 15/6/26 at 11:20 AM. New M-PESA balance is KSh12,400.00. To reverse, forward this message to 456.
 
 QA10AA17 Confirmed. You have received Ksh40,000.00 from ACME DIGITAL LTD 254700000301 on 28/6/26 at 8:02 AM. New M-PESA balance is Ksh52,400.00.
 
 QA10AA18 Confirmed. Ksh15,000.00 sent to GREENVIEW APARTMENTS for account RENT on 2/7/26 at 8:15 AM. New M-PESA balance is Ksh37,378.00. Transaction cost, Ksh22.00.
+
+QA10MS01 Confirmed. You have transferred Ksh500.00 from your M-Shwari account on 10/7/26 at 9:40 AM. M-Shwari balance is Ksh12,000.00. M-PESA balance is Ksh19,400.00.
 
 QA10AA19 Confirmed. You bought Ksh200.00 of airtime for 254700000101 on 11/7/26 at 9:12 AM. New M-PESA balance is Ksh18,900.00.
 
@@ -44,7 +50,11 @@ QA10AA22 Confirmed. Ksh2,000.00 sent to CHAMA SISTERS 254700000201 on 12/8/26 at
 
 QA10AA23 Confirmed. You have received Ksh45,000.00 from ACME DIGITAL LTD 254700000301 on 28/8/26 at 8:06 AM. New M-PESA balance is Ksh58,100.00.
 
+QA99RV01 Confirmed. Transaction QA10AA06 has been reversed. Your account balance is now Ksh2,640.00.
+
 QA10AA24 Confirmed. Ksh15,000.00 sent to GREENVIEW APARTMENTS for account RENT on 2/9/26 at 8:10 AM. New M-PESA balance is Ksh43,078.00. Transaction cost, Ksh22.00.
+
+Failed. You do not have enough money in your M-PESA account to send Ksh15,000.00 to GREENVIEW APARTMENTS. Your M-PESA balance is Ksh640.00.
 
 QA10AA25 Confirmed. Ksh1,350.00 sent to CITY POWER DEMO for account 44021 on 6/9/26 at 5:48 PM. New M-PESA balance is Ksh28,200.00. Transaction cost, Ksh8.00.
 
