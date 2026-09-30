@@ -23,6 +23,16 @@ const nextConfig: NextConfig = {
       ...config.experiments,
       asyncWebAssembly: true,
     };
+    if (!isServer) {
+      config.output = {
+        ...config.output,
+        environment: {
+          ...config.output.environment,
+          asyncFunction: true,
+          dynamicImport: true,
+        },
+      };
+    }
     config.module.rules.push({
       test: /\.wasm$/,
       type: "webassembly/async",

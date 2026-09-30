@@ -242,7 +242,7 @@ export function InvestFlow({
 
   if (hasWallet === false) {
     return (
-      <section className="rounded-3xl border border-sand bg-white/70 p-6">
+      <section className="card">
         <h2 className="font-serif text-2xl text-pine">We&apos;ve got you</h2>
         <p className="mt-3 text-sm leading-6 text-ink/80">
           Create a wallet here (non-custodial, powered by Breez). Your Bitika buys and
@@ -274,7 +274,7 @@ export function InvestFlow({
       ) : null}
 
       {step === "choose" && (
-        <section className="rounded-3xl border border-sand bg-white/70 p-6">
+        <section className="card">
           <h2 className="font-serif text-2xl text-pine">Invest in Bitcoin</h2>
           <p className="mt-2 text-sm text-ink/70">
             You could start from KES 10. Sats go to a wallet you control.
@@ -302,7 +302,7 @@ export function InvestFlow({
       )}
 
       {step === "address" && (
-        <section className="rounded-3xl border border-sand bg-white/70 p-6">
+        <section className="card">
           <h2 className="font-serif text-xl text-pine">Your Lightning address</h2>
           <p className="mt-2 text-sm text-ink/70">
             Paste the address from Blink, Wallet of Satoshi, or another wallet.
@@ -328,7 +328,7 @@ export function InvestFlow({
       )}
 
       {step === "amount" && (
-        <section className="rounded-3xl border border-sand bg-white/70 p-6">
+        <section className="card">
           <h2 className="font-serif text-xl text-pine">How much?</h2>
           <p className="mt-2 text-sm text-ink/70">
             Stay at or below your surplus floor ({surplusFloorKes} KES).
@@ -361,7 +361,7 @@ export function InvestFlow({
       )}
 
       {step === "confirm" && (
-        <section className="rounded-3xl border border-sand bg-white/70 p-6">
+        <section className="card">
           <h2 className="font-serif text-xl text-pine">Confirm</h2>
           <ul className="mt-4 space-y-2 text-sm text-ink/80">
             <li>Pay: KES {amountKes}</li>
@@ -385,7 +385,7 @@ export function InvestFlow({
       )}
 
       {step === "status" && purchase && (
-        <section className="rounded-3xl border border-sand bg-white/70 p-6">
+        <section className="card">
           <p className="text-sm text-ink/80">
             {statusMessage(purchase.status, purchase, sandbox, amountKes)}
           </p>
@@ -393,7 +393,7 @@ export function InvestFlow({
       )}
 
       {step === "done" && purchase && (
-        <section className="rounded-3xl border border-sand bg-white/70 p-6">
+        <section className="card">
           <p className="text-sm font-medium text-pine">
             {statusMessage(purchase.status, purchase, sandbox, amountKes)}
           </p>

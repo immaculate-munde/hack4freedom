@@ -9,7 +9,10 @@ let sdkSingleton: BreezSdk | null = null;
 let connectPromise: Promise<BreezSdk> | null = null;
 
 async function loadBreezWasm() {
-  const breez = await import("@breeztech/breez-sdk-spark/web");
+  const breez = await import(
+    /* webpackMode: "lazy" */
+    "@breeztech/breez-sdk-spark/web"
+  );
   if (!initDone) {
     await breez.default();
     initDone = true;

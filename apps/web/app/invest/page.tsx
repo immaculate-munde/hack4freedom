@@ -1,5 +1,5 @@
 import { demoProfiles } from "@pesasense/core";
-import Link from "next/link";
+import { PageFrame } from "../../components/page-frame";
 import { bitikaMode } from "../../lib/bitika";
 import { InvestFlow } from "./invest-flow";
 
@@ -17,35 +17,33 @@ export default async function InvestPage({
 
   if (profile.resilience.bufferFirst || floor < 10) {
     return (
-      <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col px-5 py-10 sm:px-8">
-        <Link href="/" className="btn btn-ghost">Back</Link>
-        <h1 className="mt-4 font-serif text-3xl text-pine">Not ready yet</h1>
-        <p className="mt-3 text-sm text-ink/80">
-          Build your buffer first. Bitcoin comes after your emergency cushion.
-        </p>
-      </main>
+      <PageFrame title="Not ready yet" backHref="/" backLabel="Back to surplus">
+        <section className="card">
+          <p className="text-sm leading-6 text-ink/80">
+            Build your buffer first. Bitcoin comes after your emergency cushion.
+          </p>
+        </section>
+      </PageFrame>
     );
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col px-5 py-10 sm:px-8">
-      <Link href="/" className="btn btn-ghost">Back to surplus</Link>
-      <h1 className="mt-4 font-serif text-3xl text-pine">Invest</h1>
-      <p className="mt-2 text-sm text-ink/70">
-        Demo profile: {demoId === "brian" ? "Brian" : "Amina"} (invented).
-      </p>
-      <div className="mt-6">
-        <InvestFlow
-          surplusFloorKes={floor}
-          defaultAmountKes={planAmount}
-          sandbox={mode === "sandbox"}
-        />
-      </div>
+    <PageFrame
+      title="Invest"
+      backHref="/"
+      backLabel="Back to surplus"
+      description={`Demo profile: ${demoId === "brian" ? "Brian" : "Amina"} (invented).`}
+    >
+      <InvestFlow
+        surplusFloorKes={floor}
+        defaultAmountKes={planAmount}
+        sandbox={mode === "sandbox"}
+      />
       {mode === "missing" ? (
         <p className="mt-4 text-xs text-red-800">
           Set BITIKA_API_KEY in apps/web/.env.local to run purchases.
         </p>
       ) : null}
-    </main>
+    </PageFrame>
   );
 }

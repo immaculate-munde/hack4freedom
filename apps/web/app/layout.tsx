@@ -4,6 +4,7 @@
  */
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import { AppShell } from "../components/app-shell";
 import { Providers } from "./providers";
 import "./globals.css";
 
@@ -33,7 +34,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen bg-paper text-ink antialiased">
-        <Providers>{children}</Providers>
+        <Providers>
+          <AppShell>{children}</AppShell>
+        </Providers>
       </body>
     </html>
   );
