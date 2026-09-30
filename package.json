@@ -2,7 +2,7 @@
   "name": "stak",
   "private": true,
   "version": "0.0.0",
-  "description": "STAK (PesaSense): a private on-device financial profile and a small Bitcoin habit.",
+  "description": "PesaSense: a private on-device financial profile and a small Bitcoin habit.",
   "packageManager": "pnpm@10.18.0",
   "engines": {
     "node": ">=20"

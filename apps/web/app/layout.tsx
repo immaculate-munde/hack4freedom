@@ -1,19 +1,21 @@
 /**
- * Root layout for the STAK PWA.
+ * Root layout for the PesaSense PWA.
  * One shell, no accounts yet. The profile on the home page is synthetic.
  */
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import { AppShell } from "../components/app-shell";
+import { Providers } from "./providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "STAK — Start Tiny, Accumulate Kesho",
+  title: "PesaSense",
   description:
     "A private financial profile and a small Bitcoin habit. Education, not financial advice.",
-  applicationName: "STAK",
+  applicationName: "PesaSense",
   appleWebApp: {
     capable: true,
-    title: "STAK",
+    title: "PesaSense",
     statusBarStyle: "default",
   },
 };
@@ -31,7 +33,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-paper text-ink antialiased">{children}</body>
+      <body className="min-h-screen bg-paper text-ink antialiased">
+        <Providers>
+          <AppShell>{children}</AppShell>
+        </Providers>
+      </body>
     </html>
   );
 }

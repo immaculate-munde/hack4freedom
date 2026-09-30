@@ -6,8 +6,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "STAK — Start Tiny, Accumulate Kesho",
-    short_name: "STAK",
+    name: "PesaSense",
+    short_name: "PesaSense",
     description: "A private financial profile and a small Bitcoin habit.",
     start_url: "/",
     display: "standalone",

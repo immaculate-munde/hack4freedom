@@ -13,6 +13,7 @@ import {
   selectProfile,
   type FinancialProfile,
 } from "@pesasense/core";
+import { PageFrame } from "../components/page-frame";
 
 /** Format a whole-shilling amount the way a Kenyan reader expects. */
 function formatKes(amount: number): string {
@@ -49,12 +50,11 @@ export default async function HomePage({
 
   if (selection.status === "not-ready") {
     return (
-      <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col px-5 py-10 sm:px-8">
-        <h1 className="font-serif text-5xl tracking-tight text-pine">STAK</h1>
-        <p className="mt-2 font-serif text-xl text-ink/80">
-          Start Tiny, Accumulate Kesho
-        </p>
-        <section className="mt-8 rounded-3xl border border-sand bg-white/70 p-6">
+      <PageFrame
+        title="PesaSense"
+        description="Private surplus. Small Bitcoin saves."
+      >
+        <section className="card">
           <h2 className="font-serif text-2xl text-pine">No profile yet</h2>
           <p className="mt-3 text-sm leading-6 text-ink/80">
             Parsed mode is on, and there is no statement to read. Demo numbers are not
@@ -62,7 +62,7 @@ export default async function HomePage({
           </p>
           <p className="mt-3 text-xs leading-5 text-ink/60">{selection.reason}</p>
         </section>
-      </main>
+      </PageFrame>
     );
   }
 
@@ -94,29 +94,70 @@ function SurplusScreen({
   // Place the typical marker between the floor and the ceiling of the range.
   const typicalPercent = Math.round(((typical - floor) / span) * 100);
 
-  return (
-    <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col px-5 py-10 sm:px-8">
-      <div className="flex items-center gap-3">
-        {isDemo ? (
-          <p className="inline-flex rounded-full bg-brass/15 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-brass uppercase">
-            Demo data
-          </p>
-        ) : null}
-        <p className="text-xs font-medium tracking-[0.16em] text-moss uppercase">
-          On this device
-        </p>
-      </div>
-      <h1 className="mt-3 font-serif text-5xl tracking-tight text-pine">STAK</h1>
-      <p className="mt-2 font-serif text-xl text-ink/80">
-        Start Tiny, Accumulate Kesho
-      </p>
-      <p className="mt-4 max-w-md text-sm leading-6 text-ink/70">
-        {isDemo
-          ? `A private picture of ${persona}'s M-Pesa history, and the range they could set aside. This is a description, not a recommendation.`
-          : "A private picture of this history, and the range that could be set aside. This is a description, not a recommendation."}
-      </p>
+  const investHref = demoId === "brian" ? "/invest?profile=brian" : "/invest";
+  const showActions = !resilience.bufferFirst && surplus.monthlyKes.floor >= 10;
 
-      <section className="mt-8 rounded-3xl border border-sand bg-white/70 p-6 shadow-sm">
+  const aside = (
+    <>
+      <section className="card text-sm">
+        <p className="text-xs tracking-wide text-moss uppercase">Typical income</p>
+        <p className="mt-1 text-xl font-semibold text-pine">
+          {formatKes(income.monthlyKes.typical)}
+        </p>
+        <div className="mt-4 border-t border-sand pt-4">
+          <p className="text-xs tracking-wide text-moss uppercase">Buffer</p>
+          <p className="mt-1 font-semibold">
+            {resilience.monthsOfExpensesCovered} months of expenses
+          </p>
+          <p className="mt-1 text-xs text-ink/60">
+            {resilience.bufferFirst
+              ? "Buffer comes first."
+              : "Buffer-first guard is off for this profile."}
+          </p>
+        </div>
+      </section>
+      {showActions ? (
+        <section className="card">
+          <h2 className="font-serif text-lg text-pine">Next step</h2>
+          <p className="mt-2 text-sm leading-6 text-ink/70">
+            Turn surplus into a small Bitcoin habit with your in-app wallet.
+          </p>
+          <div className="action-row mt-4">
+            <a className="btn btn-primary inline-flex justify-center" href={investHref}>
+              Invest
+            </a>
+            <a className="btn btn-secondary inline-flex justify-center" href="/wallet">
+              Wallet
+            </a>
+          </div>
+        </section>
+      ) : null}
+    </>
+  );
+
+  return (
+    <PageFrame
+      title="Surplus"
+      description={
+        <>
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            {isDemo ? (
+              <span className="inline-flex rounded-full bg-brass/15 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-brass uppercase">
+                Demo data
+              </span>
+            ) : null}
+            <span className="text-xs font-medium tracking-[0.16em] text-moss uppercase lg:hidden">
+              On this device
+            </span>
+          </div>
+          {isDemo
+            ? `A private picture of ${persona}'s M-Pesa history, and the range they could set aside. This is a description, not a recommendation.`
+            : "A private picture of this history, and the range that could be set aside. This is a description, not a recommendation."}
+        </>
+      }
+      aside={aside}
+    >
+      <section className="card">
         <h2 className="font-serif text-2xl text-pine">Safe surplus</h2>
         <p className="mt-1 text-sm text-ink/70">
           {formatDay(window.from)} – {formatDay(window.to)} · M-Pesa ·{" "}
@@ -167,23 +208,29 @@ function SurplusScreen({
         </p>
       </section>
 
-      <section className="mt-4 grid grid-cols-2 gap-3 text-sm">
-        <div className="rounded-2xl bg-sand/80 px-4 py-3">
+      <section className="mt-4 grid grid-cols-2 gap-3 text-sm lg:hidden">
+        <div className="stat-tile">
           <p className="text-xs tracking-wide text-moss uppercase">Typical income</p>
           <p className="mt-1 font-semibold">{formatKes(income.monthlyKes.typical)}</p>
         </div>
-        <div className="rounded-2xl bg-sand/80 px-4 py-3">
+        <div className="stat-tile">
           <p className="text-xs tracking-wide text-moss uppercase">Buffer</p>
           <p className="mt-1 font-semibold">
-            {resilience.monthsOfExpensesCovered} months of expenses
-          </p>
-          <p className="mt-1 text-xs text-ink/60">
-            {resilience.bufferFirst
-              ? "Buffer comes first."
-              : "Buffer-first guard is off for this profile."}
+            {resilience.monthsOfExpensesCovered} months
           </p>
         </div>
       </section>
+
+      {showActions ? (
+        <div className="action-row mt-6 lg:hidden">
+          <a className="btn btn-primary inline-flex justify-center" href={investHref}>
+            Invest from surplus
+          </a>
+          <a className="btn btn-secondary inline-flex justify-center" href="/wallet">
+            PesaSense wallet
+          </a>
+        </div>
+      ) : null}
 
       {isDemo ? (
         <p className="mt-6 text-sm text-moss">
@@ -202,6 +249,6 @@ function SurplusScreen({
       <p className="mt-8 text-xs leading-5 text-ink/60">
         {PAST_PERFORMANCE_DISCLAIMER}
       </p>
-    </main>
+    </PageFrame>
   );
 }
