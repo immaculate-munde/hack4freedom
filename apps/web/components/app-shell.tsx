@@ -8,6 +8,7 @@ const NAV = [
   { href: "/", label: "Surplus", match: (p: string) => p === "/" },
   { href: "/invest", label: "Invest", match: (p: string) => p.startsWith("/invest") },
   { href: "/wallet", label: "Wallet", match: (p: string) => p.startsWith("/wallet") },
+  { href: "/chama", label: "Chama", match: (p: string) => p.startsWith("/chama") },
 ] as const;
 
 function NavLink({

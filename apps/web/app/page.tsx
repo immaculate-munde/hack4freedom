@@ -129,6 +129,11 @@ function SurplusScreen({
             <a className="btn btn-secondary inline-flex justify-center" href="/wallet">
               Wallet
             </a>
+            {demoId === "amina" ? (
+              <a className="btn btn-secondary inline-flex justify-center" href="/chama">
+                Chama
+              </a>
+            ) : null}
           </div>
         </section>
       ) : null}
@@ -229,6 +234,11 @@ function SurplusScreen({
           <a className="btn btn-secondary inline-flex justify-center" href="/wallet">
             PesaSense wallet
           </a>
+          {demoId === "amina" ? (
+            <a className="btn btn-secondary inline-flex justify-center" href="/chama">
+              Chama
+            </a>
+          ) : null}
         </div>
       ) : null}
 

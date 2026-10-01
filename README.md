@@ -61,8 +61,8 @@ The demo path for the hackathon is: statement in, profile out, plan set, first p
 | In-app wallet       | Breez SDK Spark in the browser. Create, restore, balance, Lightning receive.         | **`/wallet`**, recovery backup (copy + download). Withdraw: pay `07…@bitcoin.co.ke` in-app.      |
 | App shell           | Surplus home, invest, wallet.                                                        | Desktop sidebar + mobile bottom nav.                                                             |
 | Nostr               | Encrypt the profile (NIP-44). One anonymous aggregate job (NIP-90).                  | Save and load are stubs.                                                                         |
-| Chama ledger        | Records and coordinates. Never holds money.                                          | Cut from this scaffold. Mock later.                                                              |
-| Reliability badge   | Opt-in public badge after a chama cycle.                                             | Mock later. Not started.                                                                         |
+| Chama ledger        | Records who paid whom. Never holds money. One member cannot move another's sats.    | **`/chama` mock** for invented Chama Sisters. Direct Lightning payments only.                    |
+| Reliability badge   | Opt-in note after a chama round. Not published.                                      | Mock on `/chama`, after a round finishes.                                                        |
 
 Crypto history import is a stretch. USSD, Telegram, WhatsApp, and spending Bitcoin through other apps are out of scope for the hackathon.
 
@@ -142,6 +142,7 @@ Hackathon demo path is **partially live**: surplus (demo profiles), **invest (Bi
 - PWA with **AppShell** (mobile tabs + desktop sidebar), home surplus, **`/invest`**, **`/wallet`**
 - **Bitika on-ramp**: `BitikaBitcoinOnRamp`, exchange-rate fallback, API routes, invest UI with sandbox badge
 - **Breez wallet**: create/restore, Lightning address, balance, in-app withdraw to `07…@bitcoin.co.ke`, seed backup download
+- **Chama mock** (`/chama`): Chama Sisters records direct payments to the member whose turn it is. The ledger never holds sats. Reliability note is opt-in and local.
 - `docs/bitika-api.md` and Vitest coverage for wallet/on-ramp helpers
 - Acceptance test for `buildProfile()` (skipped until the profile engine exists)
 
@@ -149,7 +150,7 @@ Hackathon demo path is **partially live**: surplus (demo profiles), **invest (Bi
 
 - SMS/PDF parsing and `buildProfile()` engine (`PROFILE_SOURCE=parsed` shows "no profile")
 - Education, scenarios, `WalletEvent` persistence on the profile
-- NIP-44 save/load, NIP-58 badge, chama ledger
+- NIP-44 save/load (chama reliability note is a local mock, not a published NIP-58 badge)
 - Bitika webhooks (status polling only)
 
 **On-ramp / wallet notes**
