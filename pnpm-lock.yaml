@@ -35,6 +35,9 @@ importers:
       '@pesasense/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@pesasense/nostr':
+        specifier: workspace:*
+        version: link:../../packages/nostr
       '@pesasense/wallet':
         specifier: workspace:*
         version: link:../../packages/wallet

@@ -158,7 +158,7 @@ export function createDemoChamaSisters(): ChamaCircle {
     name: "Chama Sisters",
     kind: "merry_go_round",
     monthlyContributionKes: 2000,
-    memberIdsInOrder: members.map((member) => member.id),
+    memberIdsInOrder: ["chebet", "nyambura", "amina"],
     members,
     cycles: [
       {

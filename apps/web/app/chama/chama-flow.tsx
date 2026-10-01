@@ -63,11 +63,12 @@ export function ChamaFlow() {
     );
   }
 
-  const view = roundView(circle);
-  const actor = circle.members.find((member) => member.id === actorId) ?? circle.members[0];
+  const current = circle;
+  const view = roundView(current);
+  const actor = current.members.find((member) => member.id === actorId) ?? current.members[0];
   const actorRow = actor ? view.rows.find((row) => row.member.id === actor.id) : undefined;
   const badge = actor
-    ? circle.badgeOptIns.find((optIn) => optIn.memberId === actor.id)
+    ? current.badgeOptIns.find((optIn) => optIn.memberId === actor.id)
     : undefined;
 
   function persist(next: ChamaCircle) {
@@ -78,7 +79,7 @@ export function ChamaFlow() {
   function onRecord() {
     if (!actor) return;
     try {
-      persist(recordOwnContribution(circle, actor.id, new Date().toISOString()));
+      persist(recordOwnContribution(current, actor.id, new Date().toISOString()));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not record this contribution.");
     }
@@ -87,7 +88,7 @@ export function ChamaFlow() {
   function onSaveAddress() {
     if (!actor) return;
     try {
-      persist(setOwnLightningAddress(circle, actor.id, addressDraft));
+      persist(setOwnLightningAddress(current, actor.id, addressDraft));
       setAddressDraft("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save that address.");
@@ -97,7 +98,7 @@ export function ChamaFlow() {
   function onUseBreezAddress() {
     if (!actor || actor.id !== "amina" || !wallet.lightningAddress) return;
     try {
-      persist(setOwnLightningAddress(circle, actor.id, wallet.lightningAddress));
+      persist(setOwnLightningAddress(current, actor.id, wallet.lightningAddress));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not use this wallet address.");
     }
@@ -106,7 +107,7 @@ export function ChamaFlow() {
   function onOptIn() {
     if (!actor) return;
     try {
-      persist(optInReliabilityBadge(circle, actor.id, new Date().toISOString()));
+      persist(optInReliabilityBadge(current, actor.id, new Date().toISOString()));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save that note.");
     }
@@ -117,7 +118,7 @@ export function ChamaFlow() {
       <p className="text-xs tracking-wide text-moss uppercase">This round</p>
       <p className="mt-1 font-semibold text-pine">{view.recipient.name} receives</p>
       <p className="mt-2 leading-6 text-ink/70">
-        {formatKes(circle.monthlyContributionKes)} from each other member, paid to{" "}
+        {formatKes(current.monthlyContributionKes)} from each other member, paid to{" "}
         <span className="break-all">{view.recipient.lightningAddress}</span>.
       </p>
       <p className="mt-3 text-ink/70">
@@ -144,9 +145,9 @@ export function ChamaFlow() {
           <span className="inline-flex rounded-full bg-brass/15 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-brass uppercase">
             Demo circle
           </span>
-          <span className="text-xs text-ink/60">KES {circle.monthlyContributionKes} each month</span>
+          <span className="text-xs text-ink/60">KES {current.monthlyContributionKes} each month</span>
         </div>
-        <h2 className="font-serif text-2xl text-pine">{circle.name}</h2>
+        <h2 className="font-serif text-2xl text-pine">{current.name}</h2>
         <p className="mt-2 text-sm leading-6 text-ink/75">
           Still waiting this round: {formatKes(view.waitingKes)}. A finished round is just a
           record that every payer confirmed their own payment.
@@ -163,7 +164,7 @@ export function ChamaFlow() {
               setAddressDraft("");
             }}
           >
-            {circle.members.map((member) => (
+            {current.members.map((member) => (
               <option key={member.id} value={member.id}>
                 {member.name}
               </option>
@@ -192,7 +193,7 @@ export function ChamaFlow() {
 
         {actor && actorRow?.role === "waiting" ? (
           <button type="button" className="btn btn-primary mt-4 w-full" onClick={onRecord}>
-            Record my {formatKes(circle.monthlyContributionKes)} contribution
+            Record my {formatKes(current.monthlyContributionKes)} contribution
           </button>
         ) : null}
         {actor && actorRow?.role === "receives" ? (

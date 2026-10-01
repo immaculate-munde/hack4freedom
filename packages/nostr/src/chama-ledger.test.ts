@@ -17,9 +17,9 @@ describe("chama ledger", () => {
     expect(circle.monthlyContributionKes).toBe(2000);
     expect(view.recipient.id).toBe("chebet");
     expect(view.rows.map((row) => [row.member.id, row.role])).toEqual([
-      ["amina", "waiting"],
       ["chebet", "receives"],
       ["nyambura", "recorded"],
+      ["amina", "waiting"],
     ]);
     expect(view.waitingKes).toBe(2000);
     expect(circle.badgeOptIns).toEqual([]);
