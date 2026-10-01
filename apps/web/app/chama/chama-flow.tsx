@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   createDemoChamaSisters,
   isDemoLightningAddress,
@@ -38,7 +38,9 @@ export function ChamaFlow() {
   const [error, setError] = useState<string | null>(null);
   const [addressDraft, setAddressDraft] = useState("");
   const [quoteSats, setQuoteSats] = useState<number | null>(null);
+  const [quoteFailed, setQuoteFailed] = useState(false);
   const [busy, setBusy] = useState(false);
+  const payLock = useRef(false);
 
   useEffect(() => {
     const saved = window.localStorage.getItem(STORAGE_KEY);
@@ -70,12 +72,20 @@ export function ChamaFlow() {
     })
       .then(async (res) => {
         const data = (await res.json()) as { estimatedSats?: number };
-        if (!cancelled && res.ok && typeof data.estimatedSats === "number") {
-          setQuoteSats(data.estimatedSats);
+        if (cancelled) return;
+        if (res.ok && typeof data.estimatedSats === "number" && Number.isFinite(data.estimatedSats)) {
+          setQuoteSats(Math.round(data.estimatedSats));
+          setQuoteFailed(false);
+          return;
         }
+        setQuoteSats(null);
+        setQuoteFailed(true);
       })
       .catch(() => {
-        if (!cancelled) setQuoteSats(null);
+        if (!cancelled) {
+          setQuoteSats(null);
+          setQuoteFailed(true);
+        }
       });
     return () => {
       cancelled = true;
@@ -91,8 +101,39 @@ export function ChamaFlow() {
   }
 
   const current = circle;
-  const view = roundView(current);
-  const demoDestination = isDemoLightningAddress(view.recipient.lightningAddress);
+  let view: ReturnType<typeof roundView> | null = null;
+  try {
+    view = roundView(current);
+  } catch {
+    view = null;
+  }
+  if (!view) {
+    return (
+      <PageFrame title="Chama" description="This saved circle cannot be read.">
+        <section className="card">
+          <p className="text-sm leading-6 text-ink/75">
+            The saved chama record is incomplete, so it was not applied.
+          </p>
+          <button
+            type="button"
+            className="btn btn-primary mt-4"
+            onClick={() => {
+              const fresh = createDemoChamaSisters();
+              window.localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh));
+              setCircle(fresh);
+              setActorId("amina");
+              setError(null);
+              setAddressDraft("");
+            }}
+          >
+            Reset demo circle
+          </button>
+        </section>
+      </PageFrame>
+    );
+  }
+  const demoDestination = isDemoLightningAddress(view.payDestination);
+  const satsToSend = quoteSats !== null && quoteSats > 0 ? quoteSats : null;
   const actor = current.members.find((member) => member.id === actorId) ?? current.members[0];
   const ownsThisWallet =
     wallet.status === "ready" &&
@@ -109,7 +150,7 @@ export function ChamaFlow() {
   }
 
   function onRecordDemo() {
-    if (!actor || busy) return;
+    if (!actor || busy || payLock.current) return;
     try {
       persist(recordOwnContribution(current, actor.id, new Date().toISOString()));
     } catch (err) {
@@ -118,28 +159,25 @@ export function ChamaFlow() {
   }
 
   async function onPayFromWallet() {
-    if (!actor || busy) return;
+    if (!actor || busy || payLock.current || !satsToSend) return;
     if (wallet.status !== "ready" || wallet.lightningAddress !== actor.lightningAddress) {
       setError("Pay from the wallet that matches this member's Lightning address.");
       return;
     }
-    if (!quoteSats) {
-      setError("Still working out the sats amount. Try again in a moment.");
-      return;
-    }
-    if (wallet.balanceSats < quoteSats) {
+    if (wallet.balanceSats < satsToSend) {
       setError(
-        `This wallet has ${wallet.balanceSats} sats. About ${quoteSats} sats are needed.`,
+        `This wallet has ${wallet.balanceSats} sats. About ${satsToSend} sats are needed.`,
       );
       return;
     }
+    payLock.current = true;
     setBusy(true);
     setError(null);
     try {
       const next = await payAndRecord(
         current,
         actor.id,
-        quoteSats,
+        satsToSend,
         new Date().toISOString(),
         (destination, amountSats) => wallet.withdrawSats(amountSats, destination),
       );
@@ -147,6 +185,7 @@ export function ChamaFlow() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "The payment did not finish.");
     } finally {
+      payLock.current = false;
       setBusy(false);
     }
   }
@@ -185,7 +224,10 @@ export function ChamaFlow() {
       <p className="mt-1 font-semibold text-pine">{view.recipient.name} receives</p>
       <p className="mt-2 leading-6 text-ink/70">
         {formatKes(current.monthlyContributionKes)} from each other member, paid to{" "}
-        <span className="break-all">{view.recipient.lightningAddress}</span>.
+        <span className="break-all">{view.payDestination}</span>.
+        {view.payDestination !== view.recipient.lightningAddress ? (
+          <> This round stays on that address because a payment already went there.</>
+        ) : null}
       </p>
       <p className="mt-3 text-ink/70">
         {view.completedRounds === 0
@@ -224,6 +266,7 @@ export function ChamaFlow() {
           <select
             className="field mt-2"
             value={actor?.id ?? ""}
+            disabled={busy}
             onChange={(event) => {
               setActorId(event.target.value);
               setError(null);
@@ -258,7 +301,12 @@ export function ChamaFlow() {
         </ul>
 
         {actor && actorRow?.role === "waiting" && demoDestination ? (
-          <button type="button" className="btn btn-primary mt-4 w-full" onClick={onRecordDemo}>
+          <button
+            type="button"
+            className="btn btn-primary mt-4 w-full"
+            disabled={busy}
+            onClick={onRecordDemo}
+          >
             Record demo contribution ({formatKes(current.monthlyContributionKes)}, no sats sent)
           </button>
         ) : null}
@@ -266,18 +314,22 @@ export function ChamaFlow() {
           <button
             type="button"
             className="btn btn-primary mt-4 w-full"
-            disabled={busy}
+            disabled={busy || !satsToSend}
             onClick={() => void onPayFromWallet()}
           >
             {busy
               ? "Sending from your wallet…"
-              : `Pay about ${quoteSats ?? "…"} sats from my wallet`}
+              : satsToSend
+                ? `Pay ${satsToSend} sats from my wallet`
+                : quoteFailed
+                  ? "Could not price this contribution"
+                  : "Pricing this contribution…"}
           </button>
         ) : null}
         {actor && actorRow?.role === "waiting" && !demoDestination && !ownsThisWallet ? (
           <p className="mt-4 text-sm leading-6 text-ink/75">
-            This round pays {view.recipient.lightningAddress}. Open the wallet on this phone and
-            save that address as your own before sending. This phone cannot pay for someone else.
+            This round pays {view.payDestination}. Save this phone's own Breez address on your
+            member profile, then pay from that wallet. This phone cannot pay for someone else.
           </p>
         ) : null}
         {actor && actorRow?.role === "receives" ? (
@@ -309,8 +361,14 @@ export function ChamaFlow() {
             placeholder="name@wallet.com"
             aria-label="Your Lightning address"
             onChange={(event) => setAddressDraft(event.target.value)}
+            disabled={busy}
           />
-          <button type="button" className="btn btn-secondary shrink-0" onClick={onSaveAddress}>
+          <button
+            type="button"
+            className="btn btn-secondary shrink-0"
+            disabled={busy}
+            onClick={onSaveAddress}
+          >
             Save my address
           </button>
         </div>
@@ -334,7 +392,7 @@ export function ChamaFlow() {
           <button
             type="button"
             className="btn btn-secondary mt-4"
-            disabled={view.completedRounds === 0}
+            disabled={busy || view.completedRounds === 0}
             onClick={onOptIn}
           >
             Keep a note for this phone
@@ -345,6 +403,7 @@ export function ChamaFlow() {
       <button
         type="button"
         className="btn btn-ghost mt-4"
+        disabled={busy}
         onClick={() => {
           const fresh = createDemoChamaSisters();
           window.localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh));

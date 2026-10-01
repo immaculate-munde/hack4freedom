@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   ChamaLedgerError,
   createDemoChamaSisters,
+  isDemoLightningAddress,
   optInReliabilityBadge,
+  parseChamaCircle,
   payAndRecord,
   recordOwnContribution,
   roundView,
@@ -171,5 +173,136 @@ describe("chama ledger", () => {
         async () => {},
       ),
     ).rejects.toThrow(/demo address/);
+  });
+
+  it("walks every member once, then starts the next turn at the first member", () => {
+    let circle = createDemoChamaSisters();
+    const at = "2026-10-01T12:00:00.000Z";
+
+    circle = recordOwnContribution(circle, "amina", at);
+    expect(roundView(circle).recipient.id).toBe("nyambura");
+
+    circle = recordOwnContribution(circle, "chebet", at);
+    circle = recordOwnContribution(circle, "amina", at);
+    expect(roundView(circle).recipient.id).toBe("amina");
+    expect(() => recordOwnContribution(circle, "amina", at)).toThrow(/does not pay into it/);
+
+    circle = recordOwnContribution(circle, "chebet", at);
+    circle = recordOwnContribution(circle, "nyambura", at);
+    const view = roundView(circle);
+    expect(view.recipient.id).toBe("chebet");
+    expect(view.cycle.index).toBe(3);
+    expect(view.completedRounds).toBe(3);
+    expect(view.rows.map((row) => row.role)).toEqual(["receives", "waiting", "waiting"]);
+  });
+
+  it("keeps later payments on the address that already received sats", async () => {
+    const open = createDemoChamaSisters();
+    open.contributions = [];
+    let circle = setOwnLightningAddress(open, "chebet", "first@pay.example.net");
+    const at = "2026-10-01T12:00:00.000Z";
+    circle = await payAndRecord(circle, "amina", 1000, at, async () => {});
+    circle = setOwnLightningAddress(circle, "chebet", "second@pay.example.net");
+
+    const view = roundView(circle);
+    expect(view.recipient.lightningAddress).toBe("second@pay.example.net");
+    expect(view.payDestination).toBe("first@pay.example.net");
+
+    const sent: string[] = [];
+    circle = await payAndRecord(circle, "nyambura", 1000, at, async (destination) => {
+      sent.push(destination);
+    });
+    expect(sent).toEqual(["first@pay.example.net"]);
+    expect(circle.cycles[0]?.status).toBe("complete");
+  });
+
+  it("records the address that was paid even if the profile address changes mid-send", async () => {
+    const open = createDemoChamaSisters();
+    open.contributions = [];
+    const circle = setOwnLightningAddress(open, "chebet", "chebet@pay.example.net");
+    const next = await payAndRecord(
+      circle,
+      "amina",
+      1000,
+      "2026-10-01T12:00:00.000Z",
+      async () => {
+        const chebet = circle.members.find((member) => member.id === "chebet");
+        if (chebet) {
+          chebet.lightningAddress = "stolen@evil.test";
+        }
+      },
+    );
+    expect(next.contributions.find((record) => record.payerId === "amina")?.destination).toBe(
+      "chebet@pay.example.net",
+    );
+  });
+
+  it("rejects a non-whole sats amount before asking the wallet to send", async () => {
+    const ready = setOwnLightningAddress(
+      createDemoChamaSisters(),
+      "chebet",
+      "chebet@pay.example.net",
+    );
+    let called = false;
+    await expect(
+      payAndRecord(ready, "amina", 1.5, "2026-10-01T12:00:00.000Z", async () => {
+        called = true;
+      }),
+    ).rejects.toThrow(/whole sats/);
+    expect(called).toBe(false);
+  });
+
+  it("trims a receive address and treats only example.com as a demo wallet", () => {
+    const next = setOwnLightningAddress(
+      createDemoChamaSisters(),
+      "amina",
+      "  Amina@Wallet.example.com  ",
+    );
+    expect(next.members.find((member) => member.id === "amina")?.lightningAddress).toBe(
+      "Amina@Wallet.example.com",
+    );
+    expect(isDemoLightningAddress("  Person@Example.com ")).toBe(true);
+    expect(isDemoLightningAddress("person@sub.example.com")).toBe(false);
+  });
+
+  it("drops a saved circle that could crash the round or fake a payment", () => {
+    const saved = createDemoChamaSisters();
+    expect(parseChamaCircle(JSON.parse(JSON.stringify(saved)))?.name).toBe("Chama Sisters");
+
+    const missingSettlement = JSON.parse(JSON.stringify(saved)) as {
+      contributions: Array<{ settlement?: string }>;
+    };
+    delete missingSettlement.contributions[0]?.settlement;
+    expect(parseChamaCircle(missingSettlement)?.contributions[0]?.settlement).toBe("demo");
+
+    const broken = JSON.parse(JSON.stringify(saved)) as {
+      cycles: Array<{ recipientId: string }>;
+    };
+    broken.cycles[0]!.recipientId = "missing-member";
+    expect(parseChamaCircle(broken)).toBeNull();
+
+    const twoOpen = JSON.parse(JSON.stringify(saved)) as {
+      cycles: Array<{ id: string; index: number; recipientId: string; status: string }>;
+    };
+    twoOpen.cycles.push({
+      id: "cycle-extra",
+      index: 1,
+      recipientId: "nyambura",
+      status: "open",
+    });
+    expect(parseChamaCircle(twoOpen)).toBeNull();
+
+    const fakePaid = JSON.parse(JSON.stringify(saved)) as {
+      contributions: Array<{ amountKes: number }>;
+    };
+    fakePaid.contributions[0]!.amountKes = 1;
+    expect(parseChamaCircle(fakePaid)).toBeNull();
+
+    const lightningWithoutSats = JSON.parse(JSON.stringify(saved)) as {
+      contributions: Array<{ settlement: string; destination: string; amountSats?: number }>;
+    };
+    lightningWithoutSats.contributions[0]!.settlement = "lightning";
+    lightningWithoutSats.contributions[0]!.destination = "chebet@pay.example.net";
+    expect(parseChamaCircle(lightningWithoutSats)).toBeNull();
   });
 });

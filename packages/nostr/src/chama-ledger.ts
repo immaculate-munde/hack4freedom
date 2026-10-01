@@ -89,6 +89,11 @@ export interface RoundRow {
 export interface RoundView {
   cycle: ChamaCycle;
   recipient: ChamaMember;
+  /**
+   * Where this round's payments go. After the first Lightning payment, later
+   * payers use that same address even if the recipient edits their profile.
+   */
+  payDestination: string;
   rows: RoundRow[];
   completedRounds: number;
   /** Whole KES still waiting on members who have not recorded. */
@@ -198,9 +203,25 @@ export function createDemoChamaSisters(): ChamaCircle {
   };
 }
 
+/** Address already used by a Lightning payment in this round, if one exists. */
+export function lockedPayDestination(circle: ChamaCircle, cycleId: string): string | null {
+  const paid = circle.contributions.filter(
+    (record) => record.cycleId === cycleId && record.settlement === "lightning",
+  );
+  const first = paid[0];
+  if (!first) {
+    return null;
+  }
+  if (paid.some((record) => record.destination !== first.destination)) {
+    throw new ChamaLedgerError("This round has payments to more than one address.");
+  }
+  return first.destination;
+}
+
 export function roundView(circle: ChamaCircle): RoundView {
   const cycle = openCycle(circle);
   const recipient = requireMember(circle, cycle.recipientId);
+  const payDestination = lockedPayDestination(circle, cycle.id) ?? recipient.lightningAddress;
   const recorded = new Set(
     circle.contributions
       .filter((record) => record.cycleId === cycle.id)
@@ -220,6 +241,7 @@ export function roundView(circle: ChamaCircle): RoundView {
   return {
     cycle,
     recipient,
+    payDestination,
     rows,
     completedRounds: circle.cycles.filter((item) => item.status === "complete").length,
     waitingKes: waiting * circle.monthlyContributionKes,
@@ -248,7 +270,7 @@ export function contributionIntent(circle: ChamaCircle, actorId: string): Contri
   }
   const recipient = requireMember(circle, cycle.recipientId);
   return {
-    destination: recipient.lightningAddress,
+    destination: lockedPayDestination(circle, cycle.id) ?? recipient.lightningAddress,
     amountKes: circle.monthlyContributionKes,
     recipientId: recipient.id,
     cycleId: cycle.id,
@@ -260,10 +282,14 @@ function appendContribution(
   actorId: string,
   recordedAt: string,
   settlement: ContributionRecord["settlement"],
+  intent: ContributionIntent,
   amountSats?: number,
 ): ChamaCircle {
   const next = clone(circle);
-  const intent = contributionIntent(next, actorId);
+  const stillOpen = contributionIntent(next, actorId);
+  if (stillOpen.cycleId !== intent.cycleId || stillOpen.recipientId !== intent.recipientId) {
+    throw new ChamaLedgerError("This round changed before the payment could be recorded.");
+  }
   next.contributions.push({
     id: `contrib-${intent.cycleId}-${actorId}`,
     cycleId: intent.cycleId,
@@ -298,8 +324,14 @@ function appendContribution(
   if (!recipientId) {
     throw new ChamaLedgerError("This chama has no members to rotate to.");
   }
+  let id = `cycle-${nextIndex}`;
+  let suffix = 2;
+  while (next.cycles.some((cycle) => cycle.id === id)) {
+    id = `cycle-${nextIndex}-${suffix}`;
+    suffix += 1;
+  }
   next.cycles.push({
-    id: `cycle-${nextIndex}`,
+    id,
     index: nextIndex,
     recipientId,
     status: "open",
@@ -322,7 +354,7 @@ export function recordOwnContribution(
       "This recipient uses a real Lightning address. Pay from your own wallet.",
     );
   }
-  return appendContribution(circle, actorId, recordedAt, "demo");
+  return appendContribution(circle, actorId, recordedAt, "demo", intent);
 }
 
 /**
@@ -336,7 +368,7 @@ export async function payAndRecord(
   recordedAt: string,
   send: (destination: string, amountSats: number) => Promise<void>,
 ): Promise<ChamaCircle> {
-  if (!Number.isInteger(amountSats) || amountSats <= 0) {
+  if (!Number.isSafeInteger(amountSats) || amountSats <= 0) {
     throw new ChamaLedgerError("A Lightning payment needs a positive whole sats amount.");
   }
   const intent = contributionIntent(circle, actorId);
@@ -346,7 +378,7 @@ export async function payAndRecord(
     );
   }
   await send(intent.destination, amountSats);
-  return appendContribution(circle, actorId, recordedAt, "lightning", amountSats);
+  return appendContribution(circle, actorId, recordedAt, "lightning", intent, amountSats);
 }
 
 /**
@@ -392,27 +424,217 @@ export function optInReliabilityBadge(
   return next;
 }
 
+function isPositiveInt(value: unknown): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value > 0;
+}
+
+/**
+ * Restore a circle from storage. Anything that could crash a round, or count
+ * a payment that did not happen, is rejected so the screen can start clean.
+ */
 export function parseChamaCircle(value: unknown): ChamaCircle | null {
-  if (!value || typeof value !== "object") {
+  try {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return null;
+    }
+    const raw = value as Partial<ChamaCircle>;
+    if (raw.id !== "chama-sisters" || raw.name !== "Chama Sisters") {
+      return null;
+    }
+    const kind = raw.kind ?? "merry_go_round";
+    if (kind !== "merry_go_round" && kind !== "welfare" && kind !== "investment" && kind !== "other") {
+      return null;
+    }
+    if (!isPositiveInt(raw.monthlyContributionKes)) {
+      return null;
+    }
+    if (!Array.isArray(raw.members) || raw.members.length < 2) {
+      return null;
+    }
+    if (!Array.isArray(raw.memberIdsInOrder) || !Array.isArray(raw.cycles)) {
+      return null;
+    }
+    if (!Array.isArray(raw.contributions) || !Array.isArray(raw.badgeOptIns)) {
+      return null;
+    }
+
+    const members: ChamaMember[] = [];
+    for (const member of raw.members) {
+      if (!member || typeof member.id !== "string" || member.id.trim() === "") {
+        return null;
+      }
+      if (typeof member.name !== "string" || member.name.trim() === "") {
+        return null;
+      }
+      if (typeof member.lightningAddress !== "string" || !LIGHTNING_ADDRESS.test(member.lightningAddress.trim())) {
+        return null;
+      }
+      members.push({
+        id: member.id,
+        name: member.name,
+        lightningAddress: member.lightningAddress.trim(),
+      });
+    }
+    const memberIds = members.map((member) => member.id);
+    if (new Set(memberIds).size !== memberIds.length) {
+      return null;
+    }
+    if (
+      raw.memberIdsInOrder.length !== memberIds.length ||
+      raw.memberIdsInOrder.some((id) => typeof id !== "string" || !memberIds.includes(id)) ||
+      new Set(raw.memberIdsInOrder).size !== memberIds.length
+    ) {
+      return null;
+    }
+
+    const cycles: ChamaCycle[] = [];
+    for (const cycle of raw.cycles) {
+      if (!cycle || typeof cycle.id !== "string" || cycle.id.trim() === "") {
+        return null;
+      }
+      if (typeof cycle.index !== "number" || !Number.isSafeInteger(cycle.index) || cycle.index < 0) {
+        return null;
+      }
+      if (cycle.status !== "open" && cycle.status !== "complete") {
+        return null;
+      }
+      if (typeof cycle.recipientId !== "string" || !memberIds.includes(cycle.recipientId)) {
+        return null;
+      }
+      const expected = raw.memberIdsInOrder[cycle.index % raw.memberIdsInOrder.length];
+      if (cycle.recipientId !== expected) {
+        return null;
+      }
+      cycles.push({
+        id: cycle.id,
+        index: cycle.index,
+        recipientId: cycle.recipientId,
+        status: cycle.status,
+      });
+    }
+    if (new Set(cycles.map((cycle) => cycle.id)).size !== cycles.length) {
+      return null;
+    }
+    if (cycles.filter((cycle) => cycle.status === "open").length !== 1) {
+      return null;
+    }
+
+    const contributions: ContributionRecord[] = [];
+    const seenPayers = new Set<string>();
+    for (const record of raw.contributions) {
+      if (!record || typeof record.id !== "string" || record.id.trim() === "") {
+        return null;
+      }
+      const cycle = cycles.find((item) => item.id === record.cycleId);
+      if (!cycle || record.recipientId !== cycle.recipientId) {
+        return null;
+      }
+      if (typeof record.payerId !== "string" || !memberIds.includes(record.payerId)) {
+        return null;
+      }
+      if (record.payerId === cycle.recipientId) {
+        return null;
+      }
+      if (record.amountKes !== raw.monthlyContributionKes) {
+        return null;
+      }
+      if (typeof record.destination !== "string" || !LIGHTNING_ADDRESS.test(record.destination.trim())) {
+        return null;
+      }
+      if (typeof record.recordedAt !== "string" || record.recordedAt.trim() === "") {
+        return null;
+      }
+      const payerKey = `${cycle.id}:${record.payerId}`;
+      if (seenPayers.has(payerKey)) {
+        return null;
+      }
+      seenPayers.add(payerKey);
+
+      const destination = record.destination.trim();
+      let settlement: ContributionRecord["settlement"];
+      if (record.settlement === "lightning") {
+        settlement = "lightning";
+      } else if (
+        record.settlement === "demo" ||
+        (record.settlement === undefined && isDemoLightningAddress(destination))
+      ) {
+        settlement = "demo";
+      } else {
+        return null;
+      }
+      if (settlement === "lightning") {
+        if (!isPositiveInt(record.amountSats) || isDemoLightningAddress(destination)) {
+          return null;
+        }
+      }
+
+      contributions.push({
+        id: record.id,
+        cycleId: cycle.id,
+        payerId: record.payerId,
+        recipientId: cycle.recipientId,
+        amountKes: raw.monthlyContributionKes,
+        amountSats: settlement === "lightning" ? record.amountSats : undefined,
+        settlement,
+        destination,
+        recordedAt: record.recordedAt,
+      });
+    }
+
+    for (const cycle of cycles) {
+      const required = raw.memberIdsInOrder.filter((id) => id !== cycle.recipientId);
+      const paid = contributions.filter((record) => record.cycleId === cycle.id);
+      const complete = required.every((id) => paid.some((record) => record.payerId === id));
+      if (cycle.status === "complete" && !complete) {
+        return null;
+      }
+      if (cycle.status === "open" && complete) {
+        return null;
+      }
+    }
+
+    const badgeOptIns: BadgeOptIn[] = [];
+    const seenBadges = new Set<string>();
+    for (const optIn of raw.badgeOptIns) {
+      if (!optIn || typeof optIn.memberId !== "string" || !memberIds.includes(optIn.memberId)) {
+        return null;
+      }
+      if (seenBadges.has(optIn.memberId)) {
+        return null;
+      }
+      seenBadges.add(optIn.memberId);
+      const proof = optIn.proof;
+      if (!proof || proof.kind !== "reliability_badge") {
+        return null;
+      }
+      if (typeof proof.id !== "string" || typeof proof.createdAt !== "string" || proof.createdAt.trim() === "") {
+        return null;
+      }
+      badgeOptIns.push({
+        memberId: optIn.memberId,
+        proof: {
+          id: proof.id,
+          kind: "reliability_badge",
+          ref: typeof proof.ref === "string" ? proof.ref : undefined,
+          createdAt: proof.createdAt,
+        },
+      });
+    }
+
+    const parsed: ChamaCircle = {
+      id: "chama-sisters",
+      name: "Chama Sisters",
+      kind,
+      monthlyContributionKes: raw.monthlyContributionKes,
+      memberIdsInOrder: [...raw.memberIdsInOrder],
+      members,
+      cycles,
+      contributions,
+      badgeOptIns,
+    };
+    roundView(parsed);
+    return parsed;
+  } catch {
     return null;
   }
-  const circle = value as Partial<ChamaCircle>;
-  if (circle.id !== "chama-sisters" || circle.name !== "Chama Sisters") {
-    return null;
-  }
-  if (!Array.isArray(circle.members) || circle.members.length < 2) {
-    return null;
-  }
-  if (!Array.isArray(circle.cycles) || !circle.cycles.some((cycle) => cycle?.status === "open")) {
-    return null;
-  }
-  if (!Array.isArray(circle.contributions) || !Array.isArray(circle.badgeOptIns)) {
-    return null;
-  }
-  const parsed = clone(circle as ChamaCircle);
-  parsed.contributions = parsed.contributions.map((record) => ({
-    ...record,
-    settlement: record.settlement === "lightning" ? "lightning" : "demo",
-  }));
-  return parsed;
 }
