@@ -2,7 +2,12 @@
 
 import type { ReactNode } from "react";
 import { BreezWalletProvider } from "../contexts/breez-wallet-context";
+import { ProfileProvider } from "../contexts/profile-context";
 
 export function Providers({ children }: { children: ReactNode }) {
-  return <BreezWalletProvider>{children}</BreezWalletProvider>;
+  return (
+    <ProfileProvider>
+      <BreezWalletProvider>{children}</BreezWalletProvider>
+    </ProfileProvider>
+  );
 }
