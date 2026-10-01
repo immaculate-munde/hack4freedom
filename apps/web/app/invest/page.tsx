@@ -1,6 +1,7 @@
 import { demoProfiles } from "@pesasense/core";
 import { PageFrame } from "../../components/page-frame";
 import { bitikaMode } from "../../lib/bitika";
+import { WalletActivity } from "../../components/wallet-activity";
 import { InvestFlow } from "./invest-flow";
 
 export default async function InvestPage({
@@ -35,10 +36,12 @@ export default async function InvestPage({
       description={`Demo profile: ${demoId === "brian" ? "Brian" : "Amina"} (invented).`}
     >
       <InvestFlow
+        profileId={demoId}
         surplusFloorKes={floor}
         defaultAmountKes={planAmount}
         sandbox={mode === "sandbox"}
       />
+      <WalletActivity profileId={demoId} />
       {mode === "missing" ? (
         <p className="mt-4 text-xs text-red-800">
           Set BITIKA_API_KEY in apps/web/.env.local to run purchases.

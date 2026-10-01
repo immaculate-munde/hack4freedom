@@ -13,6 +13,7 @@ import {
   selectProfile,
   type FinancialProfile,
 } from "@pesasense/core";
+import { WalletActivity } from "../components/wallet-activity";
 import { PageFrame } from "../components/page-frame";
 
 /** Format a whole-shilling amount the way a Kenyan reader expects. */
@@ -212,6 +213,8 @@ function SurplusScreen({
               }.`}
         </p>
       </section>
+
+      {isDemo ? <WalletActivity profileId={demoId} /> : null}
 
       <section className="mt-4 grid grid-cols-2 gap-3 text-sm lg:hidden">
         <div className="stat-tile">
