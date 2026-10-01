@@ -1,0 +1,40 @@
+# Demo script
+
+For judges and anyone else walking the live path. Each row is one action, what it proves, and what to say if it breaks.
+
+Start the app with the steps in the README. Copy `apps/web/.env.example` to `apps/web/.env.local` and set `BITIKA_API_KEY` (sandbox `bk_test_…`) and `NEXT_PUBLIC_BREEZ_API_KEY` before the wallet and invest beats.
+
+A first visit in a fresh browser opens `/welcome`, because `hasSeenWelcome` is not set yet. Tap **Get started**. That stores the flag and opens `/onboarding`. You can leave the questions and open `/overview` directly. The questions are a draft in `sessionStorage`. They are not the financial profile.
+
+## Clicks
+
+| Action | What it proves | If it breaks |
+| --- | --- | --- |
+| Open `/welcome` and tap **Get started** | The first screen states three promises: data stays on the phone, the app never holds the money, and there is no trading pressure. | Open `/overview` after the flag is set. A blank linen screen means the redirect has not finished. |
+| Open `/import`, type any password, and ask it to read a statement or pasted SMS | Parsing is honest. `parseStatement` and `parseSmsBatch` throw `Not implemented`. The screen says reading a statement is coming soon and opens the demo profile. The password is not saved. | Read the notice. Do not claim a statement was parsed. The demo password on the fixture PDF is `demo-statement`. |
+| Open `/overview` | Amina (invented). **Demo data** badge. Safe monthly surplus **KES 2,000 – KES 15,500**. Typical KES 11,500. Habit **KES 1,500 / month**. The numbers come from `packages/core/src/fixtures/profiles/amina.profile.json`. | If the page says no profile, `PROFILE_SOURCE=parsed` is on. Unset it, or set `PROFILE_SOURCE=demo`, and restart `pnpm dev`. |
+| Open `/overview?profile=brian` | Brian (invented). Copy says the buffer comes first. Surplus floor is KES 0. | The query is ignored in parsed mode. Use demo mode. |
+| Open `/invest?profile=brian` | The buy screen refuses. Title: **Not ready yet.** | If a buy form appears, the URL lost `?profile=brian`. |
+| Open `/surplus` | Commitments and spending rows from the same profile. The range is the profile's surplus, not a figure typed into the layout. | Same parsed-mode fallback as overview. |
+| Open `/habit` | The draft amount stays under the floor. Cadence is monthly. Nothing is sent from this screen. | Brian's habit explains the buffer. It does not offer a buy. |
+| Open `/learn` | Three short guides (what Bitcoin is, why 3 to 5 years, how self-custody works) and scam red flags. | This screen does not call `runScenario`. Historical low / median / high is still a stub. |
+| On `/overview`, **Save encrypted copy** | NIP-44 encrypt-to-self, published as a kind `30078` event with `d` tag `pesasense-profile:v1`. The secret is `pesasense.nostr-secret.v1` in `localStorage`. Success text starts with `Encrypted copy saved`. | Relay unreachable: say the key never left the browser, and the default relay is `wss://relay.damus.io`. Set `NEXT_PUBLIC_NOSTR_RELAYS` if you have another. |
+| **Load encrypted copy** | Decrypts that event and restores device `WalletEvent`s for this profile id. | `No encrypted profile is stored yet` means save has not succeeded on this key. |
+| **Share surplus range** | A fresh key publishes kind `5910` with floor, typical, ceiling, and horizon only. The success text says no phone number or wallet address was included. | Same relay fallback as save. |
+| Open `/wallet` and create a wallet | Breez SDK Spark (WASM) in the browser. Show the recovery phrase, then the backup step. The phrase is not sent to PesaSense. | Create fails until `NEXT_PUBLIC_BREEZ_API_KEY` is set. Restore with the 12 words if create already succeeded in this browser. |
+| Open `/invest` | Sandbox badge when the key is `bk_test_`. Amount stays between KES 10 and Amina's floor of KES 2,000. Bitika's own cap is KES 10,000. **Approve and pay with M-Pesa** is the explicit yes. | Missing key: the page says to set `BITIKA_API_KEY`. Sandbox does not prompt a real phone and may not fund the Breez balance. Say that before anyone checks the wallet. |
+| Phone ending `000001` | Bitika status `failed`. | Use it on purpose when you want the failure path. |
+| Phone ending `000002` | Bitika status `payment_failed`. | Same. Any other sandbox phone simulates a payment. |
+| Wait on the invest status | The browser polls `GET /api/onramp/status/:code`. A signed webhook can fill the same record sooner. The record lives in memory for this server process. | If the webhook never arrives, polling is the path that still works. Restarting the server drops the in-memory record. The device `WalletEvent` in `localStorage` remains. |
+| **Withdraw to M-Pesa (in app)** on Invest, after a funded wallet | Breez sends sats to `07…@bitcoin.co.ke`. KES on M-Pesa is bitcoin.co.ke's rail. | Sandbox buys often leave the wallet unfunded. Skip withdraw and describe this sentence. Do not invent a balance. |
+| Open `/chama` | Chama Sisters, invented, in `localStorage` under `pesasense.chama.v1`. This phone is Amina. Addresses ending `@example.com` are demo addresses. | **Reset demo circle** restores the invented members. |
+| **Record demo contribution** | Records that this member says they paid the current recipient. The button says no sats were sent. One member cannot record or redirect another's payment. | If the button is missing, this phone's address is not an `@example.com` address, or this member is the recipient this round. |
+| Replace Amina's address with a real Lightning address, **Use my Breez address**, then **Pay … sats from my wallet** | `payAndRecord` sends from the Breez wallet that matches this member, then records the settlement. The ledger still holds no balance. | Quote failure: the invest quote route needs the Bitika key. Wallet locked: unlock it on `/wallet` first. A demo address never takes this button. |
+| After a finished round, **Keep a note for this phone** | Opt-in reliability note stored on the circle record. It is not a published NIP-58 badge. The button stays disabled until a round has finished. | Say the note is local. Do not call it a public credential. |
+
+## What to leave unsaid
+
+- Do not say a statement was parsed. Import falls through to Amina on purpose.
+- Do not say the sandbox funded a wallet unless the balance on `/wallet` changed.
+- Do not call Bitika or bitcoin.co.ke licensed. See [regulation.md](regulation.md).
+- Do not describe eCash. This demo does not use it.
