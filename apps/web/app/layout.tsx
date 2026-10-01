@@ -5,6 +5,7 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { AppShell } from "../components/app-shell";
+import { FirstRunRedirect } from "../components/first-run-redirect";
 import { Providers } from "./providers";
 import "./globals.css";
 
@@ -35,7 +36,9 @@ export default function RootLayout({
     <html lang="en">
       <body className="min-h-screen bg-paper text-ink antialiased">
         <Providers>
-          <AppShell>{children}</AppShell>
+          <FirstRunRedirect>
+            <AppShell>{children}</AppShell>
+          </FirstRunRedirect>
         </Providers>
       </body>
     </html>
