@@ -3,6 +3,7 @@ import {
   ChamaLedgerError,
   createDemoChamaSisters,
   optInReliabilityBadge,
+  payAndRecord,
   recordOwnContribution,
   roundView,
   setOwnLightningAddress,
@@ -35,6 +36,7 @@ describe("chama ledger", () => {
       recipientId: "chebet",
       amountKes: 2000,
       destination: "chebet.demo@example.com",
+      settlement: "demo",
     });
     expect(next.cycles[0]?.status).toBe("complete");
     expect(next.cycles[1]).toMatchObject({
@@ -105,5 +107,69 @@ describe("chama ledger", () => {
       },
     ]);
     expect(again.badgeOptIns).toHaveLength(1);
+  });
+
+  it("sends only to the recipient, then records the sats and closes the round", async () => {
+    const ready = setOwnLightningAddress(
+      createDemoChamaSisters(),
+      "chebet",
+      "chebet@pay.example.net",
+    );
+    const sent: Array<[string, number]> = [];
+    const next = await payAndRecord(
+      ready,
+      "amina",
+      1500,
+      "2026-09-30T12:00:00.000Z",
+      async (destination, amountSats) => {
+        sent.push([destination, amountSats]);
+      },
+    );
+
+    expect(sent).toEqual([["chebet@pay.example.net", 1500]]);
+    expect(next.contributions.find((record) => record.payerId === "amina")).toMatchObject({
+      settlement: "lightning",
+      amountSats: 1500,
+      amountKes: 2000,
+      destination: "chebet@pay.example.net",
+    });
+    expect(next.cycles[0]?.status).toBe("complete");
+    expect(next.cycles[1]?.recipientId).toBe("nyambura");
+    expect(ready.cycles[0]?.status).toBe("open");
+  });
+
+  it("leaves the round open when the wallet send fails", async () => {
+    const ready = setOwnLightningAddress(
+      createDemoChamaSisters(),
+      "chebet",
+      "chebet@pay.example.net",
+    );
+    await expect(
+      payAndRecord(ready, "amina", 1500, "2026-09-30T12:00:00.000Z", async () => {
+        throw new Error("The wallet could not send.");
+      }),
+    ).rejects.toThrow(/could not send/);
+    expect(ready.contributions).toHaveLength(1);
+    expect(ready.cycles[0]?.status).toBe("open");
+  });
+
+  it("will not record a demo payment to a real address, or send sats to a demo address", async () => {
+    const ready = setOwnLightningAddress(
+      createDemoChamaSisters(),
+      "chebet",
+      "chebet@pay.example.net",
+    );
+    expect(() => recordOwnContribution(ready, "amina", "2026-09-30T12:00:00.000Z")).toThrow(
+      /real Lightning address/,
+    );
+    await expect(
+      payAndRecord(
+        createDemoChamaSisters(),
+        "amina",
+        100,
+        "2026-09-30T12:00:00.000Z",
+        async () => {},
+      ),
+    ).rejects.toThrow(/demo address/);
   });
 });

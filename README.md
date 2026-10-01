@@ -61,7 +61,7 @@ The demo path for the hackathon is: statement in, profile out, plan set, first p
 | In-app wallet       | Breez SDK Spark in the browser. Create, restore, balance, Lightning receive.         | **`/wallet`**, recovery backup (copy + download). Withdraw: pay `07…@bitcoin.co.ke` in-app.      |
 | App shell           | Surplus home, invest, wallet.                                                        | Desktop sidebar + mobile bottom nav.                                                             |
 | Nostr               | Encrypt the profile (NIP-44). One anonymous aggregate job (NIP-90).                  | Save and load are stubs.                                                                         |
-| Chama ledger        | Records who paid whom. Never holds money. One member cannot move another's sats.    | **`/chama` mock** for invented Chama Sisters. Direct Lightning payments only.                    |
+| Chama ledger        | Records who paid whom. Never holds money. One member cannot move another's sats.    | **`/chama`**. Demo addresses record only. A real address is paid from that member's Breez wallet. |
 | Reliability badge   | Opt-in note after a chama round. Not published.                                      | Mock on `/chama`, after a round finishes.                                                        |
 
 Crypto history import is a stretch. USSD, Telegram, WhatsApp, and spending Bitcoin through other apps are out of scope for the hackathon.

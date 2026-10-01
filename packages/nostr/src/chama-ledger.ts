@@ -45,8 +45,22 @@ export interface ContributionRecord {
   payerId: string;
   recipientId: string;
   amountKes: number;
+  /**
+   * Set when this phone sent sats. Absent on a demo record, which does not
+   * move money because the destination is not a real wallet.
+   */
+  amountSats?: number;
+  /** `lightning` was sent from the payer's wallet. `demo` did not send sats. */
+  settlement: "lightning" | "demo";
   destination: string;
   recordedAt: string;
+}
+
+export interface ContributionIntent {
+  destination: string;
+  amountKes: number;
+  recipientId: string;
+  cycleId: string;
 }
 
 export interface BadgeOptIn {
@@ -175,6 +189,7 @@ export function createDemoChamaSisters(): ChamaCircle {
         payerId: "nyambura",
         recipientId: "chebet",
         amountKes: 2000,
+        settlement: "demo",
         destination: "chebet.demo@example.com",
         recordedAt: "2026-09-28T16:00:00.000Z",
       },
@@ -211,44 +226,60 @@ export function roundView(circle: ChamaCircle): RoundView {
   };
 }
 
+/** True for invented `@example.com` addresses. Those cannot receive sats. */
+export function isDemoLightningAddress(address: string): boolean {
+  return address.trim().toLowerCase().endsWith("@example.com");
+}
+
 /**
- * Record that `actorId` paid the current recipient from their own wallet.
- * The destination and amount come from the circle, not from the caller.
+ * Where this member's own payment must go. The caller cannot pick another address.
  */
-export function recordOwnContribution(
-  circle: ChamaCircle,
-  actorId: string,
-  recordedAt: string,
-): ChamaCircle {
-  const next = clone(circle);
-  const actor = requireMember(next, actorId);
-  const cycle = openCycle(next);
+export function contributionIntent(circle: ChamaCircle, actorId: string): ContributionIntent {
+  const actor = requireMember(circle, actorId);
+  const cycle = openCycle(circle);
   if (cycle.recipientId === actor.id) {
     throw new ChamaLedgerError("The member receiving this round does not pay into it.");
   }
-
-  const already = next.contributions.some(
+  const already = circle.contributions.some(
     (record) => record.cycleId === cycle.id && record.payerId === actor.id,
   );
   if (already) {
     throw new ChamaLedgerError("This contribution is already recorded.");
   }
-
-  const recipient = requireMember(next, cycle.recipientId);
-  next.contributions.push({
-    id: `contrib-${cycle.id}-${actor.id}`,
-    cycleId: cycle.id,
-    payerId: actor.id,
-    recipientId: recipient.id,
-    amountKes: next.monthlyContributionKes,
+  const recipient = requireMember(circle, cycle.recipientId);
+  return {
     destination: recipient.lightningAddress,
+    amountKes: circle.monthlyContributionKes,
+    recipientId: recipient.id,
+    cycleId: cycle.id,
+  };
+}
+
+function appendContribution(
+  circle: ChamaCircle,
+  actorId: string,
+  recordedAt: string,
+  settlement: ContributionRecord["settlement"],
+  amountSats?: number,
+): ChamaCircle {
+  const next = clone(circle);
+  const intent = contributionIntent(next, actorId);
+  next.contributions.push({
+    id: `contrib-${intent.cycleId}-${actorId}`,
+    cycleId: intent.cycleId,
+    payerId: actorId,
+    recipientId: intent.recipientId,
+    amountKes: intent.amountKes,
+    amountSats,
+    settlement,
+    destination: intent.destination,
     recordedAt,
   });
 
-  const required = payersFor(next, recipient.id);
+  const required = payersFor(next, intent.recipientId);
   const paid = new Set(
     next.contributions
-      .filter((record) => record.cycleId === cycle.id)
+      .filter((record) => record.cycleId === intent.cycleId)
       .map((record) => record.payerId),
   );
   const roundComplete = required.every((id) => paid.has(id));
@@ -256,13 +287,13 @@ export function recordOwnContribution(
     return next;
   }
 
-  const closed = next.cycles.find((item) => item.id === cycle.id);
+  const closed = next.cycles.find((item) => item.id === intent.cycleId);
   if (!closed) {
     throw new ChamaLedgerError("There is no open round.");
   }
   closed.status = "complete";
 
-  const nextIndex = cycle.index + 1;
+  const nextIndex = closed.index + 1;
   const recipientId = next.memberIdsInOrder[nextIndex % next.memberIdsInOrder.length];
   if (!recipientId) {
     throw new ChamaLedgerError("This chama has no members to rotate to.");
@@ -274,6 +305,48 @@ export function recordOwnContribution(
     status: "open",
   });
   return next;
+}
+
+/**
+ * Record a demo contribution. Use this only when the destination is not a real
+ * wallet. It does not send sats.
+ */
+export function recordOwnContribution(
+  circle: ChamaCircle,
+  actorId: string,
+  recordedAt: string,
+): ChamaCircle {
+  const intent = contributionIntent(circle, actorId);
+  if (!isDemoLightningAddress(intent.destination)) {
+    throw new ChamaLedgerError(
+      "This recipient uses a real Lightning address. Pay from your own wallet.",
+    );
+  }
+  return appendContribution(circle, actorId, recordedAt, "demo");
+}
+
+/**
+ * Send sats to the recipient, then record that payment.
+ * If `send` fails, the circle is left unchanged.
+ */
+export async function payAndRecord(
+  circle: ChamaCircle,
+  actorId: string,
+  amountSats: number,
+  recordedAt: string,
+  send: (destination: string, amountSats: number) => Promise<void>,
+): Promise<ChamaCircle> {
+  if (!Number.isInteger(amountSats) || amountSats <= 0) {
+    throw new ChamaLedgerError("A Lightning payment needs a positive whole sats amount.");
+  }
+  const intent = contributionIntent(circle, actorId);
+  if (isDemoLightningAddress(intent.destination)) {
+    throw new ChamaLedgerError(
+      "This is a demo address. It cannot receive sats. Record the demo contribution instead.",
+    );
+  }
+  await send(intent.destination, amountSats);
+  return appendContribution(circle, actorId, recordedAt, "lightning", amountSats);
 }
 
 /**
@@ -336,5 +409,10 @@ export function parseChamaCircle(value: unknown): ChamaCircle | null {
   if (!Array.isArray(circle.contributions) || !Array.isArray(circle.badgeOptIns)) {
     return null;
   }
-  return clone(circle as ChamaCircle);
+  const parsed = clone(circle as ChamaCircle);
+  parsed.contributions = parsed.contributions.map((record) => ({
+    ...record,
+    settlement: record.settlement === "lightning" ? "lightning" : "demo",
+  }));
+  return parsed;
 }

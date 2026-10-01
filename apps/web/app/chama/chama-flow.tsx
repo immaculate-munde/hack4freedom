@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import {
   createDemoChamaSisters,
+  isDemoLightningAddress,
   optInReliabilityBadge,
   parseChamaCircle,
+  payAndRecord,
   recordOwnContribution,
   roundView,
   setOwnLightningAddress,
@@ -35,6 +37,8 @@ export function ChamaFlow() {
   const [actorId, setActorId] = useState("amina");
   const [error, setError] = useState<string | null>(null);
   const [addressDraft, setAddressDraft] = useState("");
+  const [quoteSats, setQuoteSats] = useState<number | null>(null);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     const saved = window.localStorage.getItem(STORAGE_KEY);
@@ -55,6 +59,29 @@ export function ChamaFlow() {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(circle));
   }, [circle]);
 
+  useEffect(() => {
+    const amountKes = circle?.monthlyContributionKes;
+    if (!amountKes) return;
+    let cancelled = false;
+    void fetch("/api/onramp/quote", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ amountKes }),
+    })
+      .then(async (res) => {
+        const data = (await res.json()) as { estimatedSats?: number };
+        if (!cancelled && res.ok && typeof data.estimatedSats === "number") {
+          setQuoteSats(data.estimatedSats);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setQuoteSats(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [circle?.monthlyContributionKes]);
+
   if (!circle) {
     return (
       <PageFrame title="Chama" description="Loading the demo circle.">
@@ -65,7 +92,12 @@ export function ChamaFlow() {
 
   const current = circle;
   const view = roundView(current);
+  const demoDestination = isDemoLightningAddress(view.recipient.lightningAddress);
   const actor = current.members.find((member) => member.id === actorId) ?? current.members[0];
+  const ownsThisWallet =
+    wallet.status === "ready" &&
+    !!wallet.lightningAddress &&
+    actor?.lightningAddress === wallet.lightningAddress;
   const actorRow = actor ? view.rows.find((row) => row.member.id === actor.id) : undefined;
   const badge = actor
     ? current.badgeOptIns.find((optIn) => optIn.memberId === actor.id)
@@ -76,12 +108,46 @@ export function ChamaFlow() {
     setError(null);
   }
 
-  function onRecord() {
-    if (!actor) return;
+  function onRecordDemo() {
+    if (!actor || busy) return;
     try {
       persist(recordOwnContribution(current, actor.id, new Date().toISOString()));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not record this contribution.");
+    }
+  }
+
+  async function onPayFromWallet() {
+    if (!actor || busy) return;
+    if (wallet.status !== "ready" || wallet.lightningAddress !== actor.lightningAddress) {
+      setError("Pay from the wallet that matches this member's Lightning address.");
+      return;
+    }
+    if (!quoteSats) {
+      setError("Still working out the sats amount. Try again in a moment.");
+      return;
+    }
+    if (wallet.balanceSats < quoteSats) {
+      setError(
+        `This wallet has ${wallet.balanceSats} sats. About ${quoteSats} sats are needed.`,
+      );
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const next = await payAndRecord(
+        current,
+        actor.id,
+        quoteSats,
+        new Date().toISOString(),
+        (destination, amountSats) => wallet.withdrawSats(amountSats, destination),
+      );
+      persist(next);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "The payment did not finish.");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -127,8 +193,8 @@ export function ChamaFlow() {
           : `${view.completedRounds} round${view.completedRounds === 1 ? "" : "s"} finished.`}
       </p>
       <p className="mt-3 text-xs leading-5 text-ink/55">
-        PesaSense does not hold the sats and cannot move them. Recording here does not send a
-        payment.
+        PesaSense does not hold the sats. A real address is paid from this phone's own wallet.
+        A demo address is only a record.
       </p>
     </section>
   );
@@ -191,10 +257,28 @@ export function ChamaFlow() {
           ))}
         </ul>
 
-        {actor && actorRow?.role === "waiting" ? (
-          <button type="button" className="btn btn-primary mt-4 w-full" onClick={onRecord}>
-            Record my {formatKes(current.monthlyContributionKes)} contribution
+        {actor && actorRow?.role === "waiting" && demoDestination ? (
+          <button type="button" className="btn btn-primary mt-4 w-full" onClick={onRecordDemo}>
+            Record demo contribution ({formatKes(current.monthlyContributionKes)}, no sats sent)
           </button>
+        ) : null}
+        {actor && actorRow?.role === "waiting" && !demoDestination && ownsThisWallet ? (
+          <button
+            type="button"
+            className="btn btn-primary mt-4 w-full"
+            disabled={busy}
+            onClick={() => void onPayFromWallet()}
+          >
+            {busy
+              ? "Sending from your wallet…"
+              : `Pay about ${quoteSats ?? "…"} sats from my wallet`}
+          </button>
+        ) : null}
+        {actor && actorRow?.role === "waiting" && !demoDestination && !ownsThisWallet ? (
+          <p className="mt-4 text-sm leading-6 text-ink/75">
+            This round pays {view.recipient.lightningAddress}. Open the wallet on this phone and
+            save that address as your own before sending. This phone cannot pay for someone else.
+          </p>
         ) : null}
         {actor && actorRow?.role === "receives" ? (
           <p className="mt-4 text-sm leading-6 text-ink/75">
