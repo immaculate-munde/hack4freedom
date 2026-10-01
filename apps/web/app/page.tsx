@@ -13,6 +13,7 @@ import {
   selectProfile,
   type FinancialProfile,
 } from "@pesasense/core";
+import { ProfileSync } from "../components/profile-sync";
 import { WalletActivity } from "../components/wallet-activity";
 import { PageFrame } from "../components/page-frame";
 
@@ -215,6 +216,7 @@ function SurplusScreen({
       </section>
 
       {isDemo ? <WalletActivity profileId={demoId} /> : null}
+      {isDemo ? <ProfileSync profile={profile} profileId={demoId} /> : null}
 
       <section className="mt-4 grid grid-cols-2 gap-3 text-sm lg:hidden">
         <div className="stat-tile">

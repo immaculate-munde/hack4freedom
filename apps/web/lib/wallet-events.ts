@@ -63,6 +63,13 @@ export function replaceWalletEvent(
   return next;
 }
 
+export function replaceWalletEvents(profileId: string, events: WalletEvent[]): WalletEvent[] {
+  const store = readStore();
+  store[profileId] = events;
+  writeStore(store);
+  return events;
+}
+
 export function latestSubmittedPurchase(profileId: string): WalletEvent | null {
   const list = loadWalletEvents(profileId);
   for (let i = list.length - 1; i >= 0; i -= 1) {

@@ -57,10 +57,10 @@ The demo path for the hackathon is: statement in, profile out, plan set, first p
 | Profile and surplus | Income, commitments, spending, resilience, surplus range.                            | Contract, Amina's profile, and a thin buffer-first profile. Engine spec is in `profile.spec.ts`. |
 | Education           | Buffer, then everyday saving, then a long horizon.                                   | Not built yet.                                                                                   |
 | Scenarios           | Client-side historical range from a bundled Bitcoin price file.                      | Stub. No invented backtest numbers.                                                              |
-| Investing           | Non-custodial buy via Bitika; sats to pasted address or in-app Breez wallet.        | **`/invest` flow** with quote, M-Pesa collect (sandbox/live), status polling.                    |
+| Investing           | Non-custodial buy via Bitika; sats to pasted address or in-app Breez wallet.        | **`/invest` flow** with quote, collect, device history, and a signed webhook backstop.          |
 | In-app wallet       | Breez SDK Spark in the browser. Create, restore, balance, Lightning receive.         | **`/wallet`**, recovery backup (copy + download). Withdraw: pay `07…@bitcoin.co.ke` in-app.      |
 | App shell           | Surplus home, invest, wallet.                                                        | Desktop sidebar + mobile bottom nav.                                                             |
-| Nostr               | Encrypt the profile (NIP-44). One anonymous aggregate job (NIP-90).                  | Save and load are stubs.                                                                         |
+| Nostr               | Encrypt the profile (NIP-44). One anonymous aggregate job (NIP-90).                  | Save and load on the home screen. The key stays in the browser.                                  |
 | Chama ledger        | Records who paid whom. Never holds money. One member cannot move another's sats.    | **`/chama`**. Demo addresses record only. A real address is paid from that member's Breez wallet. |
 | Reliability badge   | Opt-in note after a chama round. Not published.                                      | Mock on `/chama`, after a round finishes.                                                        |
 
@@ -79,7 +79,7 @@ TypeScript end to end. Sensitive data stays on the device.
 | Local storage      | IndexedDB via Dexie, encrypted with WebCrypto (not wired yet)            |
 | Charts             | Recharts (not wired yet)                                                 |
 | Scenarios          | Bundled BTC price CSV, client-side (not added yet)                       |
-| Nostr              | nostr-tools, after we verify current NIP support                         |
+| Nostr              | nostr-tools: NIP-44 encrypt-to-self, NIP-78 event, NIP-90 surplus job    |
 | On-ramp            | `BitcoinOnRamp` + **Bitika** adapter (`packages/wallet`, Next API routes) |
 | In-app wallet      | **Breez SDK Spark** (WASM, `next dev --webpack`)                          |
 | Backend            | Next.js route handlers only, and Postgres just for a future chama ledger |
@@ -132,7 +132,7 @@ All fixtures are synthetic. Do not replace them with a real M-Pesa statement.
 
 ## Project status
 
-Hackathon demo path is **partially live**: surplus (demo profiles), **invest (Bitika)**, and **in-app wallet (Breez)** work in the browser. Parsing, real profile engine, education, scenarios, and Nostr sync are still stubs.
+Hackathon demo path is **partially live**: surplus (demo profiles), **invest (Bitika)**, **in-app wallet (Breez)**, device purchase history, and encrypted Nostr save/load work in the browser. Parsing, the real profile engine, education, and scenarios are still stubs.
 
 **In the repo now**
 
@@ -142,16 +142,18 @@ Hackathon demo path is **partially live**: surplus (demo profiles), **invest (Bi
 - PWA with **AppShell** (mobile tabs + desktop sidebar), home surplus, **`/invest`**, **`/wallet`**
 - **Bitika on-ramp**: `BitikaBitcoinOnRamp`, exchange-rate fallback, API routes, invest UI with sandbox badge
 - **Breez wallet**: create/restore, Lightning address, balance, in-app withdraw to `07…@bitcoin.co.ke`, seed backup download
-- **Chama mock** (`/chama`): Chama Sisters records direct payments to the member whose turn it is. The ledger never holds sats. Reliability note is opt-in and local.
+- **Chama** (`/chama`): Chama Sisters records direct payments. A real Lightning address is paid from this phone's Breez wallet, then recorded. A demo address sends nothing. The ledger never holds sats. Reliability note is opt-in and local.
+- **Purchases**: each Bitika buy is stored on the device as a `WalletEvent`. The server caps the amount from the demo profile floor. A poll that times out stays pending.
+- **Nostr**: NIP-44 encrypt-to-self, NIP-78 replaceable event, and one anonymous NIP-90 surplus job. The key stays in the browser.
 - `docs/bitika-api.md` and Vitest coverage for wallet/on-ramp helpers
 - Acceptance test for `buildProfile()` (skipped until the profile engine exists)
 
 **Still stubbed or not wired**
 
 - SMS/PDF parsing and `buildProfile()` engine (`PROFILE_SOURCE=parsed` shows "no profile")
-- Education, scenarios, `WalletEvent` persistence on the profile
-- NIP-44 save/load (chama reliability note is a local mock, not a published NIP-58 badge)
-- Bitika webhooks (status polling only)
+- Education and scenarios
+- Published NIP-58 reliability badges (the chama note stays on the device)
+- A shared Postgres chama ledger
 
 **On-ramp / wallet notes**
 
@@ -199,8 +201,8 @@ Six people can work in parallel against the stubs:
 1. **Parser.** SMS shapes are in `packages/core/src/fixtures/sms/`. The PDF and its password are in `statement-fixture.ts`. Do not invent a password rule.
 2. **Profile engine.** `packages/core/src/profile.spec.ts` is the spec. It is skipped while `buildProfile` throws. When it runs, Amina's and Brian's hand-written profiles are what the SMS should come close to. Do not edit those JSON files to match a wrong result.
 3. **App shell and learn screens.** `/?profile=brian` is the "not ready yet" case. `PROFILE_SOURCE=parsed` is the switch off demo data.
-4. **Invest and wallet.** Bitika + Breez paths are implemented; extend with profile `WalletEvent`s and webhooks as needed.
-5. **Nostr.** Save/load stubs remain.
+4. **Invest and wallet.** Bitika, Breez, device `WalletEvent`s, and the signed webhook receiver are in place. Polling remains the backstop.
+5. **Nostr.** Save and load encrypt the profile. The chama reliability note is still local.
 
 ### Working together
 

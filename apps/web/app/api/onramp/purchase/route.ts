@@ -1,5 +1,5 @@
 import { assertInvestAmount, demoProfiles } from "@pesasense/core";
-import { parseDestination, toBitikaPhone } from "@pesasense/wallet";
+import { clientSafeOnRampError, parseDestination, toBitikaPhone } from "@pesasense/wallet";
 import { getBitikaRamp } from "../../../../lib/bitika";
 
 export async function POST(req: Request) {
@@ -50,7 +50,10 @@ export async function POST(req: Request) {
 
     return Response.json(purchase);
   } catch (e) {
-    const message = e instanceof Error ? e.message : "Purchase failed.";
-    return Response.json({ error: message }, { status: 400 });
+    const upstream = e instanceof Error && e.message.startsWith("Bitika request failed");
+    return Response.json(
+      { error: clientSafeOnRampError(e, "Could not start the purchase.") },
+      { status: upstream ? 502 : 400 },
+    );
   }
 }
