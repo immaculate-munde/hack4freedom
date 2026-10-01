@@ -7,7 +7,6 @@ import { ScenarioChart } from "../../components/scenario-chart";
 import { useProfile } from "../../contexts/profile-context";
 import { demoProfiles } from "@pesasense/core";
 
-// Mock data for the UI
 const MOCK_BUFFER_MONTHS = 1.5;
 const MOCK_CURRENT_STEP = 1;
 
@@ -17,8 +16,9 @@ export default function LearnPage() {
   
   const activeProfile = profile || demoProfiles.amina;
   const surplusFloor = activeProfile.surplus.monthlyKes.floor;
+  const recommendedHabit = Math.round(surplusFloor * 0.75);
 
-  const [amount, setAmount] = useState<string>("500");
+  const [amount, setAmount] = useState<string>(recommendedHabit.toString());
   const [cadence, setCadence] = useState<"weekly" | "monthly">("monthly");
   const [error, setError] = useState<string | null>(null);
 
@@ -51,7 +51,6 @@ export default function LearnPage() {
         </p>
       </header>
 
-      {/* Savings Ladder Section */}
       <section aria-labelledby="ladder-heading">
         <h2 id="ladder-heading" className="mb-5 font-serif text-2xl font-semibold text-pine">
           Your Savings Journey
@@ -59,7 +58,6 @@ export default function LearnPage() {
         <SavingsLadder currentStep={MOCK_CURRENT_STEP} bufferMonths={MOCK_BUFFER_MONTHS} />
       </section>
 
-      {/* Education Cards */}
       <section aria-labelledby="education-heading" className="space-y-4">
         <h2 id="education-heading" className="mb-5 font-serif text-2xl font-semibold text-pine">
           Bitcoin Basics
@@ -89,7 +87,6 @@ export default function LearnPage() {
         </div>
       </section>
 
-      {/* Scam Warning */}
       <section>
         <div className="rounded-2xl border-2 border-red-800/20 bg-red-50 p-5 shadow-sm">
           <div className="flex items-start gap-4">
@@ -114,7 +111,6 @@ export default function LearnPage() {
         </div>
       </section>
 
-      {/* Forecast Chart Section */}
       <section aria-labelledby="forecast-heading">
         <h2 id="forecast-heading" className="mb-5 font-serif text-2xl font-semibold text-pine">
           What could happen to your savings?
@@ -122,7 +118,6 @@ export default function LearnPage() {
         <ScenarioChart />
       </section>
 
-      {/* Recurring Savings Setup */}
       <section aria-labelledby="setup-heading">
         <div className="rounded-3xl border border-sand bg-white/70 p-6 shadow-sm sm:p-8">
           <h2 id="setup-heading" className="font-serif text-2xl font-semibold text-pine">
@@ -146,7 +141,8 @@ export default function LearnPage() {
                   className="field max-w-[200px]"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  placeholder="e.g. 500"
+                  placeholder={`e.g. ${recommendedHabit}`}
+                  max={surplusFloor}
                 />
               </div>
               <p className="mt-2 text-xs text-ink/60">

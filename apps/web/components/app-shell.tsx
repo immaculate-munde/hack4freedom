@@ -68,7 +68,7 @@ function hidesNav(pathname: string): boolean {
   return (
     pathname === "/welcome" ||
     pathname.startsWith("/onboarding") ||
-    pathname.startsWith("/import")
+    pathname.startsWith("/onboard")
   );
 }
 

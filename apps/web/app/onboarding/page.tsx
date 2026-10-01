@@ -147,7 +147,7 @@ export default function OnboardingPage() {
       DRAFT_KEY,
       JSON.stringify({ draft: nextDraft, answers: toAnswers(nextDraft) }),
     );
-    router.push("/import");
+    router.push("/onboard");
   }
 
   function next() {

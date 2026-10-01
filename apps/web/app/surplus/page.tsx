@@ -113,10 +113,10 @@ export default async function SurplusPage({
         </ul>
       </section>
 
-      <Link href="/import" className="btn btn-primary inline-flex justify-center">
+      <Link href="/onboard" className="btn btn-primary inline-flex justify-center">
         Import M-Pesa statement
       </Link>
-      <Link href="/import" className="text-center text-sm font-semibold text-slate">
+      <Link href="/onboard" className="text-center text-sm font-semibold text-slate">
         Paste messages instead
       </Link>
       {isDemo ? (

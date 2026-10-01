@@ -1,37 +1,32 @@
-/**
- * Overview.
- * The dashboard from the Serene Shilling screens. Amounts come from the profile.
- * Sats are not shown as a number until a real quote exists.
- */
+"use client";
+
+import { Suspense } from "react";
+
 import Link from "next/link";
-import { PAST_PERFORMANCE_DISCLAIMER } from "@pesasense/core";
+import { PAST_PERFORMANCE_DISCLAIMER, demoProfiles } from "@pesasense/core";
 import { ProfileSync } from "../../components/profile-sync";
 import { WalletActivity } from "../../components/wallet-activity";
 import { formatKes, habitPercentOfFloor } from "../../lib/format";
-import { loadProfile } from "../../lib/load-profile";
 import { ImportTrigger } from "../../components/import-trigger";
+import { useProfile } from "../../contexts/profile-context";
+import { useSearchParams } from "next/navigation";
 
-export default async function OverviewPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ profile?: string }>;
-}) {
-  const params = await searchParams;
-  const loaded = loadProfile(params.profile);
-  if (loaded.status === "not-ready") {
-    return (
-      <main className="card">
-        <h1 className="text-2xl font-semibold text-ink">No profile yet</h1>
-        <p className="mt-3 text-sm leading-6 text-slate">{loaded.reason}</p>
-      </main>
-    );
-  }
+function OverviewContent() {
+  const searchParams = useSearchParams();
+  const profileQuery = searchParams?.get("profile");
+  const { profile: contextProfile, isDemo: contextIsDemo } = useProfile();
 
-  const { profile, isDemo, demoId, persona } = loaded;
+  const demoId = profileQuery === "brian" ? "brian" : "amina";
+  const profile = contextProfile || demoProfiles[demoId];
+  const isDemo = contextProfile ? false : contextIsDemo;
+  const persona = demoId === "brian" ? "Brian (invented)" : "Amina (invented)";
   const name = demoId === "brian" ? "Brian" : "Amina";
+
   const { floor, typical, ceiling } = profile.surplus.monthlyKes;
-  const habit = profile.investmentPlan?.amountKes ?? 0;
+  
+  const habit = Math.round(floor * 0.75);
   const share = habitPercentOfFloor(habit, floor);
+  
   const span = Math.max(ceiling - floor, 1);
   const typicalPercent = Math.round(((typical - floor) / span) * 100);
   const query = demoId === "brian" ? "?profile=brian" : "";
@@ -180,5 +175,21 @@ function DemoTag() {
     <span className="rounded-full border border-line bg-pearl px-2.5 py-1 text-[11px] font-semibold text-slate">
       Demo data
     </span>
+  );
+}
+
+export default function OverviewPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="mx-auto flex w-full max-w-lg flex-col gap-4">
+          <div className="card animate-pulse h-20 bg-pearl" />
+          <div className="card animate-pulse h-36 bg-pearl" />
+          <div className="card animate-pulse h-24 bg-pearl" />
+        </main>
+      }
+    >
+      <OverviewContent />
+    </Suspense>
   );
 }

@@ -1,32 +1,24 @@
-/**
- * Steady habit.
- * Monthly is the default. The amount is capped by the surplus floor.
- * The app reminds. It does not move money by itself.
- */
+"use client";
+
+import { Suspense } from "react";
+
 import Link from "next/link";
-import { PAST_PERFORMANCE_DISCLAIMER } from "@pesasense/core";
+import { PAST_PERFORMANCE_DISCLAIMER, demoProfiles } from "@pesasense/core";
 import { formatKes, habitPercentOfFloor } from "../../lib/format";
-import { loadProfile } from "../../lib/load-profile";
+import { useProfile } from "../../contexts/profile-context";
+import { useSearchParams } from "next/navigation";
 
-export default async function HabitPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ profile?: string }>;
-}) {
-  const params = await searchParams;
-  const loaded = loadProfile(params.profile);
-  if (loaded.status === "not-ready") {
-    return (
-      <main className="card">
-        <h1 className="text-2xl font-semibold">No profile yet</h1>
-        <p className="mt-3 text-sm text-slate">{loaded.reason}</p>
-      </main>
-    );
-  }
+function HabitContent() {
+  const searchParams = useSearchParams();
+  const profileQuery = searchParams?.get("profile");
+  const { profile: contextProfile, isDemo: contextIsDemo } = useProfile();
 
-  const { profile, isDemo } = loaded;
+  const demoId = profileQuery === "brian" ? "brian" : "amina";
+  const profile = contextProfile || demoProfiles[demoId];
+  const isDemo = contextProfile ? false : contextIsDemo;
+
   const floor = profile.surplus.monthlyKes.floor;
-  const habit = profile.investmentPlan?.amountKes ?? 0;
+  const habit = Math.round(floor * 0.75);
   const cadence = profile.investmentPlan?.cadence ?? "monthly";
   const share = habitPercentOfFloor(habit, floor);
   const width = Math.max(0, Math.min(100, share));
@@ -125,5 +117,21 @@ function Ladder({
       <h3 className="mt-1 font-semibold">{title}</h3>
       <p className="mt-1 text-sm leading-6 text-slate">{body}</p>
     </article>
+  );
+}
+
+export default function HabitPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="mx-auto flex w-full max-w-lg flex-col gap-4">
+          <div className="animate-pulse h-6 w-32 rounded-full bg-pearl" />
+          <div className="animate-pulse h-10 w-64 rounded-full bg-pearl" />
+          <div className="card animate-pulse h-40 bg-pearl" />
+        </main>
+      }
+    >
+      <HabitContent />
+    </Suspense>
   );
 }
