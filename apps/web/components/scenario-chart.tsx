@@ -1,0 +1,126 @@
+"use client";
+
+import { PAST_PERFORMANCE_DISCLAIMER } from "@pesasense/core";
+import {
+  Bar,
+  BarChart,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+
+type ScenarioRow = {
+  name: string;
+  range: [number, number];
+  fill: string;
+  description: string;
+};
+
+/** A sketch of a hypothetical KES 1,000. Ranges only. Not a price history. */
+const ILLUSTRATIVE_SCENARIO: ScenarioRow[] = [
+  {
+    name: "Lower",
+    range: [400, 800],
+    fill: "#a8a29e",
+    description: "The value can fall. You can lose money.",
+  },
+  {
+    name: "Middle",
+    range: [700, 1400],
+    fill: "#3d6b54",
+    description: "It might stay near where it started.",
+  },
+  {
+    name: "Higher",
+    range: [1200, 2200],
+    fill: "#8c6a2f",
+    description: "It might be higher. This is not a forecast.",
+  },
+];
+
+function formatRange(range: [number, number]): string {
+  return `KES ${range[0].toLocaleString("en-KE")}–${range[1].toLocaleString("en-KE")}`;
+}
+
+function CustomTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: ReadonlyArray<{ payload: ScenarioRow }>;
+}) {
+  const data = payload?.[0]?.payload;
+  if (!active || !data) {
+    return null;
+  }
+  return (
+    <div className="rounded-xl border border-sand bg-paper p-3 shadow-sm">
+      <p className="text-xs font-semibold text-ink">{data.name}</p>
+      <p className="mt-1 text-sm font-bold text-pine">{formatRange(data.range)}</p>
+      <p className="mt-1 text-[10px] tracking-wider text-ink/60 uppercase">
+        {data.description}
+      </p>
+    </div>
+  );
+}
+
+export function ScenarioChart() {
+  return (
+    <div className="flex w-full flex-col rounded-3xl border border-sand bg-paper p-5 shadow-sm">
+      <div className="mb-6">
+        <div className="flex items-center justify-between">
+          <h3 className="font-serif text-lg font-semibold text-pine">
+            A sketch, not a forecast
+          </h3>
+          <span className="rounded-full border border-line bg-pearl px-2.5 py-1 text-[11px] font-semibold text-slate uppercase tracking-wide">
+            Illustrative
+          </span>
+        </div>
+        <p className="mt-2 text-xs leading-5 text-ink/60">
+          Bitcoin's value goes up and down. Not a guarantee of future results. Based on
+          a hypothetical KES 1,000 held for 1 year.
+        </p>
+      </div>
+
+      <div className="h-64 w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={ILLUSTRATIVE_SCENARIO}
+            margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+          >
+            <XAxis
+              dataKey="name"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 12, fill: "#1a2420", opacity: 0.7 }} // text-ink/70 approx
+              dy={10}
+            />
+            <YAxis
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 12, fill: "#1a2420", opacity: 0.7 }}
+              tickFormatter={(val: number) => `KES ${val}`}
+            />
+            <Tooltip
+              content={<CustomTooltip />}
+              cursor={{ fill: "rgba(231, 224, 212, 0.4)" }} // sand/40 approx
+            />
+            <Bar dataKey="range" radius={[6, 6, 0, 0]}>
+              {ILLUSTRATIVE_SCENARIO.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={entry.fill} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="mt-6 rounded-xl bg-sand/30 p-3">
+        <p className="text-[10px] leading-4 text-ink/50">
+          {PAST_PERFORMANCE_DISCLAIMER}
+        </p>
+      </div>
+    </div>
+  );
+}

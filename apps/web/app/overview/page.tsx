@@ -9,6 +9,7 @@ import { ProfileSync } from "../../components/profile-sync";
 import { WalletActivity } from "../../components/wallet-activity";
 import { formatKes, habitPercentOfFloor } from "../../lib/format";
 import { loadProfile } from "../../lib/load-profile";
+import { ImportTrigger } from "../../components/import-trigger";
 
 export default async function OverviewPage({
   searchParams,
@@ -149,13 +150,22 @@ export default async function OverviewPage({
       {isDemo ? <ProfileSync profile={profile} profileId={demoId} /> : null}
 
       {isDemo ? (
-        <p className="text-sm text-teal">
-          {demoId === "brian" ? (
-            <Link href="/overview">View Amina</Link>
-          ) : (
-            <Link href="/overview?profile=brian">View the thin profile</Link>
-          )}
-        </p>
+        <section className="card space-y-3">
+          <p className="text-xs font-semibold tracking-wide text-slate uppercase">
+            Using demo data
+          </p>
+          <p className="text-sm leading-6 text-slate">
+            Import your M-Pesa history to see your real financial picture.
+          </p>
+          <ImportTrigger />
+          <div className="flex gap-3 pt-1 text-sm">
+            {demoId === "brian" ? (
+              <Link href="/overview" className="text-teal underline underline-offset-2">View Amina</Link>
+            ) : (
+              <Link href="/overview?profile=brian" className="text-teal underline underline-offset-2">View the thin profile</Link>
+            )}
+          </div>
+        </section>
       ) : null}
 
       <p className="text-xs leading-5 text-slate">

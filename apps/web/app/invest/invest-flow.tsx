@@ -14,6 +14,7 @@ import {
 } from "@pesasense/wallet";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BreezWalletSetup } from "../../components/breez-wallet-setup";
+import { WithdrawModal } from "../../components/withdraw-modal";
 import { useBreezWallet } from "../../contexts/breez-wallet-context";
 import { HttpOnRamp } from "../../lib/http-onramp";
 import {
@@ -87,7 +88,6 @@ export function InvestFlow({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [withdrawHelpOpen, setWithdrawHelpOpen] = useState(false);
-  const [copiedWithdraw, setCopiedWithdraw] = useState(false);
   const [withdrawBusy, setWithdrawBusy] = useState(false);
   const [withdrawDone, setWithdrawDone] = useState(false);
   const breezWallet = useBreezWallet();
@@ -333,30 +333,6 @@ export function InvestFlow({
     setWithdrawHelpOpen(true);
   }, [withdrawAddress]);
 
-  const copyWithdrawAddress = useCallback(async () => {
-    if (!withdrawAddress) {
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(withdrawAddress);
-      setCopiedWithdraw(true);
-      window.setTimeout(() => setCopiedWithdraw(false), 2500);
-    } catch {
-      setError("Could not copy. Select the address and copy it manually.");
-    }
-  }, [withdrawAddress]);
-
-  const tryOpenWalletApp = useCallback(() => {
-    if (!withdrawAddress) {
-      return;
-    }
-    const link = document.createElement("a");
-    link.href = `lightning:${withdrawAddress}`;
-    link.rel = "noopener";
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-  }, [withdrawAddress]);
 
   if (hasWallet === false) {
     return (
@@ -587,48 +563,14 @@ export function InvestFlow({
               : "Withdraw to M-Pesa"}
           </button>
 
-          {withdrawHelpOpen && withdrawAddress ? (
-            <div className="mt-4 rounded-2xl border border-sand bg-paper/80 p-4 text-sm text-ink/80">
-              <p className="font-medium text-pine">Send from your Lightning wallet</p>
-              <p className="mt-2 leading-6">
-                On this computer, the browser often cannot open a wallet app. Copy this
-                address and paste it in Send in Wallet of Satoshi, Blink, or your other
-                wallet.
-              </p>
-              <p className="mt-3 break-all rounded-xl bg-sand/60 px-3 py-2 font-mono text-xs">
-                {withdrawAddress}
-              </p>
-              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                <button
-                  type="button"
-                  className="btn btn-primary w-full sm:flex-1"
-                  onClick={() => void copyWithdrawAddress()}
-                >
-                  {copiedWithdraw ? "Copied" : "Copy address"}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-secondary w-full sm:flex-1"
-                  onClick={tryOpenWalletApp}
-                >
-                  Try wallet app
-                </button>
-              </div>
-              {withdrawDone ? (
-                <p className="mt-3 text-xs leading-5 text-moss">
-                  Payment submitted from your PesaSense wallet. KES should arrive on M-Pesa
-                  after bitcoin.co.ke settles (check your wallet balance:{" "}
-                  {breezWallet.balanceSats} sats).
-                </p>
-              ) : (
-                <p className="mt-3 text-xs leading-5 text-ink/60">
-                  Pay about {purchase.amountSats ?? satsBoughtTotal} sats to this address.
-                  bitcoin.co.ke converts to KES on your M-Pesa (about 1% fee). If nothing
-                  opens when you tap Try wallet app, use Copy address instead.
-                </p>
-              )}
-            </div>
-          ) : null}
+          <WithdrawModal
+            isOpen={withdrawHelpOpen && Boolean(withdrawAddress)}
+            onClose={() => setWithdrawHelpOpen(false)}
+            withdrawAddress={withdrawAddress ?? ""}
+            withdrawDone={withdrawDone}
+            balanceSats={breezWallet.status === "ready" ? breezWallet.balanceSats : undefined}
+            amountSats={purchase.amountSats ?? satsBoughtTotal}
+          />
         </section>
       )}
 
