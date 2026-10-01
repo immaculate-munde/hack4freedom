@@ -5,6 +5,8 @@
  */
 import Link from "next/link";
 import { PAST_PERFORMANCE_DISCLAIMER } from "@pesasense/core";
+import { ProfileSync } from "../../components/profile-sync";
+import { WalletActivity } from "../../components/wallet-activity";
 import { formatKes, habitPercentOfFloor } from "../../lib/format";
 import { loadProfile } from "../../lib/load-profile";
 
@@ -138,7 +140,13 @@ export default async function OverviewPage({
         <Link className="card" href="/wallet">
           Wallet
         </Link>
+        <Link className="card" href="/chama">
+          Chama
+        </Link>
       </nav>
+
+      {isDemo ? <WalletActivity profileId={demoId} /> : null}
+      {isDemo ? <ProfileSync profile={profile} profileId={demoId} /> : null}
 
       {isDemo ? (
         <p className="text-sm text-teal">

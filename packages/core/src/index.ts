@@ -57,6 +57,20 @@ export { DEMO_STATEMENT_FILE, DEMO_STATEMENT_PASSWORD } from "./statement-fixtur
 export { demoProfile, demoProfiles, thinDemoProfile } from "./demo-profile";
 
 export {
+  assertInvestAmount,
+  investAllowance,
+  INVEST_MAX_KES,
+  INVEST_MIN_KES,
+  type InvestAllowance,
+} from "./invest-allowance";
+
+export {
+  walletEventFromPurchase,
+  walletEventStatus,
+  type RecordedPurchaseStatus,
+} from "./wallet-event";
+
+export {
   profileSourceFromEnv,
   selectProfile,
   type ProfileRequest,

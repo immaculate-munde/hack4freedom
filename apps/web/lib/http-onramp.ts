@@ -22,7 +22,7 @@ export class HttpOnRamp implements BitcoinOnRamp {
   }
 
   async startPurchase(
-    request: StartPurchaseRequest & { surplusFloorKes?: number },
+    request: StartPurchaseRequest & { profileId: "amina" | "brian" },
   ): Promise<OnRampPurchase> {
     const res = await fetch("/api/onramp/purchase", {
       method: "POST",

@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@pesasense/core": "workspace:*"
+    "@pesasense/core": "workspace:*",
+    "nostr-tools": "^2.25.2"
   },
   "devDependencies": {
     "typescript": "^5.9.3",

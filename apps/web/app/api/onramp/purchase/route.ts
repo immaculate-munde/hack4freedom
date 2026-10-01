@@ -1,9 +1,5 @@
-import {
-  BITIKA_MAX_KES,
-  BITIKA_MIN_KES,
-  parseDestination,
-  toBitikaPhone,
-} from "@pesasense/wallet";
+import { assertInvestAmount, demoProfiles } from "@pesasense/core";
+import { clientSafeOnRampError, parseDestination, toBitikaPhone } from "@pesasense/wallet";
 import { getBitikaRamp } from "../../../../lib/bitika";
 
 export async function POST(req: Request) {
@@ -14,7 +10,7 @@ export async function POST(req: Request) {
       destination?: string;
       approvedByUser?: boolean;
       idempotencyKey?: string;
-      surplusFloorKes?: number;
+      profileId?: string;
     };
 
     if (body.approvedByUser !== true) {
@@ -25,18 +21,15 @@ export async function POST(req: Request) {
     if (typeof amountKes !== "number" || !Number.isInteger(amountKes)) {
       return Response.json({ error: "amountKes must be a whole number." }, { status: 400 });
     }
-    if (amountKes < BITIKA_MIN_KES || amountKes > BITIKA_MAX_KES) {
-      return Response.json(
-        { error: `Amount must be between ${BITIKA_MIN_KES} and ${BITIKA_MAX_KES} KES.` },
-        { status: 400 },
-      );
-    }
 
-    if (typeof body.surplusFloorKes === "number" && amountKes > body.surplusFloorKes) {
-      return Response.json(
-        { error: "This amount is above your safe surplus floor." },
-        { status: 400 },
-      );
+    if (body.profileId !== "amina" && body.profileId !== "brian") {
+      return Response.json({ error: "Choose a known demo profile." }, { status: 400 });
+    }
+    try {
+      assertInvestAmount(demoProfiles[body.profileId], amountKes);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "This amount is not allowed.";
+      return Response.json({ error: message }, { status: 400 });
     }
 
     if (!body.destination || !body.payerPhone || !body.idempotencyKey) {
@@ -57,7 +50,10 @@ export async function POST(req: Request) {
 
     return Response.json(purchase);
   } catch (e) {
-    const message = e instanceof Error ? e.message : "Purchase failed.";
-    return Response.json({ error: message }, { status: 400 });
+    const upstream = e instanceof Error && e.message.startsWith("Bitika request failed");
+    return Response.json(
+      { error: clientSafeOnRampError(e, "Could not start the purchase.") },
+      { status: upstream ? 502 : 400 },
+    );
   }
 }

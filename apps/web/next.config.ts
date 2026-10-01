@@ -16,7 +16,7 @@ const breezBundler = path.join(
 );
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@pesasense/core"],
+  transpilePackages: ["@pesasense/core", "@pesasense/nostr", "@pesasense/wallet"],
   serverExternalPackages: ["@breeztech/breez-sdk-spark"],
   webpack: (config, { isServer }) => {
     config.experiments = {

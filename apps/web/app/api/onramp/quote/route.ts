@@ -1,4 +1,4 @@
-import { BITIKA_MAX_KES, BITIKA_MIN_KES } from "@pesasense/wallet";
+import { BITIKA_MAX_KES, BITIKA_MIN_KES, clientSafeOnRampError } from "@pesasense/wallet";
 import { getBitikaRamp } from "../../../../lib/bitika";
 
 export async function POST(req: Request) {
@@ -18,7 +18,9 @@ export async function POST(req: Request) {
     const quote = await ramp.getQuote({ amountKes });
     return Response.json(quote);
   } catch (e) {
-    const message = e instanceof Error ? e.message : "Quote failed.";
-    return Response.json({ error: message }, { status: 500 });
+    return Response.json(
+      { error: clientSafeOnRampError(e, "Could not fetch a quote.") },
+      { status: 502 },
+    );
   }
 }
