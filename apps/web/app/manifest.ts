@@ -11,8 +11,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "A private financial profile and a small Bitcoin habit.",
     start_url: "/",
     display: "standalone",
-    background_color: "#f3efe6",
-    theme_color: "#1f4d3a",
+    background_color: "#FAF8F5",
+    theme_color: "#0D7A73",
     icons: [
       {
         src: "/icon.svg",
