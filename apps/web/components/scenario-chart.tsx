@@ -56,12 +56,16 @@ export function ScenarioChart() {
   return (
     <div className="flex w-full flex-col rounded-3xl border border-sand bg-paper p-5 shadow-sm">
       <div className="mb-6">
-        <h3 className="font-serif text-lg font-semibold text-pine">
-          Historical Illustration Only
-        </h3>
-        <p className="mt-1 text-xs leading-5 text-ink/60">
-          Not a guarantee of future results. Based on a hypothetical KES 1,000
-          held for 1 year.
+        <div className="flex items-center justify-between">
+          <h3 className="font-serif text-lg font-semibold text-pine">
+            Historical Illustration Only
+          </h3>
+          <span className="rounded-full border border-line bg-pearl px-2.5 py-1 text-[11px] font-semibold text-slate uppercase tracking-wide">
+            Illustrative
+          </span>
+        </div>
+        <p className="mt-2 text-xs leading-5 text-ink/60">
+          Bitcoin's value goes up and down. Not a guarantee of future results. Based on a hypothetical KES 1,000 held for 1 year.
         </p>
       </div>
 

@@ -4,14 +4,20 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { SavingsLadder } from "../../components/savings-ladder";
 import { ScenarioChart } from "../../components/scenario-chart";
+import { useProfile } from "../../contexts/profile-context";
+import { demoProfiles } from "@pesasense/core";
 
 // Mock data for the UI
 const MOCK_BUFFER_MONTHS = 1.5;
 const MOCK_CURRENT_STEP = 1;
-const MOCK_SURPLUS_FLOOR = 1500;
 
 export default function LearnPage() {
   const router = useRouter();
+  const { profile } = useProfile();
+  
+  const activeProfile = profile || demoProfiles.amina;
+  const surplusFloor = activeProfile.surplus.monthlyKes.floor;
+
   const [amount, setAmount] = useState<string>("500");
   const [cadence, setCadence] = useState<"weekly" | "monthly">("monthly");
   const [error, setError] = useState<string | null>(null);
@@ -25,8 +31,8 @@ export default function LearnPage() {
       return;
     }
     
-    if (num > MOCK_SURPLUS_FLOOR) {
-      setError(`Amount cannot exceed your safe surplus of KES ${MOCK_SURPLUS_FLOOR}.`);
+    if (num > surplusFloor) {
+      setError(`Amount cannot exceed your safe surplus of KES ${surplusFloor}.`);
       return;
     }
     
@@ -38,7 +44,7 @@ export default function LearnPage() {
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-12 pb-20 pt-6">
       <header>
         <h1 className="font-serif text-3xl font-bold tracking-tight text-pine sm:text-4xl">
-          Learn &amp; Grow Your Money
+          Learn at your pace.
         </h1>
         <p className="mt-3 text-sm leading-6 text-ink/75">
           Your path to building a secure, long-term financial habit.
@@ -144,7 +150,7 @@ export default function LearnPage() {
                 />
               </div>
               <p className="mt-2 text-xs text-ink/60">
-                You can safely save up to <span className="font-semibold text-ink/80">KES {MOCK_SURPLUS_FLOOR}</span>.
+                You can safely save up to <span className="font-semibold text-ink/80">KES {surplusFloor}</span>.
               </p>
             </div>
 

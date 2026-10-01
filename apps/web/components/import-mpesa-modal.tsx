@@ -72,8 +72,16 @@ export function ImportMpesaModal({ isOpen, onClose }: ImportMpesaModalProps) {
           onboarding: { debts: [], chamaMemberships: [], goal: { kind: "other" } },
         });
         setResult(profile);
-      } catch {
-        setError("We couldn't read that data. Try pasting the full SMS, or use the demo profile.");
+      } catch (err: any) {
+        const message = err instanceof Error ? err.message : "";
+        if (message.includes("Not implemented")) {
+          setError("Reading a real statement is coming soon.");
+          setResult(null);
+          // Fall back to demo profile
+          setProfile(null);
+        } else {
+          setError("We couldn't read that data. Try pasting the full SMS, or use the demo profile.");
+        }
       } finally {
         setLoading(false);
       }
@@ -128,9 +136,14 @@ export function ImportMpesaModal({ isOpen, onClose }: ImportMpesaModalProps) {
               <svg className="mt-0.5 h-4 w-4 shrink-0 text-moss" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
-              <p className="text-xs leading-5 text-ink/70">
-                Your data is processed locally on your device. PesaSense never uploads your M-Pesa statements.
-              </p>
+              <div className="flex flex-col gap-1">
+                <p className="text-xs leading-5 text-ink/70">
+                  Your statements never leave your phone. Backups are encrypted with your key.
+                </p>
+                <p className="text-[11px] leading-4 text-ink/55">
+                  If importing a PDF, the password is whatever you type. It is NOT your ID, and it is NOT saved.
+                </p>
+              </div>
             </div>
 
             {result ? (
