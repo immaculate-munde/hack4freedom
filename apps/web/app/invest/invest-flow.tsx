@@ -1,19 +1,32 @@
 "use client";
 
 import {
+  walletEventFromPurchase,
+  type RecordedPurchaseStatus,
+  type WalletEvent,
+} from "@pesasense/core";
+import {
   maskPhone,
   parseDestination,
   toBitcoinCoKeLightningAddress,
   type OnRampPurchase,
   type OnRampStatus,
 } from "@pesasense/wallet";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BreezWalletSetup } from "../../components/breez-wallet-setup";
 import { WithdrawModal } from "../../components/withdraw-modal";
 import { useBreezWallet } from "../../contexts/breez-wallet-context";
 import { HttpOnRamp } from "../../lib/http-onramp";
+import {
+  latestSubmittedPurchase,
+  loadWalletEvents,
+  replaceWalletEvent,
+  upsertWalletEvent,
+} from "../../lib/wallet-events";
 
-type Step = "choose" | "address" | "amount" | "confirm" | "status" | "done";
+type Step = "choose" | "address" | "amount" | "confirm" | "status" | "pending" | "done";
+
+const TERMINAL: OnRampStatus[] = ["filled", "failed", "paid_not_delivered", "cannot_fill"];
 
 const ramp = new HttpOnRamp();
 
@@ -53,10 +66,12 @@ function statusMessage(
 }
 
 export function InvestFlow({
+  profileId,
   surplusFloorKes,
   defaultAmountKes,
   sandbox,
 }: {
+  profileId: "amina" | "brian";
   surplusFloorKes: number;
   defaultAmountKes: number;
   sandbox: boolean;
@@ -69,15 +84,125 @@ export function InvestFlow({
   const [phone, setPhone] = useState("");
   const [estimatedSats, setEstimatedSats] = useState<number | null>(null);
   const [purchase, setPurchase] = useState<OnRampPurchase | null>(null);
+  const [events, setEvents] = useState<WalletEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [satsBoughtTotal, setSatsBoughtTotal] = useState(0);
   const [busy, setBusy] = useState(false);
   const [withdrawHelpOpen, setWithdrawHelpOpen] = useState(false);
   const [withdrawBusy, setWithdrawBusy] = useState(false);
   const [withdrawDone, setWithdrawDone] = useState(false);
   const breezWallet = useBreezWallet();
+  const quoteEventId = useRef<string | null>(null);
+  const following = useRef(false);
+  const resumed = useRef(false);
+  const satsBoughtTotal = events.reduce(
+    (sum, event) => (event.status === "filled" ? sum + (event.amountSats ?? 0) : sum),
+    0,
+  );
+
+  const recordProgress = useCallback(
+    (
+      id: string,
+      progress: RecordedPurchaseStatus,
+      details: {
+        amountKes: number;
+        amountSats?: number;
+        destination: string;
+        approvedByUser: boolean;
+      },
+      previousId?: string | null,
+    ) => {
+      const event = walletEventFromPurchase({
+        id,
+        at: new Date().toISOString(),
+        amountKes: details.amountKes,
+        amountSats: details.amountSats,
+        destination: details.destination,
+        progress,
+        approvedByUser: details.approvedByUser,
+      });
+      setEvents(
+        previousId
+          ? replaceWalletEvent(profileId, previousId, event)
+          : upsertWalletEvent(profileId, event),
+      );
+    },
+    [profileId],
+  );
+
+  const followPurchase = useCallback(
+    async (initial: OnRampPurchase, committedKes: number, destination: string) => {
+      if (following.current || !initial.purchaseId) return;
+      following.current = true;
+      setBusy(true);
+      setStep("status");
+      setError(null);
+      try {
+        let current: OnRampPurchase = {
+          ...initial,
+          amountKes: initial.amountKes > 0 ? initial.amountKes : committedKes,
+        };
+        setPurchase(current);
+        recordProgress(current.purchaseId, current.status, {
+          amountKes: current.amountKes,
+          amountSats: current.amountSats,
+          destination,
+          approvedByUser: true,
+        });
+        let attempts = 0;
+        while (!TERMINAL.includes(current.status) && attempts < 60) {
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+          const next = await ramp.checkStatus(current.purchaseId);
+          current = {
+            ...next,
+            amountKes: next.amountKes > 0 ? next.amountKes : committedKes,
+          };
+          setPurchase(current);
+          recordProgress(current.purchaseId, current.status, {
+            amountKes: current.amountKes,
+            amountSats: current.amountSats,
+            destination,
+            approvedByUser: true,
+          });
+          attempts += 1;
+        }
+        setStep(TERMINAL.includes(current.status) ? "done" : "pending");
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Could not read the payment.");
+        setStep("pending");
+      } finally {
+        following.current = false;
+        setBusy(false);
+      }
+    },
+    [recordProgress],
+  );
 
   useEffect(() => {
+    const stored = loadWalletEvents(profileId);
+    setEvents(stored);
+    const pending = latestSubmittedPurchase(profileId);
+    if (!pending) return;
+    resumed.current = true;
+    const committed = pending.amountKes ?? defaultAmountKes;
+    const destination = pending.destination ?? "";
+    if (pending.amountKes) setAmountKes(pending.amountKes);
+    if (destination) setAddress(destination);
+    void followPurchase(
+      {
+        purchaseId: pending.id,
+        status: "awaiting_mpesa",
+        amountKes: committed,
+        amountSats: pending.amountSats,
+      },
+      committed,
+      destination,
+    );
+  }, [profileId, defaultAmountKes, followPurchase]);
+
+  useEffect(() => {
+    if (resumed.current || step === "status" || step === "pending" || step === "done") {
+      return;
+    }
     if (
       hasWallet === false &&
       breezWallet.status === "ready" &&
@@ -88,7 +213,7 @@ export function InvestFlow({
       setHasWallet(true);
       setStep("amount");
     }
-  }, [hasWallet, breezWallet.status, breezWallet.lightningAddress]);
+  }, [hasWallet, step, breezWallet.status, breezWallet.lightningAddress]);
 
   useEffect(() => {
     if (step === "done" && breezWallet.status === "ready") {
@@ -134,69 +259,62 @@ export function InvestFlow({
     try {
       const quote = await ramp.getQuote({ amountKes });
       setEstimatedSats(quote.estimatedSats);
+      const id = crypto.randomUUID();
+      quoteEventId.current = id;
+      recordProgress(id, "quoted", {
+        amountKes,
+        amountSats: quote.estimatedSats,
+        destination: address.trim(),
+        approvedByUser: false,
+      });
       setStep("confirm");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not load a quote.");
     } finally {
       setBusy(false);
     }
-  }, [amountKes, maxKes]);
-
-  const mergePurchase = useCallback(
-    (next: OnRampPurchase): OnRampPurchase => ({
-      ...next,
-      amountKes: next.amountKes > 0 ? next.amountKes : amountKes,
-    }),
-    [amountKes],
-  );
+  }, [address, amountKes, maxKes, recordProgress]);
 
   const startPurchase = useCallback(async () => {
+    if (following.current) return;
     setError(null);
     setBusy(true);
     setStep("status");
     try {
       const idempotencyKey = crypto.randomUUID();
-      const result = mergePurchase(
-        await ramp.startPurchase({
+      const result = await ramp.startPurchase({
         amountKes,
         payerPhone: phone,
         destination: address.trim(),
         approvedByUser: true,
         idempotencyKey,
-        surplusFloorKes,
-      }),
-      );
-      setPurchase(result);
+        profileId,
+      });
       if (!result.purchaseId) {
         throw new Error("Bitika did not return a transaction code. Try again.");
       }
-
-      const terminal: OnRampStatus[] = [
-        "filled",
-        "failed",
-        "paid_not_delivered",
-        "cannot_fill",
-      ];
-      let current = result;
-      let attempts = 0;
-      while (!terminal.includes(current.status) && attempts < 60) {
-        await new Promise((r) => setTimeout(r, 2000));
-        current = mergePurchase(await ramp.checkStatus(current.purchaseId));
-        setPurchase(current);
-        attempts += 1;
+      const quoteId = quoteEventId.current;
+      quoteEventId.current = null;
+      if (quoteId) {
+        recordProgress(
+          result.purchaseId,
+          result.status,
+          {
+            amountKes: result.amountKes > 0 ? result.amountKes : amountKes,
+            amountSats: result.amountSats,
+            destination: address.trim(),
+            approvedByUser: true,
+          },
+          quoteId,
+        );
       }
-
-      if (current.status === "filled" && current.amountSats) {
-        setSatsBoughtTotal((t: number) => t + current.amountSats!);
-      }
-      setStep("done");
+      await followPurchase(result, amountKes, address.trim());
     } catch (e) {
       setError(e instanceof Error ? e.message : "Purchase failed.");
       setStep("confirm");
-    } finally {
       setBusy(false);
     }
-  }, [address, amountKes, phone, surplusFloorKes, sandbox, mergePurchase]);
+  }, [address, amountKes, phone, profileId, followPurchase, recordProgress]);
 
   const withdrawAddress = useMemo(() => {
     try {
@@ -365,6 +483,23 @@ export function InvestFlow({
           <p className="text-sm text-ink/80">
             {statusMessage(purchase.status, purchase, sandbox, amountKes)}
           </p>
+        </section>
+      )}
+
+      {step === "pending" && purchase && (
+        <section className="card">
+          <p className="text-sm text-ink/80">
+            Bitika has not finished this payment. Nothing here counts it as filled.
+          </p>
+          <p className="mt-2 text-xs text-ink/60">Reference {purchase.purchaseId}</p>
+          <button
+            type="button"
+            className="btn btn-primary mt-4 w-full"
+            disabled={busy}
+            onClick={() => void followPurchase(purchase, amountKes, address.trim())}
+          >
+            {busy ? "Checking…" : "Check again"}
+          </button>
         </section>
       )}
 

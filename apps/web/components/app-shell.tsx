@@ -3,7 +3,7 @@
  *
  * Header matches Serene Shilling: mark, wordmark, on-phone line, EN / SW, profile.
  * The designed tabs are Overview, Surplus, Habit, and Learn.
- * Invest and Wallet stay in the side column so those flows remain reachable.
+ * Invest, Wallet, and Chama stay in the side column so those flows remain reachable.
  * Welcome, questions, and import hide the tabs.
  */
 "use client";
@@ -28,6 +28,7 @@ const copy = {
     learn: "Learn",
     invest: "Invest",
     wallet: "Wallet",
+    chama: "Chama",
     nav: "Primary",
   },
   sw: {
@@ -41,6 +42,7 @@ const copy = {
     learn: "Jifunze",
     invest: "Wekeza",
     wallet: "Mkoba",
+    chama: "Chama",
     nav: "Kuu",
   },
 } as const;
@@ -54,6 +56,12 @@ const TABS = [
   { href: "/surplus", key: "surplus", match: (p: string) => p.startsWith("/surplus") },
   { href: "/habit", key: "habit", match: (p: string) => p.startsWith("/habit") },
   { href: "/learn", key: "learn", match: (p: string) => p.startsWith("/learn") },
+] as const;
+
+const SIDE = [
+  { href: "/invest", key: "invest", match: (p: string) => p.startsWith("/invest") },
+  { href: "/wallet", key: "wallet", match: (p: string) => p.startsWith("/wallet") },
+  { href: "/chama", key: "chama", match: (p: string) => p.startsWith("/chama") },
 ] as const;
 
 function hidesNav(pathname: string): boolean {
@@ -92,18 +100,18 @@ export function AppShell({ children }: { children: ReactNode }) {
               ))}
             </nav>
             <div className="mt-auto flex flex-col gap-1 border-t border-line pt-4">
-              <Link
-                href="/invest"
-                className="rounded-control px-3 py-2 text-sm font-semibold text-slate"
-              >
-                {t.invest}
-              </Link>
-              <Link
-                href="/wallet"
-                className="rounded-control px-3 py-2 text-sm font-semibold text-slate"
-              >
-                {t.wallet}
-              </Link>
+              {SIDE.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={item.match(pathname) ? "page" : undefined}
+                  className={`rounded-control px-3 py-2 text-sm font-semibold ${
+                    item.match(pathname) ? "bg-mint text-teal" : "text-slate"
+                  }`}
+                >
+                  {t[item.key]}
+                </Link>
+              ))}
             </div>
           </div>
         </aside>
