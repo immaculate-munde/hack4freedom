@@ -13,7 +13,7 @@ import { useEffect, useState, type ReactNode } from "react";
 const WELCOME_FLAG = "hasSeenWelcome";
 
 /** Routes a first-time visitor may open before they tap Get started. */
-const OPEN_PREFIXES = ["/welcome", "/onboarding", "/trust"];
+const OPEN_PREFIXES = ["/welcome", "/onboarding", "/import", "/trust"];
 
 function isOpenPath(pathname: string): boolean {
   return OPEN_PREFIXES.some(

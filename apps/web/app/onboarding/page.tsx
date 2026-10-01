@@ -147,7 +147,7 @@ export default function OnboardingPage() {
       DRAFT_KEY,
       JSON.stringify({ draft: nextDraft, answers: toAnswers(nextDraft) }),
     );
-    router.push("/");
+    router.push("/import");
   }
 
   function next() {
@@ -185,7 +185,7 @@ export default function OnboardingPage() {
 
       <div className="mt-8 flex flex-col gap-3">
         <button type="button" onClick={next} className="btn btn-primary w-full py-4">
-          {step === 2 ? "Continue" : "Next"}
+          {step === 2 ? "Continue to M-Pesa history" : "Next"}
         </button>
         <button
           type="button"
