@@ -1,191 +1,106 @@
+/**
+ * Welcome screen.
+ *
+ * First visit. Sensi states the three promises in the agreed wording.
+ * Get started opens the questions. How this works stays on this page.
+ */
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { RegulatoryDisclosure } from "../../components/regulatory-disclosure";
+import { useState } from "react";
+import { Sensi } from "../../components/sensi";
 
-function ShieldLargeIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.5}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      focusable="false"
-      className="h-8 w-8 text-pine"
-    >
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-    </svg>
-  );
-}
-
-function PhoneIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.75}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      focusable="false"
-      className="h-5 w-5 text-moss"
-    >
-      <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
-      <line x1="12" y1="18" x2="12.01" y2="18" />
-    </svg>
-  );
-}
-
-function CheckCircleIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.75}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      focusable="false"
-      className="h-5 w-5 text-moss"
-    >
-      <circle cx="12" cy="12" r="10" />
-      <polyline points="9 12 11 14 15 10" />
-    </svg>
-  );
-}
-
-function KeyIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.75}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      focusable="false"
-      className="h-5 w-5 text-moss"
-    >
-      <circle cx="7.5" cy="15.5" r="5.5" />
-      <path d="M21 2L11.5 11.5" />
-      <path d="M15 6l4 4" />
-    </svg>
-  );
-}
+const WELCOME_FLAG = "hasSeenWelcome";
 
 const PROMISES = [
   {
-    Icon: PhoneIcon,
     heading: "Your data stays on your phone",
-    body: "Your M-Pesa history is read and analysed on this device only. It is never uploaded to our servers.",
+    body: "Your statements are read on this phone and never leave it. Backups are encrypted with your key.",
   },
   {
-    Icon: CheckCircleIcon,
-    heading: "No hidden fees or commissions",
-    body: "PesaSense earns nothing from your purchases. We will always tell you exactly what a transaction costs before you confirm it.",
+    heading: "We never hold your money",
+    body: "Your bitcoin goes straight to your own wallet.",
   },
   {
-    Icon: KeyIcon,
-    heading: "You control your money",
-    body: "Any Bitcoin you buy goes straight to a wallet that only you hold the keys to. We cannot access or freeze it.",
+    heading: "No trading, no pressure",
+    body: "No price charts, no alerts, no FOMO. Just calm, long-term saving.",
   },
 ] as const;
 
+/** The first screen. Marks the visit, then opens the questions. */
 export default function WelcomePage() {
   const router = useRouter();
+  const [showHow, setShowHow] = useState(false);
 
-  function proceed() {
-    localStorage.setItem("hasSeenWelcome", "true");
-    router.push("/");
+  function getStarted() {
+    localStorage.setItem(WELCOME_FLAG, "true");
+    router.push("/onboarding");
   }
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-paper">
-      <div
-        className="pointer-events-none absolute inset-0"
-        aria-hidden="true"
-        style={{
-          background:
-            "radial-gradient(ellipse 120% 60% at 50% 0%, rgb(31 77 58 / 10%), transparent 55%), radial-gradient(ellipse 80% 50% at 100% 100%, rgb(140 106 47 / 7%), transparent 50%)",
-        }}
-      />
+    <main className="mx-auto flex w-full max-w-lg flex-col">
+      <header className="flex flex-col items-center text-center">
+        <Sensi />
+        <p className="mt-4 text-xs font-semibold tracking-widest text-moss uppercase">
+          Habari, welcome
+        </p>
+        <h1 className="mt-3 max-w-sm font-serif text-3xl tracking-tight text-pine sm:text-4xl">
+          Let&apos;s make sense of your money, and start small.
+        </h1>
+        <p className="mt-4 max-w-sm text-sm leading-6 text-ink/70">
+          A patient guide for your M-Pesa history, and a small monthly habit.
+        </p>
+      </header>
 
-      <div className="relative mx-auto flex min-h-full max-w-lg flex-col px-5 py-10 sm:px-8 sm:py-14">
-        <header className="flex flex-col items-center text-center">
-          <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-pine/10">
-            <ShieldLargeIcon />
-          </span>
+      <section aria-label="Our three commitments" className="mt-8 space-y-3">
+        <p className="text-xs font-semibold tracking-widest text-moss uppercase">
+          Our three commitments
+        </p>
+        {PROMISES.map((promise) => (
+          <div key={promise.heading} className="card">
+            <p className="text-sm font-semibold text-ink">{promise.heading}</p>
+            <p className="mt-1 text-sm leading-6 text-ink/70">{promise.body}</p>
+          </div>
+        ))}
+      </section>
 
-          <h1 className="mt-6 font-serif text-4xl tracking-tight text-pine sm:text-5xl">
-            Grow your money, safely.
-          </h1>
-
-          <p className="mt-4 max-w-sm text-base leading-7 text-ink/70">
-            PesaSense reads your M-Pesa history privately, shows you what you
-            can safely set aside, and helps you start a small, steady savings
-            habit.
+      <div className="mt-8 flex flex-col gap-3">
+        <button
+          type="button"
+          onClick={getStarted}
+          className="btn btn-primary w-full py-4 text-base"
+        >
+          Get started
+        </button>
+        <button
+          type="button"
+          aria-expanded={showHow}
+          onClick={() => setShowHow((open) => !open)}
+          className="btn btn-ghost w-full py-2 text-sm"
+        >
+          How does this work?
+        </button>
+        {showHow ? (
+          <p className="text-sm leading-6 text-ink/75">
+            You answer a few questions. Then you add about six months of M-Pesa history
+            on this phone. We show a range you could set aside. If the history can
+            support it, you can start a small monthly Bitcoin habit. You approve each
+            purchase. Bitcoin&apos;s value goes up and down. Save only what you will not
+            need soon.
           </p>
-        </header>
-
-        <section aria-label="Our promises to you" className="mt-10 space-y-4">
-          <p className="text-xs font-semibold tracking-widest text-moss uppercase">
-            Our promises to you
-          </p>
-
-          {PROMISES.map(({ Icon, heading, body }) => (
-            <div
-              key={heading}
-              className="flex items-start gap-4 rounded-2xl border border-sand bg-white/70 p-4 shadow-sm"
-            >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-moss/10">
-                <Icon />
-              </span>
-              <div>
-                <p className="text-sm font-semibold text-ink">{heading}</p>
-                <p className="mt-1 text-sm leading-6 text-ink/65">{body}</p>
-              </div>
-            </div>
-          ))}
-        </section>
-
-        <div className="mt-8">
-          <RegulatoryDisclosure variant="full" />
-        </div>
-
-        <div className="mt-8 flex flex-col gap-3">
-          <button
-            type="button"
-            id="welcome-get-started"
-            onClick={proceed}
-            className="btn btn-primary w-full py-4 text-base"
-          >
-            Get Started
-          </button>
-
-          <button
-            type="button"
-            id="welcome-exploring"
-            onClick={proceed}
-            className="btn btn-ghost w-full py-2 text-sm"
-          >
-            I&apos;m just exploring
-          </button>
-        </div>
-
-        <footer className="mt-10 text-center text-[11px] leading-5 text-ink/40">
-          PesaSense &nbsp;·&nbsp; Education, not financial advice
-        </footer>
+        ) : null}
       </div>
-    </div>
+
+      <footer className="mt-10 space-y-3 text-center text-xs leading-5 text-ink/55">
+        <p>Encrypted on your device. Built for Kenya.</p>
+        <p>PesaSense is an independent tool, not affiliated with Safaricom.</p>
+        <p>
+          <Link href="/trust" className="btn btn-ghost">
+            Regulatory notice
+          </Link>
+        </p>
+      </footer>
+    </main>
   );
 }

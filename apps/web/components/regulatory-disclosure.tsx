@@ -1,21 +1,16 @@
 /**
- * RegulatoryDisclosure
+ * Short regulatory notice.
  *
- * Static, non-dismissible regulatory transparency notice.
- * Purely presentational — no state, no API calls, no side-effects.
+ * Product stance is stated plainly. The licensing sentence is team research
+ * and is marked to verify. This is not a finished legal opinion.
  *
- * Usage:
- *   import { RegulatoryDisclosure } from "../components/regulatory-disclosure";
- *
- *   // Large card — Welcome screen, dedicated section
- *   <RegulatoryDisclosure variant="full" />
- *
- *   // Small footer note — sidebar, page footers, confirm steps
- *   <RegulatoryDisclosure variant="condensed" />
+ * // to verify: CBK licenses custodial wallets, payment processing, and
+ * fiat-to-crypto rails. CMA oversees exchanges, brokers, and investment
+ * managers. Confirm this wording before anyone treats it as legal advice.
  */
 
-/** Shield SVG — conveys security/trust without alarm. */
-function ShieldIcon({ className }: { className?: string }) {
+/** Small information mark for the notice. */
+function InfoIcon() {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -27,27 +22,7 @@ function ShieldIcon({ className }: { className?: string }) {
       strokeLinejoin="round"
       aria-hidden="true"
       focusable="false"
-      className={className}
-    >
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-    </svg>
-  );
-}
-
-/** Small information circle — used in the condensed variant. */
-function InfoIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.75}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      focusable="false"
-      className={className}
+      className="mt-0.5 h-4 w-4 shrink-0 text-ink/70"
     >
       <circle cx="12" cy="12" r="10" />
       <line x1="12" y1="16" x2="12" y2="12" />
@@ -56,93 +31,35 @@ function InfoIcon({ className }: { className?: string }) {
   );
 }
 
-const DISCLOSURES = [
-  "PesaSense is not a licensed exchange or investment adviser under the CBK or CMA.",
-  "We never hold your funds, your keys, or your M-Pesa balance.",
+const LINES = [
   "This is education, not financial advice.",
+  "We never hold your funds, your keys, or your M-Pesa balance.",
+  "PesaSense is not a licensed exchange or investment adviser. That status is still to be confirmed.",
 ] as const;
 
-export interface RegulatoryDisclosureProps {
-  /**
-   * "full"      — Prominent card with icon header and bulleted list.
-   *               Use on the Welcome screen or any dedicated trust section.
-   *
-   * "condensed" — Single-line inline note with a small icon prefix.
-   *               Use in sidebars, page footers, or confirm-step captions.
-   *
-   * Defaults to "full".
-   */
-  variant?: "full" | "condensed";
-}
-
-export function RegulatoryDisclosure({
-  variant = "full",
-}: RegulatoryDisclosureProps) {
-  if (variant === "condensed") {
-    return (
-      <aside
-        aria-label="Regulatory notice"
-        className="flex items-start gap-2 rounded-xl border border-brass/35 bg-brass/8 px-3 py-2.5"
-      >
-        <InfoIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brass" />
-        <p className="text-[11px] leading-5 text-ink/70">
-          <span className="font-semibold text-ink/90">Not financial advice.</span>{" "}
-          PesaSense is not a licensed exchange or adviser (CBK/CMA). We never
-          hold your funds or keys.
-        </p>
-      </aside>
-    );
-  }
-
-  // ── "full" variant ────────────────────────────────────────────────────────
+/** The trust-screen notice. One short card, no alarm styling. */
+export function RegulatoryDisclosure() {
   return (
-    <aside
-      aria-label="Regulatory and transparency notice"
-      className="rounded-2xl border border-brass/40 bg-brass/10 p-5"
-    >
-      {/* Header row */}
-      <div className="flex items-start gap-3">
-        <span
-          aria-hidden="true"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brass/20"
-        >
-          <ShieldIcon className="h-5 w-5 text-brass" />
-        </span>
+    <aside aria-label="Regulatory notice" className="card">
+      <div className="flex items-start gap-2">
+        <InfoIcon />
         <div>
-          <p className="text-sm font-semibold leading-snug text-ink">
-            Transparency &amp; regulatory notice
-          </p>
-          <p className="mt-0.5 text-xs leading-5 text-ink/60">
-            Please read before using PesaSense.
+          <p className="text-sm font-semibold text-ink">The honest picture</p>
+          <p className="mt-1 text-xs leading-5 text-ink/60">
+            As of 1 October 2026. Status to be confirmed.
           </p>
         </div>
       </div>
-
-      {/* Divider */}
-      <div
-        className="my-4 border-t border-brass/25"
-        role="separator"
-        aria-hidden="true"
-      />
-
-      {/* Disclosure bullets */}
-      <ul className="space-y-3" role="list">
-        {DISCLOSURES.map((text) => (
-          <li key={text} className="flex items-start gap-2.5">
-            {/* Bullet dot */}
-            <span
-              aria-hidden="true"
-              className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brass/60"
-            />
-            <p className="text-sm leading-6 text-ink/85">{text}</p>
+      <ul className="mt-4 space-y-3">
+        {LINES.map((line) => (
+          <li key={line} className="text-sm leading-6 text-ink/80">
+            {line}
           </li>
         ))}
       </ul>
-
-      {/* Footer note */}
-      <p className="mt-4 text-[11px] leading-5 text-ink/55">
-        CBK — Central Bank of Kenya &nbsp;·&nbsp; CMA — Capital Markets
-        Authority
+      <p className="mt-4 text-xs leading-5 text-ink/55">
+        The on-ramp partner&apos;s licence status is to be confirmed. We do not call a
+        partner licensed until that is checked.
       </p>
     </aside>
   );

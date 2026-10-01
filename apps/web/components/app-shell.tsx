@@ -36,13 +36,19 @@ function NavLink({
   );
 }
 
+/** Welcome and the questions hide the tabs. The rest of the app keeps them. */
+function hidesNav(pathname: string): boolean {
+  return pathname === "/welcome" || pathname.startsWith("/onboarding");
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname() ?? "/";
+  const quiet = hidesNav(pathname);
 
   return (
     <div className="app-shell">
       <aside
-        className="app-sidebar hidden lg:flex"
+        className={quiet ? "hidden" : "app-sidebar hidden lg:flex"}
         aria-label="Primary"
       >
         <div className="flex flex-col gap-8 p-8">
@@ -73,26 +79,25 @@ export function AppShell({ children }: { children: ReactNode }) {
         <header className="app-mobile-header lg:hidden">
           <p className="font-serif text-lg text-pine">PesaSense</p>
           <p className="text-[11px] font-medium tracking-wide text-moss uppercase">
-            On this device
+            Stays on your phone
           </p>
         </header>
 
         <div className="app-content">{children}</div>
 
-        <nav
-          className="app-mobile-nav lg:hidden safe-bottom"
-          aria-label="Primary"
-        >
-          {NAV.map((item) => (
-            <NavLink
-              key={item.href}
-              href={item.href}
-              label={item.label}
-              active={item.match(pathname)}
-              className="flex flex-1 items-center justify-center rounded-xl py-2.5 text-xs font-semibold transition-colors"
-            />
-          ))}
-        </nav>
+        {quiet ? null : (
+          <nav className="app-mobile-nav lg:hidden safe-bottom" aria-label="Primary">
+            {NAV.map((item) => (
+              <NavLink
+                key={item.href}
+                href={item.href}
+                label={item.label}
+                active={item.match(pathname)}
+                className="flex flex-1 items-center justify-center rounded-xl py-2.5 text-xs font-semibold transition-colors"
+              />
+            ))}
+          </nav>
+        )}
       </div>
     </div>
   );
