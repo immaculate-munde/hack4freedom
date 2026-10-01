@@ -269,8 +269,12 @@ export function contributionIntent(circle: ChamaCircle, actorId: string): Contri
     throw new ChamaLedgerError("This contribution is already recorded.");
   }
   const recipient = requireMember(circle, cycle.recipientId);
+  const destination = lockedPayDestination(circle, cycle.id) ?? recipient.lightningAddress;
+  if (destination.trim().toLowerCase() === actor.lightningAddress.trim().toLowerCase()) {
+    throw new ChamaLedgerError("This payment would return to your own Lightning address.");
+  }
   return {
-    destination: lockedPayDestination(circle, cycle.id) ?? recipient.lightningAddress,
+    destination,
     amountKes: circle.monthlyContributionKes,
     recipientId: recipient.id,
     cycleId: cycle.id,
@@ -391,7 +395,18 @@ export function setOwnLightningAddress(
 ): ChamaCircle {
   const next = clone(circle);
   const actor = requireMember(next, actorId);
-  actor.lightningAddress = assertLightningAddress(lightningAddress);
+  const address = assertLightningAddress(lightningAddress);
+  const taken = next.members.some(
+    (member) =>
+      member.id !== actor.id &&
+      member.lightningAddress.toLowerCase() === address.toLowerCase(),
+  );
+  if (taken) {
+    throw new ChamaLedgerError(
+      "That Lightning address already belongs to another member.",
+    );
+  }
+  actor.lightningAddress = address;
   return next;
 }
 
@@ -477,6 +492,10 @@ export function parseChamaCircle(value: unknown): ChamaCircle | null {
     }
     const memberIds = members.map((member) => member.id);
     if (new Set(memberIds).size !== memberIds.length) {
+      return null;
+    }
+    const addresses = members.map((member) => member.lightningAddress.toLowerCase());
+    if (new Set(addresses).size !== addresses.length) {
       return null;
     }
     if (

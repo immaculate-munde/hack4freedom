@@ -25,9 +25,14 @@ function formatKes(amount: number): string {
   }).format(amount);
 }
 
-function roleLabel(role: "receives" | "recorded" | "waiting"): string {
+function roleLabel(
+  role: "receives" | "recorded" | "waiting",
+  sentSats?: number,
+): string {
   if (role === "receives") return "Receives this round";
-  if (role === "recorded") return "Recorded on their phone";
+  if (role === "recorded") {
+    return sentSats && sentSats > 0 ? `Sent ${sentSats} sats` : "Recorded on their phone";
+  }
   return "Not recorded yet";
 }
 
@@ -143,8 +148,14 @@ export function ChamaFlow() {
   const badge = actor
     ? current.badgeOptIns.find((optIn) => optIn.memberId === actor.id)
     : undefined;
+  const actorPayment = actor
+    ? current.contributions.find(
+        (record) => record.cycleId === view.cycle.id && record.payerId === actor.id,
+      )
+    : undefined;
 
   function persist(next: ChamaCircle) {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     setCircle(next);
     setError(null);
   }
@@ -201,7 +212,7 @@ export function ChamaFlow() {
   }
 
   function onUseBreezAddress() {
-    if (!actor || actor.id !== "amina" || !wallet.lightningAddress) return;
+    if (!actor || !wallet.lightningAddress) return;
     try {
       persist(setOwnLightningAddress(current, actor.id, wallet.lightningAddress));
     } catch (err) {
@@ -286,18 +297,28 @@ export function ChamaFlow() {
         </p>
 
         <ul className="mt-5 divide-y divide-sand">
-          {view.rows.map((row) => (
-            <li key={row.member.id} className="flex items-start justify-between gap-3 py-3">
-              <div>
-                <p className="font-semibold text-ink">
-                  {row.member.name}
-                  {row.member.id === actor?.id ? " (this phone)" : ""}
+          {view.rows.map((row) => {
+            const payment = current.contributions.find(
+              (record) =>
+                record.cycleId === view.cycle.id && record.payerId === row.member.id,
+            );
+            const sentSats =
+              payment?.settlement === "lightning" ? payment.amountSats : undefined;
+            return (
+              <li key={row.member.id} className="flex items-start justify-between gap-3 py-3">
+                <div>
+                  <p className="font-semibold text-ink">
+                    {row.member.name}
+                    {row.member.id === actor?.id ? " (this phone)" : ""}
+                  </p>
+                  <p className="mt-0.5 break-all text-xs text-ink/55">{row.member.lightningAddress}</p>
+                </div>
+                <p className="shrink-0 text-right text-xs font-semibold text-pine">
+                  {roleLabel(row.role, sentSats)}
                 </p>
-                <p className="mt-0.5 break-all text-xs text-ink/55">{row.member.lightningAddress}</p>
-              </div>
-              <p className="shrink-0 text-xs font-semibold text-pine">{roleLabel(row.role)}</p>
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
 
         {actor && actorRow?.role === "waiting" && demoDestination ? (
@@ -339,7 +360,9 @@ export function ChamaFlow() {
         ) : null}
         {actor && actorRow?.role === "recorded" ? (
           <p className="mt-4 text-sm leading-6 text-ink/75">
-            {actor.name} already recorded this round on their own phone.
+            {actorPayment?.settlement === "lightning" && actorPayment.amountSats
+              ? `${actor.name} sent ${actorPayment.amountSats} sats to ${actorPayment.destination}.`
+              : `${actor.name} already recorded this round on their own phone.`}
           </p>
         ) : null}
 
@@ -372,8 +395,13 @@ export function ChamaFlow() {
             Save my address
           </button>
         </div>
-        {actor?.id === "amina" && wallet.status === "ready" && wallet.lightningAddress ? (
-          <button type="button" className="btn btn-ghost mt-3" onClick={onUseBreezAddress}>
+        {actor && wallet.status === "ready" && wallet.lightningAddress ? (
+          <button
+            type="button"
+            className="btn btn-ghost mt-3"
+            disabled={busy}
+            onClick={onUseBreezAddress}
+          >
             Use my Breez address
           </button>
         ) : null}

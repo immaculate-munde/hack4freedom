@@ -85,6 +85,9 @@ describe("chama ledger", () => {
     expect(() => setOwnLightningAddress(circle, "stranger", "a@wallet.example.com")).toThrow(
       /Only a member/,
     );
+    expect(() =>
+      setOwnLightningAddress(circle, "amina", "chebet.demo@example.com"),
+    ).toThrow(/already belongs to another member/);
   });
 
   it("offers a reliability note only after a round finishes, and does not publish it", () => {
@@ -263,6 +266,37 @@ describe("chama ledger", () => {
     );
     expect(isDemoLightningAddress("  Person@Example.com ")).toBe(true);
     expect(isDemoLightningAddress("person@sub.example.com")).toBe(false);
+  });
+
+  it("will not point two members at one address or pay a member back to themselves", async () => {
+    const circle = setOwnLightningAddress(
+      createDemoChamaSisters(),
+      "amina",
+      "amina@pay.example.net",
+    );
+    expect(() =>
+      setOwnLightningAddress(circle, "chebet", "AMINA@pay.example.net"),
+    ).toThrow(/already belongs to another member/);
+
+    const kept = setOwnLightningAddress(circle, "amina", "amina@pay.example.net");
+    expect(kept.members.find((member) => member.id === "amina")?.lightningAddress).toBe(
+      "amina@pay.example.net",
+    );
+
+    const shared = JSON.parse(JSON.stringify(circle)) as {
+      members: Array<{ id: string; lightningAddress: string }>;
+    };
+    const chebet = shared.members.find((member) => member.id === "chebet");
+    if (chebet) chebet.lightningAddress = "amina@pay.example.net";
+    expect(parseChamaCircle(shared)).toBeNull();
+
+    const payingSelf = createDemoChamaSisters();
+    const recipient = payingSelf.members.find((member) => member.id === "chebet");
+    const payer = payingSelf.members.find((member) => member.id === "amina");
+    if (recipient && payer) recipient.lightningAddress = payer.lightningAddress;
+    expect(() => recordOwnContribution(payingSelf, "amina", "2026-10-01T12:00:00.000Z")).toThrow(
+      /own Lightning address/,
+    );
   });
 
   it("drops a saved circle that could crash the round or fake a payment", () => {
