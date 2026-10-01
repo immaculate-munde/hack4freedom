@@ -11,45 +11,59 @@ import {
   YAxis,
 } from "recharts";
 
-// Static illustrative data representing a hypothetical 1,000 KES investment over 1 year
-const ILLUSTRATIVE_SCENARIO = [
+type ScenarioRow = {
+  name: string;
+  range: [number, number];
+  fill: string;
+  description: string;
+};
+
+/** A sketch of a hypothetical KES 1,000. Ranges only. Not a price history. */
+const ILLUSTRATIVE_SCENARIO: ScenarioRow[] = [
   {
-    name: "Bear Case",
-    value: 600,
-    fill: "#a8a29e", // muted neutral color for loss
-    description: "If the market drops",
+    name: "Lower",
+    range: [400, 800],
+    fill: "#a8a29e",
+    description: "The value can fall. You can lose money.",
   },
   {
-    name: "Base Case",
-    value: 1150,
-    fill: "#3d6b54", // moss token (#3d6b54)
-    description: "Typical historical average",
+    name: "Middle",
+    range: [700, 1400],
+    fill: "#3d6b54",
+    description: "It might stay near where it started.",
   },
   {
-    name: "Bull Case",
-    value: 1800,
-    fill: "#8c6a2f", // brass token (#8c6a2f)
-    description: "High growth period",
+    name: "Higher",
+    range: [1200, 2200],
+    fill: "#8c6a2f",
+    description: "It might be higher. This is not a forecast.",
   },
 ];
 
-// Custom tooltip for clean formatting that matches our design tokens
-function CustomTooltip({ active, payload }: any) {
-  if (active && payload && payload.length) {
-    const data = payload[0].payload;
-    return (
-      <div className="rounded-xl border border-sand bg-paper p-3 shadow-sm">
-        <p className="text-xs font-semibold text-ink">{data.name}</p>
-        <p className="mt-1 text-sm font-bold text-pine">
-          KES {data.value.toLocaleString()}
-        </p>
-        <p className="mt-1 text-[10px] uppercase tracking-wider text-ink/60">
-          {data.description}
-        </p>
-      </div>
-    );
+function formatRange(range: [number, number]): string {
+  return `KES ${range[0].toLocaleString("en-KE")}–${range[1].toLocaleString("en-KE")}`;
+}
+
+function CustomTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: ReadonlyArray<{ payload: ScenarioRow }>;
+}) {
+  const data = payload?.[0]?.payload;
+  if (!active || !data) {
+    return null;
   }
-  return null;
+  return (
+    <div className="rounded-xl border border-sand bg-paper p-3 shadow-sm">
+      <p className="text-xs font-semibold text-ink">{data.name}</p>
+      <p className="mt-1 text-sm font-bold text-pine">{formatRange(data.range)}</p>
+      <p className="mt-1 text-[10px] tracking-wider text-ink/60 uppercase">
+        {data.description}
+      </p>
+    </div>
+  );
 }
 
 export function ScenarioChart() {
@@ -58,14 +72,15 @@ export function ScenarioChart() {
       <div className="mb-6">
         <div className="flex items-center justify-between">
           <h3 className="font-serif text-lg font-semibold text-pine">
-            Historical Illustration Only
+            A sketch, not a forecast
           </h3>
           <span className="rounded-full border border-line bg-pearl px-2.5 py-1 text-[11px] font-semibold text-slate uppercase tracking-wide">
             Illustrative
           </span>
         </div>
         <p className="mt-2 text-xs leading-5 text-ink/60">
-          Bitcoin's value goes up and down. Not a guarantee of future results. Based on a hypothetical KES 1,000 held for 1 year.
+          Bitcoin's value goes up and down. Not a guarantee of future results. Based on
+          a hypothetical KES 1,000 held for 1 year.
         </p>
       </div>
 
@@ -86,13 +101,13 @@ export function ScenarioChart() {
               axisLine={false}
               tickLine={false}
               tick={{ fontSize: 12, fill: "#1a2420", opacity: 0.7 }}
-              tickFormatter={(val) => `KES ${val}`}
+              tickFormatter={(val: number) => `KES ${val}`}
             />
             <Tooltip
               content={<CustomTooltip />}
               cursor={{ fill: "rgba(231, 224, 212, 0.4)" }} // sand/40 approx
             />
-            <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+            <Bar dataKey="range" radius={[6, 6, 0, 0]}>
               {ILLUSTRATIVE_SCENARIO.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={entry.fill} />
               ))}
