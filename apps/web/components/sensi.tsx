@@ -1,38 +1,38 @@
 /**
- * Sensi, the guide on the welcome screen.
+ * Sensi, the guide.
  *
- * A small sprout with a calm face. Bundled inline so it loads with the page.
+ * A calm sprout face, drawn inline so the welcome screen does not fetch an image.
  */
 export function Sensi({ className = "h-16 w-16" }: { className?: string }) {
   return (
     <svg viewBox="0 0 80 80" aria-hidden="true" className={className}>
-      <circle cx="40" cy="44" r="22" className="fill-sand" />
+      <circle cx="40" cy="46" r="24" className="fill-mint" />
       <ellipse
-        cx="31"
-        cy="24"
+        cx="30"
+        cy="22"
         rx="7"
-        ry="11"
-        transform="rotate(-35 31 24)"
-        className="fill-pine"
+        ry="12"
+        transform="rotate(-32 30 22)"
+        className="fill-teal"
       />
       <ellipse
-        cx="49"
-        cy="24"
+        cx="50"
+        cy="22"
         rx="7"
-        ry="11"
-        transform="rotate(35 49 24)"
-        className="fill-pine"
+        ry="12"
+        transform="rotate(32 50 22)"
+        className="fill-teal"
       />
-      <circle cx="33" cy="43" r="2.2" className="fill-ink" />
-      <circle cx="47" cy="43" r="2.2" className="fill-ink" />
+      <circle cx="32" cy="46" r="2.4" className="fill-ink" />
+      <circle cx="48" cy="46" r="2.4" className="fill-ink" />
       <path
-        d="M35 50c2 2.4 8 2.4 10 0"
+        d="M34 54c2.2 2.6 9.8 2.6 12 0"
         className="fill-none stroke-ink"
-        strokeWidth="1.6"
+        strokeWidth="1.8"
         strokeLinecap="round"
       />
-      <circle cx="28" cy="48" r="2.4" className="fill-brass/50" />
-      <circle cx="52" cy="48" r="2.4" className="fill-brass/50" />
+      <circle cx="26" cy="52" r="2.6" className="fill-warning/35" />
+      <circle cx="54" cy="52" r="2.6" className="fill-warning/35" />
     </svg>
   );
 }
