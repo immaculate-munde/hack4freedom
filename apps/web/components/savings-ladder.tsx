@@ -46,10 +46,7 @@ export interface SavingsLadderProps {
   bufferMonths: number;
 }
 
-export function SavingsLadder({
-  currentStep,
-  bufferMonths,
-}: SavingsLadderProps) {
+export function SavingsLadder({ currentStep, bufferMonths }: SavingsLadderProps) {
   const isStep1Complete = bufferMonths >= 3 || currentStep > 1;
   const isStep2Complete = currentStep > 2;
 
@@ -89,8 +86,7 @@ export function SavingsLadder({
             Emergency Buffer
           </h3>
           <p className="mt-1 text-sm leading-6 text-ink/75">
-            Aim for 3 months of basic expenses safely set aside for peace of
-            mind.
+            Aim for 3 months of basic expenses safely set aside for peace of mind.
           </p>
           {step1Status === "active" && (
             <div className="mt-4 flex items-center gap-3">
@@ -124,9 +120,7 @@ export function SavingsLadder({
           aria-current={step2Status === "active" ? "step" : undefined}
         >
           <div className="flex items-center gap-2">
-            {step2Status === "locked" && (
-              <LockIcon className="h-4 w-4 text-ink/40" />
-            )}
+            {step2Status === "locked" && <LockIcon className="h-4 w-4 text-ink/40" />}
             <h3
               className={`font-semibold ${
                 step2Status === "active" ? "text-moss" : "text-ink"
@@ -136,8 +130,8 @@ export function SavingsLadder({
             </h3>
           </div>
           <p className="mt-1 text-sm leading-6 text-ink/75">
-            Keep funds for upcoming purchases or school fees in M-Shwari, Ziidi,
-            or your standard savings account.
+            Keep funds for upcoming purchases or school fees in M-Shwari, Ziidi, or your
+            standard savings account.
           </p>
         </div>
       </div>
@@ -154,9 +148,7 @@ export function SavingsLadder({
           aria-current={step3Status === "active" ? "step" : undefined}
         >
           <div className="flex items-center gap-2">
-            {step3Status === "locked" && (
-              <LockIcon className="h-4 w-4 text-ink/40" />
-            )}
+            {step3Status === "locked" && <LockIcon className="h-4 w-4 text-ink/40" />}
             <h3
               className={`font-semibold ${
                 step3Status === "active" ? "text-pine" : "text-ink"
@@ -166,8 +158,8 @@ export function SavingsLadder({
             </h3>
           </div>
           <p className="mt-1 text-sm leading-6 text-ink/75">
-            Grow your savings over time with Bitcoin. Not a get-rich-quick
-            scheme—built for money you can leave alone for years.
+            Bitcoin is one option for money you can leave alone for years. The value
+            goes up and down, and you can lose money.
           </p>
 
           {step3Status === "active" && (
