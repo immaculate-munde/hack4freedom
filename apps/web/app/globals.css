@@ -152,11 +152,45 @@ body {
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    gap: 0.25rem;
-    border-bottom: 1px solid var(--color-line);
-    background: rgb(253 251 247 / 94%);
-    padding: 0.75rem 1rem;
-    backdrop-filter: blur(10px);
+    gap: 0.7rem;
+    margin-bottom: 0.35rem;
+    border-bottom: 1px solid #e8e0d2;
+    background: #fdfbf7;
+    padding: 0.7rem 1rem 0.85rem;
+  }
+
+  .mobile-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+  }
+
+  .mobile-brand-mark {
+    height: 2.25rem;
+    width: 2.25rem;
+    flex-shrink: 0;
+  }
+
+  .mobile-brand-name {
+    color: #1e3a32;
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.25;
+  }
+
+  .mobile-brand-stays {
+    margin-top: 0.1rem;
+    color: #3d4b43;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.35;
+  }
+
+  .mobile-header-tools {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.7rem;
   }
 
   .app-content {
@@ -164,7 +198,7 @@ body {
     width: 100%;
     max-width: 56rem;
     margin-inline: auto;
-    padding: 1rem 1rem 5.5rem;
+    padding: 1.25rem 1rem 5.5rem;
   }
 
   .app-content.app-content-landing {
@@ -174,6 +208,12 @@ body {
   }
 
   @media (min-width: 640px) {
+    .app-mobile-header {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+    }
+
     .app-content {
       padding: 1.5rem 1.5rem 5.75rem;
     }
@@ -220,6 +260,19 @@ body {
 
   .dark .app-shell:has(.app-sidebar) {
     background: #0c1210;
+  }
+
+  .dark .app-mobile-header {
+    border-bottom-color: #e8e0d2;
+    background: #fdfbf7;
+  }
+
+  .dark .mobile-brand-name {
+    color: #1e3a32;
+  }
+
+  .dark .mobile-brand-stays {
+    color: #3d4b43;
   }
 
   .dark .desk-top {

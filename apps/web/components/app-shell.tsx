@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useState, type ReactNode } from "react";
-import { LogoMark } from "./brand/LogoMark";
 import { CustomerRail } from "./customer-rail";
 import { SensiAvatar } from "./sensi-avatar";
 import { SensiBubble } from "./sensi-bubble";
@@ -211,37 +210,35 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="app-main-column">
         {quiet ? null : (
         <header className="app-mobile-header lg:hidden">
-          <div className="flex items-center justify-between gap-2">
-            <Brand t={t} compact />
-            <div className="flex shrink-0 items-center gap-2">
-              <div
-                role="group"
-                aria-label={t.language}
-                className="flex h-10 items-center rounded-full bg-pearl px-1"
-              >
-                <LangButton
-                  label="EN"
-                  pressed={language === "en"}
-                  onClick={() => setLanguage("en")}
-                />
-                <span className="px-0.5 text-xs text-line" aria-hidden="true">
-                  |
-                </span>
-                <LangButton
-                  label="SW"
-                  pressed={language === "sw"}
-                  onClick={() => setLanguage("sw")}
-                />
-              </div>
-              <ThemeToggle />
-              <ProfileMenu
-                language={language}
-                label={t.profile}
-                open={profileOpen}
-                onToggle={() => setProfileOpen((current) => !current)}
-                onClose={() => setProfileOpen(false)}
+          <Brand t={t} />
+          <div className="mobile-header-tools">
+            <div
+              role="group"
+              aria-label={t.language}
+              className="flex h-10 items-center rounded-full bg-pearl px-1"
+            >
+              <LangButton
+                label="EN"
+                pressed={language === "en"}
+                onClick={() => setLanguage("en")}
+              />
+              <span className="px-1 text-xs text-line" aria-hidden="true">
+                |
+              </span>
+              <LangButton
+                label="SW"
+                pressed={language === "sw"}
+                onClick={() => setLanguage("sw")}
               />
             </div>
+            <ThemeToggle />
+            <ProfileMenu
+              language={language}
+              label={t.profile}
+              open={profileOpen}
+              onToggle={() => setProfileOpen((current) => !current)}
+              onClose={() => setProfileOpen(false)}
+            />
           </div>
         </header>
         )}
@@ -423,13 +420,13 @@ function ProfileMenu({
   );
 }
 
-function Brand({ t, compact = false }: { t: ShellCopy; compact?: boolean }) {
+function Brand({ t }: { t: ShellCopy }) {
   return (
-    <div className={`flex items-center gap-2 ${compact ? "" : "px-1"}`}>
-      <LogoMark className="h-8 w-8 shrink-0" />
+    <div className="mobile-brand">
+      <img src="/icon.svg" alt="" width={36} height={36} className="mobile-brand-mark" />
       <div>
-        <p className="text-base font-semibold whitespace-nowrap text-ink">{t.brand}</p>
-        <p className="text-xs font-semibold text-slate">{t.stays}</p>
+        <p className="mobile-brand-name">{t.brand}</p>
+        <p className="mobile-brand-stays">{t.stays}</p>
       </div>
     </div>
   );
