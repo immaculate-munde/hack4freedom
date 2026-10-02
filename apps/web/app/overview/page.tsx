@@ -1,39 +1,54 @@
-/**
- * Overview.
- * The dashboard from the Serene Shilling screens. Amounts come from the profile.
- * Sats are not shown as a number until a real quote exists.
- */
+"use client";
+
+import { Suspense } from "react";
+
 import Link from "next/link";
-import { PAST_PERFORMANCE_DISCLAIMER } from "@pesasense/core";
+import { PAST_PERFORMANCE_DISCLAIMER, demoProfiles } from "@pesasense/core";
 import { ProfileSync } from "../../components/profile-sync";
 import { Sensi } from "../../components/sensi";
 import { UssdAccess } from "../../components/ussd-access";
 import { WalletActivity } from "../../components/wallet-activity";
 import { formatKes, habitPercentOfFloor } from "../../lib/format";
-import { loadProfile } from "../../lib/load-profile";
 import { ImportTrigger } from "../../components/import-trigger";
+import { AnimatedNumber } from "../../components/animated-number";
+import { useProfile } from "../../contexts/profile-context";
+import { useSearchParams } from "next/navigation";
 
-export default async function OverviewPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ profile?: string }>;
-}) {
-  const params = await searchParams;
-  const loaded = loadProfile(params.profile);
-  if (loaded.status === "not-ready") {
-    return (
-      <main className="card">
-        <h1 className="text-2xl font-semibold text-ink">No profile yet</h1>
-        <p className="mt-3 text-sm leading-6 text-slate">{loaded.reason}</p>
-      </main>
-    );
-  }
+const TRUST_ICONS: Record<string, string> = {
+  key: "🔑",
+  chart: "📊",
+  phone: "📱",
+};
 
-  const { profile, isDemo, demoId, persona } = loaded;
+function TrustChip({ label, icon }: { label: string; icon: string }) {
+  return (
+    <div className="flex flex-col items-center gap-1 px-1">
+      <span className="text-2xl" role="img" aria-label={icon}>
+        {TRUST_ICONS[icon] ?? "✅"}
+      </span>
+      <span className="text-[10px] font-semibold leading-tight text-slate">
+        {label}
+      </span>
+    </div>
+  );
+}
+
+function OverviewContent() {
+  const searchParams = useSearchParams();
+  const profileQuery = searchParams?.get("profile");
+  const { profile: contextProfile, isDemo: contextIsDemo } = useProfile();
+
+  const demoId = profileQuery === "brian" ? "brian" : "amina";
+  const profile = contextProfile || demoProfiles[demoId];
+  const isDemo = contextProfile ? false : contextIsDemo;
+  const persona = demoId === "brian" ? "Brian (invented)" : "Amina (invented)";
   const name = demoId === "brian" ? "Brian" : "Amina";
+
   const { floor, typical, ceiling } = profile.surplus.monthlyKes;
-  const habit = profile.investmentPlan?.amountKes ?? 0;
+
+  const habit = Math.round(floor * 0.75);
   const share = habitPercentOfFloor(habit, floor);
+
   const span = Math.max(ceiling - floor, 1);
   const typicalPercent = Math.round(((typical - floor) / span) * 100);
   const query = demoId === "brian" ? "?profile=brian" : "";
@@ -44,8 +59,8 @@ export default async function OverviewPage({
   );
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-col gap-4">
-      <section className="flex items-center gap-3 rounded-[20px] bg-white px-4 py-3 shadow-card">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-4">
+      <section className="flex items-center gap-3 rounded-[20px] bg-white px-4 py-3 shadow-card hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-mint">
           <Sensi className="h-9 w-9" />
         </span>
@@ -57,7 +72,7 @@ export default async function OverviewPage({
         </p>
       </section>
 
-      <section className="rounded-[20px] bg-white p-5 shadow-card">
+      <section className="rounded-[20px] bg-gradient-to-br from-pine/5 to-moss/10 p-5 shadow-card hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
         <div className="flex items-center justify-between gap-3">
           <p className="text-[11px] font-semibold tracking-[0.12em] text-slate uppercase">
             Safe monthly surplus
@@ -65,7 +80,7 @@ export default async function OverviewPage({
           {isDemo ? <DemoTag /> : null}
         </div>
         <p className="mt-3 text-[32px] leading-10 font-bold tracking-tight text-ink tabular-nums">
-          {formatKes(floor)} – {formatKes(ceiling)}
+          <AnimatedNumber value={floor} /> – <AnimatedNumber value={ceiling} />
         </p>
         <p className="mt-1 text-sm text-slate">
           Calm surplus after bills, chamas, and daily life.
@@ -93,7 +108,7 @@ export default async function OverviewPage({
       </section>
 
       {profile.surplus.bufferFirst ? (
-        <section className="rounded-[20px] bg-white p-5 shadow-card">
+        <section className="rounded-[20px] bg-white p-5 shadow-card hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
           <p className="text-[11px] font-semibold tracking-[0.12em] text-slate uppercase">
             Safety cushion
           </p>
@@ -106,22 +121,22 @@ export default async function OverviewPage({
               style={{ width: `${cushionPercent}%` }}
             />
           </div>
-          <Link href={`/habit${query}`} className="btn btn-secondary mt-4 inline-flex">
+          <Link href={`/habit${query}`} className="btn btn-accent mt-4 inline-flex">
             Here&apos;s how
           </Link>
         </section>
       ) : (
-        <section className="rounded-[20px] bg-white p-5 shadow-card">
+        <section className="rounded-[20px] bg-white p-5 shadow-card hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
           <p className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.12em] text-teal uppercase">
             <span className="h-1.5 w-1.5 rounded-full bg-teal" aria-hidden="true" />
             Your habit
           </p>
           <div className="mt-2 flex items-end justify-between gap-3">
             <p className="text-[28px] leading-9 font-bold text-ink tabular-nums">
-              {formatKes(habit)}{" "}
+              <AnimatedNumber value={habit} />{" "}
               <span className="text-base font-semibold text-slate">/ month</span>
             </p>
-            <Link href={`/habit${query}`} className="btn btn-secondary px-4 py-2">
+            <Link href={`/habit${query}`} className="btn btn-accent px-4 py-2">
               Adjust
             </Link>
           </div>
@@ -178,36 +193,10 @@ function DemoTag() {
   );
 }
 
-function TrustChip({ label, icon }: { label: string; icon: "key" | "chart" | "phone" }) {
+export default function OverviewPage() {
   return (
-    <p className="flex flex-col items-center gap-1.5 px-1 text-[11px] leading-4 font-semibold text-slate">
-      <ChipIcon name={icon} />
-      {label}
-    </p>
-  );
-}
-
-function ChipIcon({ name }: { name: "key" | "chart" | "phone" }) {
-  const common = "h-4 w-4 fill-none stroke-teal";
-  if (name === "key") {
-    return (
-      <svg viewBox="0 0 24 24" aria-hidden="true" className={common} strokeWidth="1.75">
-        <circle cx="8" cy="14" r="3.2" />
-        <path strokeLinecap="round" d="M11 14h9l-2 2M17 14v2" />
-      </svg>
-    );
-  }
-  if (name === "chart") {
-    return (
-      <svg viewBox="0 0 24 24" aria-hidden="true" className={common} strokeWidth="1.75">
-        <path strokeLinecap="round" d="M4 18h16M7 15V9M12 15V6M17 15v-4" />
-      </svg>
-    );
-  }
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className={common} strokeWidth="1.75">
-      <rect x="7" y="3" width="10" height="18" rx="2" />
-      <path strokeLinecap="round" d="M11 18h2" />
-    </svg>
+    <Suspense>
+      <OverviewContent />
+    </Suspense>
   );
 }

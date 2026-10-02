@@ -19,6 +19,12 @@
   --color-positive: #115e59;
   --color-warning: #b45309;
   --color-on-primary: #ffffff;
+  --color-cat-housing: #bae6fd;
+  --color-cat-debt: #f8b4a6;
+  --color-cat-utilities: #fde047;
+  --color-cat-chama: #e9d5ff;
+  --color-cat-groceries: #a7f3d0;
+  --color-cat-default: var(--color-pearl);
 
   --color-paper: #faf8f5;
   --color-pine: #0d7a73;
@@ -184,6 +190,12 @@ body {
     background: var(--color-surface);
     padding: 1.25rem;
     box-shadow: var(--shadow-card);
+    transition: transform 200ms ease, box-shadow 200ms ease;
+  }
+
+  .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgb(26 36 32 / 12%);
   }
 
   @media (min-width: 640px) {
@@ -228,6 +240,7 @@ body {
   }
 
   .btn:hover:not(:disabled) {
+    transform: translateY(-2px);
     box-shadow: 0 4px 14px rgb(26 36 32 / 12%);
   }
 

@@ -1,32 +1,24 @@
-/**
- * Steady habit.
- * Monthly is the default. The amount is capped by the surplus floor.
- * The app reminds. It does not move money by itself.
- */
+"use client";
+
+import { Suspense } from "react";
+
 import Link from "next/link";
-import { PAST_PERFORMANCE_DISCLAIMER } from "@pesasense/core";
+import { PAST_PERFORMANCE_DISCLAIMER, demoProfiles } from "@pesasense/core";
 import { formatKes, habitPercentOfFloor } from "../../lib/format";
-import { loadProfile } from "../../lib/load-profile";
+import { useProfile } from "../../contexts/profile-context";
+import { useSearchParams } from "next/navigation";
 
-export default async function HabitPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ profile?: string }>;
-}) {
-  const params = await searchParams;
-  const loaded = loadProfile(params.profile);
-  if (loaded.status === "not-ready") {
-    return (
-      <main className="card">
-        <h1 className="text-2xl font-semibold">No profile yet</h1>
-        <p className="mt-3 text-sm text-slate">{loaded.reason}</p>
-      </main>
-    );
-  }
+function HabitContent() {
+  const searchParams = useSearchParams();
+  const profileQuery = searchParams?.get("profile");
+  const { profile: contextProfile, isDemo: contextIsDemo } = useProfile();
 
-  const { profile, isDemo } = loaded;
+  const demoId = profileQuery === "brian" ? "brian" : "amina";
+  const profile = contextProfile || demoProfiles[demoId];
+  const isDemo = contextProfile ? false : contextIsDemo;
+
   const floor = profile.surplus.monthlyKes.floor;
-  const habit = profile.investmentPlan?.amountKes ?? 0;
+  const habit = Math.round(floor * 0.75);
   const cadence = profile.investmentPlan?.cadence ?? "monthly";
   const share = habitPercentOfFloor(habit, floor);
   const width = Math.max(0, Math.min(100, share));
@@ -34,7 +26,7 @@ export default async function HabitPage({
   const monthly = cadence !== "weekly";
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-col gap-5">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-5">
       <header>
         <p className="text-[11px] font-semibold tracking-[0.14em] text-teal uppercase">
           Patient habit
@@ -142,7 +134,7 @@ export default async function HabitPage({
         Keys stay on your device · Backup is coming soon
       </p>
 
-      <Link href="/invest" className="btn btn-primary inline-flex items-center justify-center">
+      <Link href="/invest" className="btn btn-accent inline-flex items-center justify-center">
         Review my first purchase
       </Link>
       <p className="text-center text-sm text-slate">
@@ -169,9 +161,8 @@ function Ladder({
   return (
     <article className="flex gap-3 border-t border-line px-4 py-4 first:border-t-0">
       <span
-        className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
-          current ? "bg-teal text-on-primary" : "bg-mint text-teal"
-        }`}
+        className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${current ? "bg-teal text-on-primary" : "bg-mint text-teal"
+          }`}
       >
         {n}
       </span>
@@ -179,9 +170,8 @@ function Ladder({
         <div className="flex items-baseline justify-between gap-2">
           <h3 className="text-sm font-semibold text-ink">{title}</h3>
           <p
-            className={`text-[11px] font-semibold tracking-wide uppercase ${
-              current ? "text-teal" : "text-slate"
-            }`}
+            className={`text-[11px] font-semibold tracking-wide uppercase ${current ? "text-teal" : "text-slate"
+              }`}
           >
             {state}
           </p>
@@ -192,9 +182,25 @@ function Ladder({
   );
 }
 
+export default function HabitPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="mx-auto flex w-full max-w-2xl flex-col gap-4">
+          <div className="animate-pulse h-6 w-32 rounded-full bg-pearl" />
+          <div className="animate-pulse h-10 w-64 rounded-full bg-pearl" />
+          <div className="card animate-pulse h-40 bg-pearl" />
+        </main>
+      }
+    >
+      <HabitContent />
+    </Suspense>
+  );
+}
+
 function LeafIcon() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 fill-current">
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-3 w-3 fill-current">
       <path d="M12 3c4 3 6 7 6 11a6 6 0 0 1-12 0c0-4 2-8 6-11z" />
     </svg>
   );

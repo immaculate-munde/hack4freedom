@@ -10,7 +10,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { LogoMark } from "./brand/LogoMark";
 
 type Language = "en" | "sw";
@@ -58,17 +58,17 @@ const TABS = [
   { href: "/learn", key: "learn", match: (p: string) => p.startsWith("/learn") },
 ] as const;
 
-const SIDE = [
+const SIDE_BASE = [
   { href: "/invest", key: "invest", match: (p: string) => p.startsWith("/invest") },
   { href: "/wallet", key: "wallet", match: (p: string) => p.startsWith("/wallet") },
-  { href: "/chama", key: "chama", match: (p: string) => p.startsWith("/chama") },
 ] as const;
+
+const CHAMA_ITEM = { href: "/chama", key: "chama", match: (p: string) => p.startsWith("/chama") } as const;
 
 function hidesNav(pathname: string): boolean {
   return (
     pathname === "/welcome" ||
     pathname.startsWith("/onboarding") ||
-    pathname.startsWith("/import") ||
     pathname.startsWith("/onboard")
   );
 }
@@ -78,7 +78,20 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname() ?? "/";
   const quiet = hidesNav(pathname);
   const [language, setLanguage] = useState<Language>("en");
+  const [wantsChama, setWantsChama] = useState(false);
   const t = copy[language];
+
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("pesasense.onboarding");
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      setWantsChama(parsed.wantsChama === true);
+    } catch {
+    }
+  }, []);
+
+  const sideNav = wantsChama ? [...SIDE_BASE, CHAMA_ITEM] : SIDE_BASE;
 
   return (
     <div className="app-shell">
@@ -92,23 +105,21 @@ export function AppShell({ children }: { children: ReactNode }) {
                   key={tab.href}
                   href={tab.href}
                   aria-current={tab.match(pathname) ? "page" : undefined}
-                  className={`rounded-control px-3 py-2 text-sm font-semibold ${
-                    tab.match(pathname) ? "bg-mint text-teal" : "text-slate"
-                  }`}
+                  className={`rounded-control px-3 py-2 text-sm font-semibold ${tab.match(pathname) ? "bg-mint text-teal" : "text-slate"
+                    }`}
                 >
                   {t[tab.key]}
                 </Link>
               ))}
             </nav>
             <div className="mt-auto flex flex-col gap-1 border-t border-line pt-4">
-              {SIDE.map((item) => (
+              {sideNav.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
                   aria-current={item.match(pathname) ? "page" : undefined}
-                  className={`rounded-control px-3 py-2 text-sm font-semibold ${
-                    item.match(pathname) ? "bg-mint text-teal" : "text-slate"
-                  }`}
+                  className={`rounded-control px-3 py-2 text-sm font-semibold ${item.match(pathname) ? "bg-mint text-teal" : "text-slate"
+                    }`}
                 >
                   {t[item.key]}
                 </Link>
@@ -164,14 +175,12 @@ export function AppShell({ children }: { children: ReactNode }) {
                   key={tab.href}
                   href={tab.href}
                   aria-current={active ? "page" : undefined}
-                  className={`flex min-h-nav flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-semibold ${
-                    active ? "text-teal" : "text-slate"
-                  }`}
+                  className={`flex min-h-nav flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-semibold ${active ? "text-teal" : "text-slate"
+                    }`}
                 >
                   <span
-                    className={`flex h-7 w-12 items-center justify-center rounded-full ${
-                      active ? "bg-mint" : ""
-                    }`}
+                    className={`flex h-7 w-12 items-center justify-center rounded-full ${active ? "bg-mint" : ""
+                      }`}
                   >
                     <NavIcon name={tab.key} />
                   </span>
@@ -212,9 +221,8 @@ function LangButton({
       type="button"
       aria-pressed={pressed}
       onClick={onClick}
-      className={`inline-flex h-8 min-w-9 items-center justify-center rounded-full px-2 text-xs font-semibold ${
-        pressed ? "bg-white text-teal shadow-card" : "text-slate"
-      }`}
+      className={`inline-flex h-8 min-w-9 items-center justify-center rounded-full px-2 text-xs font-semibold ${pressed ? "bg-white text-teal shadow-card" : "text-slate"
+        }`}
     >
       {label}
     </button>

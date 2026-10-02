@@ -1,13 +1,11 @@
-/**
- * Learn.
- *
- * The knowledge screen from the designs: scam signs, three short guides, one
- * check. No forecast chart, no savings form, and no community card.
- * Warnings use clay, not a price-red panel.
- */
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { demoProfiles } from "@pesasense/core";
+import { useProfile } from "../../contexts/profile-context";
+import { SavingsLadder } from "../../components/savings-ladder";
+import { ScenarioChart } from "../../components/scenario-chart";
 
 const GUIDES = [
   {
@@ -32,13 +30,40 @@ const FLAGS = [
 
 type Answer = "drop" | "years" | "rent";
 
-/** Education only. The check explains the habit. It does not score the person. */
 export default function LearnPage() {
+  const router = useRouter();
+  const { profile } = useProfile();
+
+  const activeProfile = profile || demoProfiles.amina;
+  const surplusFloor = activeProfile.surplus.monthlyKes.floor;
+  const recommendedHabit = Math.round(surplusFloor * 0.75);
+
+  const bufferMonths = activeProfile.resilience.monthsOfExpensesCovered;
+  const currentStep = bufferMonths >= 3 ? 2 : 1;
+
   const [open, setOpen] = useState<number | null>(0);
   const [answer, setAnswer] = useState<Answer | null>(null);
+  const [amount, setAmount] = useState<string>(recommendedHabit.toString());
+  const [cadence, setCadence] = useState<"weekly" | "monthly">("monthly");
+  const [error, setError] = useState<string | null>(null);
+
+  const handleStartSaving = (e: React.FormEvent) => {
+    e.preventDefault();
+    const num = Number(amount);
+    if (isNaN(num) || num <= 0) {
+      setError("Please enter a valid amount.");
+      return;
+    }
+    if (num > surplusFloor) {
+      setError(`Amount cannot exceed your safe surplus of KES ${surplusFloor}.`);
+      return;
+    }
+    setError(null);
+    router.push("/invest");
+  };
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-col gap-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6">
       <header>
         <p className="text-[11px] font-semibold tracking-[0.14em] text-teal uppercase">
           Knowledge and safety
@@ -51,7 +76,8 @@ export default function LearnPage() {
         </p>
       </header>
 
-      <section className="rounded-[20px] border border-warning/20 bg-[#FBF6EF] p-4 shadow-card">
+      <ScrollReveal>
+        <section className="rounded-[20px] border border-warning/20 bg-[#FBF6EF] p-4 shadow-card">
         <div className="flex items-center gap-2">
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-warning/10 text-warning">
             <WarnIcon />
@@ -67,9 +93,7 @@ export default function LearnPage() {
               key={flag}
               className="flex items-center gap-2 rounded-xl bg-white px-3 py-2.5 text-sm text-ink"
             >
-              <span className="text-warning" aria-hidden="true">
-                ×
-              </span>
+              <span className="text-warning" aria-hidden="true">×</span>
               {flag}
             </li>
           ))}
@@ -77,14 +101,16 @@ export default function LearnPage() {
         <p className="mt-3 text-[13px] leading-5 text-slate">
           Real Bitcoin has no manager. You hold it yourself.
         </p>
-      </section>
+        </section>
+      </ScrollReveal>
 
-      <section>
+      <ScrollReveal>
+        <section>
         <div className="mb-2 flex items-baseline justify-between">
           <h2 className="text-base font-semibold text-ink">Plain language guides</h2>
           <p className="text-xs font-semibold text-slate">3 topics</p>
         </div>
-        <div className="space-y-2">
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3">
           {GUIDES.map((guide, index) => {
             const expanded = open === index;
             return (
@@ -107,8 +133,113 @@ export default function LearnPage() {
             );
           })}
         </div>
-      </section>
+        </section>
+      </ScrollReveal>
 
+      <ScrollReveal>
+        <section aria-labelledby="ladder-heading">
+        <h2
+          id="ladder-heading"
+          className="mb-5 text-base font-semibold text-ink"
+        >
+          Your Savings Journey
+        </h2>
+        <SavingsLadder currentStep={currentStep} bufferMonths={bufferMonths} />
+      </section>
+      </ScrollReveal>
+
+      <ScrollReveal>
+      <section aria-labelledby="scenario-heading">
+        <h2
+          id="scenario-heading"
+          className="mb-4 text-base font-semibold text-ink"
+        >
+          What could happen to your savings?
+        </h2>
+        <ScenarioChart />
+      </section>
+      </ScrollReveal>
+
+      <ScrollReveal>
+      <section aria-labelledby="start-saving-heading" className="rounded-[20px] bg-white p-5 shadow-card">
+        <h2
+          id="start-saving-heading"
+          className="text-base font-semibold text-ink"
+        >
+          Start Saving
+        </h2>
+        <p className="mt-1 text-sm text-slate">
+          Set up a steady habit based on your available surplus.
+        </p>
+        <form onSubmit={handleStartSaving} className="mt-5 space-y-5">
+          <div>
+            <label htmlFor="save-amount" className="block text-sm font-semibold text-ink">
+              Amount (KES)
+            </label>
+            <div className="mt-2 flex items-center gap-3">
+              <span className="text-sm font-bold text-slate">KES</span>
+              <input
+                id="save-amount"
+                type="number"
+                inputMode="numeric"
+                className="field max-w-[200px]"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder={`e.g. ${recommendedHabit}`}
+                max={surplusFloor}
+              />
+            </div>
+            <p className="mt-2 text-xs text-slate">
+              You can safely save up to{" "}
+              <span className="font-semibold text-ink">KES {surplusFloor}</span>.
+            </p>
+          </div>
+
+          <div>
+            <span className="block text-sm font-semibold text-ink">Frequency</span>
+            <div className="mt-3 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setCadence("weekly")}
+                className={`flex-1 rounded-xl border py-3 text-sm font-semibold transition-colors ${
+                  cadence === "weekly"
+                    ? "border-pine bg-pine text-on-primary"
+                    : "border-sand bg-paper text-ink hover:bg-sand/30"
+                }`}
+              >
+                Weekly
+              </button>
+              <button
+                type="button"
+                onClick={() => setCadence("monthly")}
+                className={`flex-1 rounded-xl border py-3 text-sm font-semibold transition-colors ${
+                  cadence === "monthly"
+                    ? "border-pine bg-pine text-on-primary"
+                    : "border-sand bg-paper text-ink hover:bg-sand/30"
+                }`}
+              >
+                Monthly
+              </button>
+            </div>
+          </div>
+
+          {error && (
+            <p className="text-sm font-semibold text-warning" role="alert">
+              {error}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            className="btn btn-accent w-full py-4 text-base shadow-sm"
+          >
+            Start Saving
+          </button>
+        </form>
+      </section>
+      </ScrollReveal>
+
+      <ScrollReveal>
       <section className="rounded-[20px] bg-white p-4 shadow-card">
         <div className="flex items-baseline justify-between">
           <p className="text-[11px] font-semibold tracking-[0.14em] text-teal uppercase">
@@ -140,6 +271,7 @@ export default function LearnPage() {
           <p className="mt-3 text-sm leading-6 text-slate">{noteFor(answer)}</p>
         ) : null}
       </section>
+      </ScrollReveal>
 
       <p className="text-xs leading-5 text-slate">
         This is education, not financial advice. Bitcoin can lose value.
@@ -189,8 +321,47 @@ function Choice({
 
 function WarnIcon() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 fill-none stroke-current" strokeWidth="1.75">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v5M12 17h.01M10.3 4.8 2.8 18a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3L13.7 4.8a2 2 0 0 0-3.4 0z" />
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className="h-4 w-4 fill-none stroke-current"
+      strokeWidth="1.75"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M12 8v5M12 17h.01M10.3 4.8 2.8 18a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3L13.7 4.8a2 2 0 0 0-3.4 0z"
+      />
     </svg>
+  );
+}
+
+function ScrollReveal({ children }: { children: React.ReactNode }) {
+  const [isVisible, setIsVisible] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1, rootMargin: "0px 0px -50px 0px" }
+    );
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      className={`transition-all duration-700 ease-out ${
+        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+      }`}
+    >
+      {children}
+    </div>
   );
 }
