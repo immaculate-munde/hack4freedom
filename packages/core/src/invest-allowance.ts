@@ -13,21 +13,51 @@ export type InvestAllowance =
   | { ok: true; maxKes: number }
   | { ok: false; reason: string };
 
+export type InvestAllowanceOptions = {
+  /**
+   * When false, `bufferFirst` does not block a buy. Use for demos or when the
+   * import under-counted income but the person confirms a strong statement.
+   */
+  respectBufferGate?: boolean;
+};
+
+function surplusCapKes(
+  profile: FinancialProfile,
+  respectBufferGate: boolean,
+): number {
+  const { floor, typical, ceiling } = profile.surplus.monthlyKes;
+  if (respectBufferGate) {
+    return floor;
+  }
+  const relaxed = Math.max(floor, typical, ceiling);
+  return Math.min(relaxed, INVEST_MAX_KES);
+}
+
 /** The highest whole-shilling buy this profile may start, or why it may not. */
-export function investAllowance(profile: FinancialProfile): InvestAllowance {
-  if (profile.resilience.bufferFirst) {
+export function investAllowance(
+  profile: FinancialProfile,
+  options?: InvestAllowanceOptions,
+): InvestAllowance {
+  const respectBufferGate = options?.respectBufferGate ?? true;
+
+  if (respectBufferGate && profile.resilience.bufferFirst) {
     return { ok: false, reason: "Build a buffer before buying Bitcoin." };
   }
-  const floor = profile.surplus.monthlyKes.floor;
-  if (!Number.isInteger(floor) || floor < INVEST_MIN_KES) {
+
+  const cap = surplusCapKes(profile, respectBufferGate);
+  if (!Number.isFinite(cap) || cap < INVEST_MIN_KES) {
     return { ok: false, reason: "The surplus floor is too small for a buy." };
   }
-  return { ok: true, maxKes: Math.min(floor, INVEST_MAX_KES) };
+  return { ok: true, maxKes: Math.min(Math.round(cap), INVEST_MAX_KES) };
 }
 
 /** Reject an amount the profile does not allow. */
-export function assertInvestAmount(profile: FinancialProfile, amountKes: number): void {
-  const allowance = investAllowance(profile);
+export function assertInvestAmount(
+  profile: FinancialProfile,
+  amountKes: number,
+  options?: InvestAllowanceOptions,
+): void {
+  const allowance = investAllowance(profile, options);
   if (!allowance.ok) {
     throw new Error(allowance.reason);
   }

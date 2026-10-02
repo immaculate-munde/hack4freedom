@@ -43,6 +43,8 @@ export {
 
 export { parseSmsBatch, parseStatement, type ParseStatementInput } from "./parse";
 
+export { validateImportedProfile } from "./import-quality";
+
 export {
   buildProfile,
   computeSurplus,

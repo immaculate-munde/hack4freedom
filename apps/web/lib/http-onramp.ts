@@ -1,3 +1,4 @@
+import type { FinancialProfile } from "@pesasense/core";
 import type {
   BitcoinOnRamp,
   OnRampPurchase,
@@ -22,7 +23,10 @@ export class HttpOnRamp implements BitcoinOnRamp {
   }
 
   async startPurchase(
-    request: StartPurchaseRequest & { profileId: "amina" | "brian" },
+    request: StartPurchaseRequest & {
+      profileId: string;
+      profile?: FinancialProfile;
+    },
   ): Promise<OnRampPurchase> {
     const res = await fetch("/api/onramp/purchase", {
       method: "POST",

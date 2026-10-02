@@ -285,22 +285,493 @@ export function parseSmsBatch(messages: readonly string[]): Transaction[] {
   return transactions.sort((a, b) => a.date.localeCompare(b.date));
 }
 
+/** Whole shillings from a statement column like "Withdrawn 15,000.00". */
+function statementColumnAmount(text: string, label: string): number | undefined {
+  const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = text.match(
+    new RegExp(`${escaped}\\s*:?\\s*([\\d,]+(?:\\.\\d{2})?)`, "i"),
+  );
+  if (!match) return undefined;
+  const raw = group(match, 1);
+  if (raw === undefined) return undefined;
+  const value = Math.round(Number(raw.replace(/,/g, "")));
+  return Number.isFinite(value) ? value : undefined;
+}
+
+function statementPaidIn(text: string): number | undefined {
+  return (
+    statementColumnAmount(text, "Paid in") ??
+    statementColumnAmount(text, "Paid In") ??
+    statementColumnAmount(text, "Money In") ??
+    statementColumnAmount(text, "Money in") ??
+    statementColumnAmount(text, "Credit")
+  );
+}
+
+function statementWithdrawn(text: string): number | undefined {
+  return (
+    statementColumnAmount(text, "Withdrawn") ??
+    statementColumnAmount(text, "Money Out") ??
+    statementColumnAmount(text, "Money out") ??
+    statementColumnAmount(text, "Debit")
+  );
+}
+
+/** ISO date from common M-Pesa statement date fragments on one line. */
+function extractStatementDate(line: string): string | null {
+  const iso = line.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+
+  const dmy = line.match(/\b(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})\b/);
+  if (dmy) {
+    const d = group(dmy, 1);
+    const m = group(dmy, 2);
+    const yRaw = group(dmy, 3);
+    if (d === undefined || m === undefined || yRaw === undefined) return null;
+    const year = Number(yRaw) < 100 ? 2000 + Number(yRaw) : Number(yRaw);
+    return `${year}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+  }
+
+  return null;
+}
+
+function firstKesAmount(line: string): number | undefined {
+  const match = line.match(/(?:K[Ss]h|KES)\s*([\d,]+(?:\.\d{2})?)/i);
+  if (!match) return undefined;
+  const raw = group(match, 1);
+  if (raw === undefined) return undefined;
+  const value = Math.round(Number(raw.replace(/,/g, "")));
+  return Number.isFinite(value) && value > 0 ? value : undefined;
+}
+
+/** Last monetary columns on a statement row (often amount then balance). */
+function trailingStatementAmount(line: string): number | undefined {
+  const amounts: number[] = [];
+  for (const match of line.matchAll(/\b([\d,]+\.\d{2})\b/g)) {
+    const raw = group(match, 1);
+    if (raw === undefined) continue;
+    const value = Math.round(Number(raw.replace(/,/g, "")));
+    if (Number.isFinite(value) && value >= 10 && value < 50_000_000) {
+      amounts.push(value);
+    }
+  }
+  if (amounts.length === 0) return undefined;
+  if (amounts.length >= 2 && /balance/i.test(line)) {
+    return amounts[amounts.length - 2];
+  }
+  return amounts[amounts.length - 1];
+}
+
+function rowLooksComplete(line: string): boolean {
+  if (extractStatementDate(line) === null) return false;
+  if (parseOneMessage(line, 0)) return true;
+  return (
+    statementPaidIn(line) !== undefined ||
+    statementWithdrawn(line) !== undefined ||
+    firstKesAmount(line) !== undefined ||
+    trailingStatementAmount(line) !== undefined
+  );
+}
+
+function looksLikeStatementRowStart(line: string): boolean {
+  return /^[A-Z0-9]{6,}\s+(?:\d{4}-\d{2}-\d{2}|\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4})\s+\d{1,2}:\d{2}/i.test(
+    line,
+  );
+}
+
+/** Safaricom PDFs often split one table row across several extracted lines. */
+function mergeStatementLines(lines: readonly string[]): string[] {
+  const merged: string[] = [];
+  let buffer = "";
+
+  const flush = () => {
+    const text = buffer.replace(/\s+/g, " ").trim();
+    buffer = "";
+    if (text.length > 0) merged.push(text);
+  };
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    if (isStatementNoise(trimmed)) {
+      flush();
+      continue;
+    }
+
+    if (/^Confirmed\./i.test(trimmed)) {
+      flush();
+      merged.push(trimmed);
+      continue;
+    }
+
+    if (looksLikeStatementRowStart(trimmed)) {
+      flush();
+      buffer = trimmed;
+    } else if (!buffer) {
+      buffer = trimmed;
+    } else {
+      buffer = `${buffer} ${trimmed}`;
+    }
+
+    if (rowLooksComplete(buffer) || buffer.length > 240) {
+      flush();
+    }
+  }
+  flush();
+  return merged;
+}
+
+function isStatementNoise(line: string): boolean {
+  return (
+    /^Receipt(\s+No)?\b/i.test(line) ||
+    /M-PESA STATEMENT/i.test(line) ||
+    /^Customer:/i.test(line) ||
+    /^Phone:/i.test(line) ||
+    /^Period:/i.test(line) ||
+    /^Summary\b/i.test(line) ||
+    /^Opening\b/i.test(line) ||
+    /^Closing\b/i.test(line) ||
+    /^Total\b/i.test(line) ||
+    /not a real statement/i.test(line) ||
+    /^This is not a real person/i.test(line)
+  );
+}
+
+/**
+ * One tabular row from an M-Pesa statement PDF (Safaricom export shape).
+ * Example: `QA10AA01  2026-04-02 08:12  Pay Bill to …  Withdrawn 15000.00  Balance 7400.00`
+ */
+function parseLooseStatementLine(line: string, index: number): Transaction | null {
+  const trimmed = line.trim();
+  if (trimmed.length < 12 || isStatementNoise(trimmed)) return null;
+  if (/reversal of transaction/i.test(trimmed)) return null;
+
+  const sms = parseOneMessage(trimmed, index);
+  if (sms) return sms;
+
+  const date = extractStatementDate(trimmed);
+  if (!date) return null;
+
+  const balanceKes = statementColumnAmount(trimmed, "Balance");
+  const id = `stmt-loose-${index}-${date}`;
+  const paidIn = statementPaidIn(trimmed);
+  const withdrawn = statementWithdrawn(trimmed);
+  const ksh = firstKesAmount(trimmed);
+
+  if (/Fuliza/i.test(trimmed)) {
+    const amount =
+      withdrawn ??
+      ksh ??
+      (() => {
+        const m = trimmed.match(/balance\s+([\d,]+(?:\.\d{2})?)/i);
+        if (!m) return undefined;
+        const raw = group(m, 1);
+        if (raw === undefined) return undefined;
+        return Math.round(Number(raw.replace(/,/g, "")));
+      })();
+    if (amount === undefined) return null;
+    return {
+      id,
+      date,
+      amountKes: amount,
+      direction: "out",
+      counterparty: "Fuliza",
+      kind: "fuliza",
+      balanceKes,
+      raw: trimmed,
+    };
+  }
+
+  if (
+    paidIn !== undefined &&
+    /(Customer Transfer|Receive|Received|Money In|Paid In|Salary|from\s+\d)/i.test(trimmed)
+  ) {
+    const counterparty =
+      trimmed.match(/(?:from|to)\s+(\d{9,12}|\S.{2,40}?)(?:\s+Completed|\s+KES|\s+K[Ss]h|$)/i)?.[1]?.trim() ??
+      "Transfer";
+    return {
+      id,
+      date,
+      amountKes: paidIn,
+      direction: "in",
+      counterparty,
+      kind: "receive",
+      balanceKes,
+      raw: trimmed,
+    };
+  }
+
+  if (withdrawn !== undefined && /Pay Bill/i.test(trimmed)) {
+    const counterparty =
+      trimmed.match(/Pay Bill to\s+(\d+)\s*-?\s*(.+?)(?:\s+Acc\.|\s+Completed|\s+KES)/i)?.[2]?.trim() ??
+      "Pay bill";
+    return {
+      id,
+      date,
+      amountKes: withdrawn,
+      direction: "out",
+      counterparty,
+      kind: "paybill",
+      balanceKes,
+      raw: trimmed,
+    };
+  }
+
+  if (withdrawn !== undefined && /(Send Money|sent to|Withdraw|Agent|Pay Merchant|Buy Goods)/i.test(trimmed)) {
+    return {
+      id,
+      date,
+      amountKes: withdrawn,
+      direction: "out",
+      counterparty: "M-Pesa",
+      kind: /Withdraw/i.test(trimmed) ? "withdraw" : "send",
+      balanceKes,
+      raw: trimmed,
+    };
+  }
+
+  if (withdrawn !== undefined) {
+    return {
+      id,
+      date,
+      amountKes: withdrawn,
+      direction: "out",
+      counterparty: "M-Pesa",
+      kind: "send",
+      balanceKes,
+      raw: trimmed,
+    };
+  }
+
+  if (paidIn !== undefined) {
+    return {
+      id,
+      date,
+      amountKes: paidIn,
+      direction: "in",
+      counterparty: "M-Pesa",
+      kind: "receive",
+      balanceKes,
+      raw: trimmed,
+    };
+  }
+
+  const trailing = trailingStatementAmount(trimmed);
+  if (trailing !== undefined) {
+    const inbound =
+      /(paid in|money in|customer transfer|received|from\s+\d{9})/i.test(trimmed) &&
+      !/(withdrawn|money out|sent to|pay bill)/i.test(trimmed);
+    if (inbound) {
+      return {
+        id,
+        date,
+        amountKes: trailing,
+        direction: "in",
+        counterparty: "M-Pesa",
+        kind: "receive",
+        balanceKes,
+        raw: trimmed,
+      };
+    }
+    if (/(withdrawn|money out|sent to|pay bill|send money|buy goods|airtime)/i.test(trimmed)) {
+      return {
+        id,
+        date,
+        amountKes: trailing,
+        direction: "out",
+        counterparty: "M-Pesa",
+        kind: /pay bill/i.test(trimmed) ? "paybill" : "send",
+        balanceKes,
+        raw: trimmed,
+      };
+    }
+  }
+
+  if (ksh !== undefined && /(sent to|send money|pay bill|withdraw|bought airtime)/i.test(trimmed)) {
+    return {
+      id,
+      date,
+      amountKes: ksh,
+      direction: /(received|from\s+\d|paid in|money in)/i.test(trimmed) ? "in" : "out",
+      counterparty: "M-Pesa",
+      kind: "send",
+      balanceKes,
+      raw: trimmed,
+    };
+  }
+
+  return null;
+}
+
+function parseStatementRow(line: string, index: number): Transaction | null {
+  const trimmed = line.trim();
+  if (trimmed.length < 12 || isStatementNoise(trimmed)) return null;
+  if (/^This is not a real person/i.test(trimmed)) return null;
+
+  const match = trimmed.match(
+    /^([A-Z0-9]{6,})\s+(\d{4}-\d{2}-\d{2})\s+\d{1,2}:\d{2}\s+(.+)$/i,
+  );
+
+  if (!match) {
+    return parseLooseStatementLine(trimmed, index);
+  }
+
+  const receipt = group(match, 1) ?? `row-${index}`;
+  const date = group(match, 2);
+  const rest = group(match, 3);
+  if (!date || !rest) return null;
+
+  if (/reversal of transaction/i.test(rest)) return null;
+
+  const balanceKes = statementColumnAmount(rest, "Balance");
+  const id = `stmt-${receipt}-${date}`;
+
+  if (/Fuliza M-PESA used/i.test(rest)) {
+    const amount =
+      statementColumnAmount(rest, "Balance") ??
+      (() => {
+        const m = rest.match(/balance\s+([\d,]+(?:\.\d{2})?)/i);
+        if (!m) return null;
+        const raw = group(m, 1);
+        if (raw === undefined) return null;
+        return Math.round(Number(raw.replace(/,/g, "")));
+      })();
+    if (amount === null || amount === undefined) return null;
+    return {
+      id,
+      date,
+      amountKes: amount,
+      direction: "out",
+      counterparty: "Fuliza",
+      kind: "fuliza",
+      balanceKes,
+      raw: trimmed,
+    };
+  }
+
+  const withdrawn = statementWithdrawn(rest);
+  if (withdrawn !== undefined && /Pay Bill/i.test(rest)) {
+    const counterparty =
+      rest.match(/Pay Bill to\s+\d+\s*-\s*(.+?)(?:\s+Acc\.|\s+Completed)/i)?.[1]?.trim() ??
+      "Pay bill";
+    return {
+      id,
+      date,
+      amountKes: withdrawn,
+      direction: "out",
+      counterparty,
+      kind: "paybill",
+      balanceKes,
+      raw: trimmed,
+    };
+  }
+
+  if (withdrawn !== undefined && /\bWithdraw\b/i.test(rest)) {
+    return {
+      id,
+      date,
+      amountKes: withdrawn,
+      direction: "out",
+      counterparty: "Agent",
+      kind: "withdraw",
+      balanceKes,
+      raw: trimmed,
+    };
+  }
+
+  const paidIn = statementPaidIn(rest);
+  if (paidIn !== undefined && /Customer Transfer from/i.test(rest)) {
+    const counterparty =
+      rest.match(/Customer Transfer from\s+\d+\s*-\s*(.+?)(?:\s+Completed)/i)?.[1]?.trim() ??
+      "Transfer";
+    return {
+      id,
+      date,
+      amountKes: paidIn,
+      direction: "in",
+      counterparty,
+      kind: "receive",
+      balanceKes,
+      raw: trimmed,
+    };
+  }
+
+  if (paidIn !== undefined && /\breceived from\b/i.test(rest)) {
+    return {
+      id,
+      date,
+      amountKes: paidIn,
+      direction: "in",
+      counterparty: "M-Pesa",
+      kind: "receive",
+      balanceKes,
+      raw: trimmed,
+    };
+  }
+
+  if (withdrawn !== undefined) {
+    return {
+      id,
+      date,
+      amountKes: withdrawn,
+      direction: "out",
+      counterparty: "M-Pesa",
+      kind: "send",
+      balanceKes,
+      raw: trimmed,
+    };
+  }
+
+  return null;
+}
+
 /**
  * Parse text extracted from an M-Pesa or bank statement.
  *
  * The PDF is decrypted in the browser before this runs. The password is
  * whatever the user types. Do not assume it is a national ID or a code
  * Safaricom sends.
- *
- * For now, M-Pesa PDF rows use the same vocabulary as SMS rows
- * ("Pay Bill" differs from an SMS "for account" line, but the amount,
- * date and counterparty patterns overlap). We split the extracted text
- * on blank lines and reuse the SMS parser.
- *
- * TODO: handle "Pay Bill" and PDF-specific row shapes once the PDF
- * fixture is wired through pdf.js.
  */
 export function parseStatement(input: ParseStatementInput): Transaction[] {
+  const rawLines = input.text
+    .split(/\r?\n/)
+    .map((line) => line.replace(/\s+/g, " ").trim())
+    .filter((line) => line.length > 0);
+
+  const lines = mergeStatementLines(rawLines);
+
+  const fromRows: Transaction[] = [];
+  for (const [index, line] of lines.entries()) {
+    const txn = parseStatementRow(line, index);
+    if (txn) fromRows.push(txn);
+  }
+
+  if (fromRows.length > 0) {
+    return fromRows.sort((a, b) => a.date.localeCompare(b.date));
+  }
+
+  const smsLike = lines.filter((line) =>
+    /(?:^Confirmed\.|K[Ss]h|KES|sent to|received|pay bill|fuliza|withdraw)/i.test(line),
+  );
+  if (smsLike.length > 0) {
+    const perLine = parseSmsBatch(smsLike);
+    if (perLine.length > 0) {
+      return perLine.sort((a, b) => a.date.localeCompare(b.date));
+    }
+  }
+
+  const confirmedChunks = input.text
+    .split(/(?=\bConfirmed\.)/i)
+    .map((m) => m.trim())
+    .filter((m) => m.length > 0);
+  if (confirmedChunks.length > 1) {
+    const fromChunks = parseSmsBatch(confirmedChunks);
+    if (fromChunks.length > 0) {
+      return fromChunks.sort((a, b) => a.date.localeCompare(b.date));
+    }
+  }
+
   const messages = input.text
     .split(/\n\s*\n/)
     .map((m) => m.trim())

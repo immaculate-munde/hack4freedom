@@ -1,6 +1,5 @@
 /**
- * The stubs must fail loudly until each lane implements them.
- * A silent empty result would look like a person had no transactions.
+ * Scenario engine stays unimplemented. Parser and profile builders are real.
  */
 
 import { describe, expect, it } from "vitest";
@@ -10,18 +9,14 @@ import { runScenario } from "./scenario";
 import { demoProfile } from "./demo-profile";
 
 describe("core stubs", () => {
-  it("refuses to pretend a statement was parsed", () => {
-    expect(() => parseStatement({ text: "Confirmed.", source: "mpesa_pdf" })).toThrow(
-      /Not implemented: parseStatement/,
-    );
-    expect(() => parseSmsBatch(["Confirmed."])).toThrow(
-      /Not implemented: parseSmsBatch/,
-    );
+  it("returns no transactions for nonsense SMS", () => {
+    expect(parseStatement({ text: "Confirmed.", source: "mpesa_pdf" })).toEqual([]);
+    expect(parseSmsBatch(["Confirmed."])).toEqual([]);
   });
 
   it("refuses to invent a profile, a surplus or a scenario", () => {
     expect(() => buildProfile({ transactions: [] })).toThrow(
-      /Not implemented: buildProfile/,
+      /Cannot build a profile from zero transactions/,
     );
     expect(() =>
       computeSurplus({
@@ -29,7 +24,7 @@ describe("core stubs", () => {
         spending: demoProfile.spending,
         resilience: demoProfile.resilience,
       }),
-    ).toThrow(/Not implemented: computeSurplus/);
+    ).not.toThrow();
     expect(() =>
       runScenario({ amountKes: 1500, cadence: "monthly", years: 3, prices: [] }),
     ).toThrow(/Not implemented: runScenario/);
