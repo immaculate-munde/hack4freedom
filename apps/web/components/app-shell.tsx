@@ -18,6 +18,7 @@ const copy = {
     stays: "Stays on your phone",
     customer: "Customer profile",
     profile: "Profile",
+    closeProfile: "Close profile",
     language: "Language",
     overview: "Overview",
     surplus: "Surplus",
@@ -33,12 +34,15 @@ const copy = {
     approve: "You approve each purchase.",
     review: "Review the habit",
     monthly: "Monthly",
+    collapseNav: "Collapse the menu",
+    expandNav: "Expand the menu",
   },
   sw: {
     brand: "PesaSense",
     stays: "Inabaki kwenye simu yako",
     customer: "Wasifu wa mteja",
     profile: "Wasifu",
+    closeProfile: "Funga wasifu",
     language: "Lugha",
     overview: "Muhtasari",
     surplus: "Ziada",
@@ -54,6 +58,8 @@ const copy = {
     approve: "Unakubali kila ununuzi.",
     review: "Tazama tabia",
     monthly: "Kila mwezi",
+    collapseNav: "Funga menyu",
+    expandNav: "Fungua menyu",
   },
 } as const;
 
@@ -93,27 +99,58 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [language, setLanguage] = useState<Language>("en");
   const [wantsChama, setWantsChama] = useState(false);
   const [isSensiOpen, setIsSensiOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [navCollapsed, setNavCollapsed] = useState(false);
   const t = copy[language];
 
   useEffect(() => {
     try {
-      const raw = sessionStorage.getItem("pesasense.onboarding");
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as Record<string, unknown>;
-      setWantsChama(parsed.wantsChama === true);
+      setNavCollapsed(localStorage.getItem("pesasense.nav-collapsed") === "true");
     } catch {
-      // Ignore invalid or stale onboarding data.
+      setNavCollapsed(false);
     }
   }, []);
+
+  function toggleNav() {
+    setNavCollapsed((current) => {
+      const next = !current;
+      try {
+        localStorage.setItem("pesasense.nav-collapsed", next ? "true" : "false");
+      } catch {
+        // The menu still toggles for this visit.
+      }
+      return next;
+    });
+  }
+
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("pesasense.onboarding");
+      if (!raw) {
+        setWantsChama(false);
+        return;
+      }
+      const parsed = JSON.parse(raw) as {
+        wantsChama?: unknown;
+        draft?: { wantsChama?: unknown };
+      };
+      setWantsChama(parsed.wantsChama === true || parsed.draft?.wantsChama === true);
+    } catch {
+      setWantsChama(false);
+    }
+  }, [pathname]);
 
   const sideNav = wantsChama ? [...TABS, ...SIDE_BASE, CHAMA_ITEM] : [...TABS, ...SIDE_BASE];
 
   return (
     <div className="app-shell">
       {quiet ? null : (
-        <aside className="app-sidebar hidden lg:flex" aria-label={t.nav}>
-          <div className="flex h-full flex-col px-4 py-6">
-            <div className="mb-8 flex items-center gap-3 px-2">
+        <aside
+          className={`app-sidebar hidden lg:flex ${navCollapsed ? "app-sidebar-collapsed" : ""}`}
+          aria-label={t.nav}
+        >
+          <div className={`flex h-full flex-col py-6 ${navCollapsed ? "px-2" : "px-4"}`}>
+            <div className={`mb-8 flex items-center gap-3 ${navCollapsed ? "justify-center px-0" : "px-2"}`}>
               <button
                 type="button"
                 aria-label="Open Sensi guide"
@@ -123,10 +160,12 @@ export function AppShell({ children }: { children: ReactNode }) {
               >
                 <SensiAvatar size="sm" mood={isSensiOpen ? "happy" : "neutral"} />
               </button>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-bold text-[#f6f1e4]">{t.brand}</p>
-                <p className="text-xs text-[#e3b23c]">{t.stays}</p>
-              </div>
+              {navCollapsed ? null : (
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-bold text-[#f6f1e4]">{t.brand}</p>
+                  <p className="text-xs text-[#e3b23c]">{t.stays}</p>
+                </div>
+              )}
             </div>
             <nav className="flex min-h-0 flex-1 flex-col gap-2">
               {sideNav.map((tab) => {
@@ -136,21 +175,35 @@ export function AppShell({ children }: { children: ReactNode }) {
                     key={tab.href}
                     href={tab.href}
                     aria-current={active ? "page" : undefined}
-                    className={`flex min-h-12 w-full flex-1 items-center gap-3 rounded-2xl px-4 text-sm font-semibold ${
+                    aria-label={t[tab.key]}
+                    className={`flex min-h-12 w-full flex-1 items-center rounded-2xl text-sm font-semibold ${
+                      navCollapsed ? "justify-center px-0" : "gap-3 px-4"
+                    } ${
                       active
                         ? "bg-[#f3efe4] text-pine"
                         : "text-[#f6f1e4]/85 hover:bg-white/10"
                     }`}
                   >
                     <NavIcon name={tab.key} />
-                    {t[tab.key]}
+                    {navCollapsed ? <span className="sr-only">{t[tab.key]}</span> : t[tab.key]}
                   </Link>
                 );
               })}
             </nav>
-            <p className="mt-auto px-3 pt-6 pb-2 text-xs leading-5 text-[#f6f1e4]/75">
-              {t.encrypted}
-            </p>
+            <div className="mt-auto flex flex-col items-center gap-2 pt-4">
+              {navCollapsed ? null : (
+                <p className="px-3 pb-1 text-xs leading-5 text-[#f6f1e4]/75">{t.encrypted}</p>
+              )}
+              <button
+                type="button"
+                aria-pressed={navCollapsed}
+                aria-label={navCollapsed ? t.expandNav : t.collapseNav}
+                onClick={toggleNav}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#f6f1e4] hover:bg-white/10"
+              >
+                <NavChevron collapsed={navCollapsed} />
+              </button>
+            </div>
           </div>
         </aside>
       )}
@@ -181,13 +234,13 @@ export function AppShell({ children }: { children: ReactNode }) {
                 />
               </div>
               <ThemeToggle />
-              <button
-                type="button"
-                aria-label={t.profile}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-pine text-paper"
-              >
-                <PersonIcon />
-              </button>
+              <ProfileMenu
+                language={language}
+                label={t.profile}
+                open={profileOpen}
+                onToggle={() => setProfileOpen((current) => !current)}
+                onClose={() => setProfileOpen(false)}
+              />
             </div>
           </div>
         </header>
@@ -222,6 +275,13 @@ export function AppShell({ children }: { children: ReactNode }) {
                   onClick={() => setLanguage("sw")}
                 />
               </div>
+              <ProfileMenu
+                language={language}
+                label={t.profile}
+                open={profileOpen}
+                onToggle={() => setProfileOpen((current) => !current)}
+                onClose={() => setProfileOpen(false)}
+              />
               <Link href="/habit" className="btn btn-accent rounded-full px-5 py-2">
                 {t.review}
               </Link>
@@ -229,20 +289,11 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         )}
 
-        <div className="flex min-w-0 flex-1 items-start gap-4">
-          <div className={quiet ? "app-content app-content-landing" : "app-content"}>{children}</div>
-          {quiet ? null : (
-            <aside className="desk-rail hidden xl:flex" aria-label={t.customer}>
-              <Suspense fallback={null}>
-                <CustomerRail language={language} />
-              </Suspense>
-            </aside>
-          )}
-        </div>
+        <div className={quiet ? "app-content app-content-landing" : "app-content"}>{children}</div>
 
         {quiet ? null : (
           <nav className="app-mobile-nav safe-bottom lg:hidden" aria-label={t.nav}>
-            {NAV.map((tab) => {
+            {sideNav.map((tab) => {
               const active = tab.match(pathname);
               return (
                 <Link
@@ -274,7 +325,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div
               role="dialog"
               aria-label="Sensi guide"
-              className="fixed right-4 bottom-24 z-40 w-[min(22rem,calc(100vw-2rem))] rounded-3xl border border-sand bg-paper p-4 shadow-2xl lg:bottom-6 lg:right-6 xl:right-[21rem]"
+              className="fixed right-4 bottom-24 z-40 w-[min(22rem,calc(100vw-2rem))] rounded-3xl border border-sand bg-paper p-4 shadow-2xl lg:bottom-6 lg:right-6"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-2">
@@ -327,6 +378,51 @@ export function AppShell({ children }: { children: ReactNode }) {
   );
 }
 
+function ProfileMenu({
+  language,
+  label,
+  open,
+  onToggle,
+  onClose,
+}: {
+  language: Language;
+  label: string;
+  open: boolean;
+  onToggle: () => void;
+  onClose: () => void;
+}) {
+  const closeLabel = copy[language].closeProfile;
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        aria-label={label}
+        aria-expanded={open}
+        onClick={onToggle}
+        className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-pine text-paper"
+      >
+        <PersonIcon />
+      </button>
+      {open ? (
+        <div className="absolute top-full right-0 z-30 mt-2 w-[min(18rem,calc(100vw-2rem))]">
+          <div className="mb-1 flex justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn rounded-full bg-paper px-3 py-1 text-xs font-semibold text-slate shadow-card"
+            >
+              {closeLabel}
+            </button>
+          </div>
+          <Suspense fallback={null}>
+            <CustomerRail language={language} />
+          </Suspense>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function Brand({ t, compact = false }: { t: ShellCopy; compact?: boolean }) {
   return (
     <div className={`flex items-center gap-2 ${compact ? "" : "px-1"}`}>
@@ -359,6 +455,18 @@ function LangButton({
     >
       {label}
     </button>
+  );
+}
+
+function NavChevron({ collapsed }: { collapsed: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5 fill-none stroke-current">
+      {collapsed ? (
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M9 6l6 6-6 6" />
+      ) : (
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M15 6l-6 6 6 6" />
+      )}
+    </svg>
   );
 }
 

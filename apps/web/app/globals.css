@@ -134,6 +134,10 @@ body {
     color: var(--color-paper);
   }
 
+  .app-sidebar.app-sidebar-collapsed {
+    width: 4.75rem;
+  }
+
   .app-main-column {
     display: flex;
     flex: 1;
