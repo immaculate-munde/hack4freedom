@@ -1,0 +1,23 @@
+{
+  "name": "@pesasense/ussd",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "USSD menu for the same PesaSense profile rules and on-ramp. No UI code.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./sqlite": "./src/sqlite-store.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@pesasense/core": "workspace:*",
+    "@pesasense/wallet": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.5.2",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}

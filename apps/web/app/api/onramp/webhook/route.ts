@@ -1,14 +1,27 @@
-import { normalizeBitikaTransaction, purchaseFromBitika, verifyBitikaWebhook } from "@pesasense/wallet";
-import { claimWebhookEvent, rememberPurchase } from "../../../../lib/onramp-purchases";
+import {
+  normalizeBitikaTransaction,
+  purchaseFromBitika,
+  verifyBitikaWebhook,
+} from "@pesasense/wallet";
+import {
+  claimWebhookEvent,
+  releaseWebhookEvent,
+} from "../../../../lib/onramp-purchases";
+import { syncSharedStatus } from "../../../../lib/shared-purchases";
 
 export async function POST(req: Request) {
   const secret = process.env.BITIKA_WEBHOOK_SECRET;
   if (!secret) {
-    return Response.json({ error: "Webhook secret is not configured." }, { status: 500 });
+    return Response.json(
+      { error: "Webhook secret is not configured." },
+      { status: 500 },
+    );
   }
 
   const raw = await req.text();
-  if (!(await verifyBitikaWebhook(raw, req.headers.get("x-bitika-signature"), secret))) {
+  if (
+    !(await verifyBitikaWebhook(raw, req.headers.get("x-bitika-signature"), secret))
+  ) {
     return Response.json({ error: "Invalid webhook signature." }, { status: 401 });
   }
 
@@ -32,7 +45,12 @@ export async function POST(req: Request) {
   if (!claimWebhookEvent(body.id)) {
     return Response.json({ ok: true, duplicate: true });
   }
-  rememberPurchase(purchase);
+  try {
+    syncSharedStatus(purchase);
+  } catch {
+    releaseWebhookEvent(body.id);
+    return Response.json({ error: "Could not store the update." }, { status: 500 });
+  }
 
   return Response.json({ ok: true });
 }
