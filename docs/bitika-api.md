@@ -48,6 +48,6 @@ Events: `transaction.updated`, `payment.completed`, `payment.failed`.
 
 ## Keys in this repo
 
-- `BITIKA_API_KEY` in `apps/web/.env.local` (gitignored)
+- `BITIKA_API_KEY` in `apps/web/.env.local` (gitignored). The hackathon host uses a sandbox `bk_test_` key.
 - `BITIKA_WEBHOOK_SECRET` for `POST /api/onramp/webhook`
-- Live key only on Vercel with `BITIKA_ALLOW_LIVE=true`
+- A `bk_live_` key is refused unless `BITIKA_ALLOW_LIVE=true`. Leave that unset for the demo. Host and webhook URL: [deploy.md](deploy.md).

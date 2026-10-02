@@ -144,6 +144,8 @@ The link route has no login, same as the rest of this demo. The confirm screen i
 
 ## Production
 
+A live handset needs one always-on Node process. Vercel is the host for the browser demo. Its instances do not share the in-memory store, so a later menu step can lose the session. Host choice, region, and env vars: [deploy.md](deploy.md).
+
 - Set `USSD_API_KEY` and `USSD_SERVICE_CODE`.
 - Register `https://<host>/api/ussd` with the provider.
 - One Node process can use the default in-memory store. More than one instance needs a shared `USSD_STORE_PATH` on a disk that survives deploys. Vercel's filesystem does not. Do not put statements in that file.

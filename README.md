@@ -86,7 +86,7 @@ TypeScript end to end. Sensitive data stays on the device. The server is a thin 
 | In-app wallet | Breez SDK Spark in the browser. |
 | Profile encryption | `packages/nostr` with `nostr-tools`. NIP-44, kind `30078`, one anonymous kind `5910` job. |
 | Chama | `packages/nostr/src/chama-ledger.ts`. Rules are tested. The screen persists the demo circle in `localStorage`. |
-| Hosting | Vercel, when deployed. |
+| Hosting | Vercel for the browser demo. One always-on Node process when USSD must keep a session. See [docs/deploy.md](docs/deploy.md). |
 
 ```
 apps/web/          PWA: overview, surplus, habit, learn, invest, wallet, chama
@@ -149,6 +149,7 @@ PesaSense is advisory and non-custodial. Partner licence claims are marked **to 
 | Doc | Who it is for |
 | --- | --- |
 | [docs/demo.md](docs/demo.md) | Judges and anyone demoing. Clicks, what each click proves, and a fallback. |
+| [docs/deploy.md](docs/deploy.md) | Where to host the browser demo and a live USSD callback, and which env vars to set. |
 | [docs/architecture.md](docs/architecture.md) | How data and money are separated, and where the stubs are. |
 | [docs/bitika-api.md](docs/bitika-api.md) | The on-ramp calls this app actually makes. |
 | [docs/ussd.md](docs/ussd.md) | Handset menu, callback, and local curl steps. |
