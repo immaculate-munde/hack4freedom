@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { FinancialProfile } from "@pesasense/core";
 import { useProfile } from "../contexts/profile-context";
+import { PdfImportForm } from "./pdf-import-form";
 import { SmsImportForm } from "./sms-import-form";
 
 function XIcon() {
@@ -140,14 +141,22 @@ export function ImportMpesaModal({ isOpen, onClose }: ImportMpesaModalProps) {
                 </button>
               </div >
             ) : (
-              <div className="mt-5 space-y-3">
+              <div className="mt-5 space-y-5">
                 <SmsImportForm
                   onProfileReady={setResult}
                   onDemoFallback={handleUseDemo}
                 />
-              </div >
-            )
-            }
+                <div className="border-t border-sand/50 pt-4">
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate">
+                    Or upload PDF
+                  </p>
+                  <PdfImportForm
+                    onProfileReady={setResult}
+                    onDemoFallback={handleUseDemo}
+                  />
+                </div>
+              </div>
+            )}
 
             {
               !result && (

@@ -272,6 +272,7 @@ export default function OnboardingPage() {
           <ChamaStep draft={draft} patch={patch} choose={choose} continueStep={() => advance(draft)} />
         ) : null}
         {step === 2 ? <WantsChamaStep draft={draft} choose={choose} /> : null}
+
         {step === 3 ? (
           <BitcoinExperienceStep draft={draft} patch={patch} continueStep={() => advance(draft)} />
         ) : null}

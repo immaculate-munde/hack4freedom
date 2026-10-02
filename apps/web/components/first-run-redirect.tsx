@@ -16,6 +16,7 @@ const WELCOME_FLAG = "hasSeenWelcome";
 const OPEN_PREFIXES = ["/welcome", "/onboarding", "/onboard", "/trust"];
 
 function isOpenPath(pathname: string): boolean {
+  if (pathname === "/") return true;
   return OPEN_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );

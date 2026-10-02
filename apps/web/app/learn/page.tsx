@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { demoProfiles } from "@pesasense/core";
-import { useProfile } from "../../contexts/profile-context";
+import { ProfileRequired } from "../../components/profile-required";
+import { appInvestAllowance, isBufferGateEnabled } from "../../lib/buffer-gate";
+import { useActiveProfile } from "../../lib/use-active-profile";
 import { SavingsLadder } from "../../components/savings-ladder";
 import { ScenarioChart } from "../../components/scenario-chart";
 import { SensiAvatar } from "../../components/sensi-avatar";
@@ -31,32 +33,46 @@ const FLAGS = [
 
 type Answer = "drop" | "years" | "rent";
 
-export default function LearnPage() {
+function LearnPageContent() {
   const router = useRouter();
-  const { profile } = useProfile();
+  const active = useActiveProfile();
+  if (!active.ready) {
+    return <ProfileRequired />;
+  }
 
-  const activeProfile = profile || demoProfiles.amina;
+  const activeProfile = active.profile;
+  const allowance = appInvestAllowance(activeProfile);
+  const bufferGateOn = isBufferGateEnabled();
   const surplusFloor = activeProfile.surplus.monthlyKes.floor;
-  const recommendedHabit = Math.round(surplusFloor * 0.75);
+  const maxSaveKes = allowance.ok ? allowance.maxKes : 0;
+  const recommendedHabit = allowance.ok
+    ? Math.max(10, Math.min(Math.round(surplusFloor * 0.75), maxSaveKes))
+    : 0;
 
   const bufferMonths = activeProfile.resilience.monthsOfExpensesCovered;
   const currentStep = bufferMonths >= 3 ? 2 : 1;
 
   const [open, setOpen] = useState<number | null>(0);
   const [answer, setAnswer] = useState<Answer | null>(null);
-  const [amount, setAmount] = useState<string>(recommendedHabit.toString());
+  const [amount, setAmount] = useState<string>(
+    recommendedHabit > 0 ? recommendedHabit.toString() : "",
+  );
   const [cadence, setCadence] = useState<"weekly" | "monthly">("monthly");
   const [error, setError] = useState<string | null>(null);
 
   const handleStartSaving = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!allowance.ok) {
+      setError(allowance.reason);
+      return;
+    }
     const num = Number(amount);
     if (isNaN(num) || num <= 0) {
       setError("Please enter a valid amount.");
       return;
     }
-    if (num > surplusFloor) {
-      setError(`Amount cannot exceed your safe surplus of KES ${surplusFloor}.`);
+    if (num > maxSaveKes) {
+      setError(`Amount cannot exceed your safe surplus of KES ${maxSaveKes.toLocaleString()}.`);
       return;
     }
     setError(null);
@@ -179,71 +195,113 @@ export default function LearnPage() {
         <p className="mt-1 text-sm text-slate">
           Set up a steady habit based on your available surplus.
         </p>
-        <form onSubmit={handleStartSaving} className="mt-5 space-y-5">
-          <div>
-            <label htmlFor="save-amount" className="block text-sm font-semibold text-ink">
-              Amount (KES)
-            </label>
-            <div className="mt-2 flex items-center gap-3">
-              <span className="text-sm font-bold text-slate">KES</span>
-              <input
-                id="save-amount"
-                type="number"
-                inputMode="numeric"
-                className="field max-w-[200px]"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder={`e.g. ${recommendedHabit}`}
-                max={surplusFloor}
-              />
-            </div>
-            <p className="mt-2 text-xs text-slate">
-              You can safely save up to{" "}
-              <span className="font-semibold text-ink">KES {surplusFloor}</span>.
+        {!allowance.ok ? (
+          <div className="mt-5 space-y-4 rounded-2xl border border-warning/25 bg-[#FBF6EF] p-4">
+            <p className="text-sm leading-6 text-ink">
+              {allowance.reason}
+              {bufferGateOn ? " Your safe surplus floor is" : " Parsed surplus floor is"}{" "}
+              <span className="font-semibold">KES {surplusFloor.toLocaleString()}</span>
+              {activeProfile.surplus.monthlyKes.ceiling > surplusFloor ? (
+                <>
+                  {" "}
+                  (typical{" "}
+                  <span className="font-semibold">
+                    KES {activeProfile.surplus.monthlyKes.typical.toLocaleString()}
+                  </span>
+                  )
+                </>
+              ) : null}
+              , so there is nothing to put into a Bitcoin habit yet.
             </p>
-          </div>
-
-          <div>
-            <span className="block text-sm font-semibold text-ink">Frequency</span>
-            <div className="mt-3 flex gap-3">
-              <button
-                type="button"
-                onClick={() => setCadence("weekly")}
-                className={`flex-1 rounded-xl border py-3 text-sm font-semibold transition-colors ${
-                  cadence === "weekly"
-                    ? "border-brass bg-brass text-paper"
-                    : "border-sand bg-paper text-ink hover:bg-sand/30"
-                }`}
-              >
-                Weekly
-              </button>
-              <button
-                type="button"
-                onClick={() => setCadence("monthly")}
-                className={`flex-1 rounded-xl border py-3 text-sm font-semibold transition-colors ${
-                  cadence === "monthly"
-                    ? "border-brass bg-brass text-paper"
-                    : "border-sand bg-paper text-ink hover:bg-sand/30"
-                }`}
-              >
-                Monthly
-              </button>
+            {surplusFloor < 500 && activeProfile.income.monthlyKes.typical < 1_000 ? (
+              <p className="text-sm leading-6 text-slate">
+                If that does not match your real life, re-import with{" "}
+                <Link href="/onboard" className="font-semibold text-teal underline underline-offset-2">
+                  M-Pesa SMS paste
+                </Link>{" "}
+                — PDF parsing is still hit-or-miss on some statements.
+              </p>
+            ) : null}
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Link href="/habit" className="btn btn-accent flex-1 justify-center text-center">
+                Build your cushion
+              </Link>
+              <Link href="/surplus" className="btn btn-ghost flex-1 justify-center text-center">
+                Review surplus
+              </Link>
             </div>
           </div>
+        ) : (
+          <form onSubmit={handleStartSaving} className="mt-5 space-y-5">
+            <div>
+              <label htmlFor="save-amount" className="block text-sm font-semibold text-ink">
+                Amount (KES)
+              </label>
+              <div className="mt-2 flex items-center gap-3">
+                <span className="text-sm font-bold text-slate">KES</span>
+                <input
+                  id="save-amount"
+                  type="number"
+                  inputMode="numeric"
+                  className="field max-w-[200px]"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder={`e.g. ${recommendedHabit}`}
+                  min={10}
+                  max={maxSaveKes}
+                />
+              </div>
+              <p className="mt-2 text-xs text-slate">
+                You can safely save up to{" "}
+                <span className="font-semibold text-ink">
+                  KES {maxSaveKes.toLocaleString()}
+                </span>
+                .
+              </p>
+            </div>
 
-          {error && (
-            <p className="rounded-xl border border-coral/35 bg-coral/10 px-3 py-2 text-sm font-semibold text-coral" role="alert">
-              {error}
-            </p>
-          )}
+            <div>
+              <span className="block text-sm font-semibold text-ink">Frequency</span>
+              <div className="mt-3 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setCadence("weekly")}
+                  className={`flex-1 rounded-xl border py-3 text-sm font-semibold transition-colors ${
+                    cadence === "weekly"
+                      ? "border-brass bg-brass text-paper"
+                      : "border-sand bg-paper text-ink hover:bg-sand/30"
+                  }`}
+                >
+                  Weekly
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCadence("monthly")}
+                  className={`flex-1 rounded-xl border py-3 text-sm font-semibold transition-colors ${
+                    cadence === "monthly"
+                      ? "border-brass bg-brass text-paper"
+                      : "border-sand bg-paper text-ink hover:bg-sand/30"
+                  }`}
+                >
+                  Monthly
+                </button>
+              </div>
+            </div>
 
-          <button
-            type="submit"
-            className="btn btn-accent w-full py-4 text-base shadow-sm"
-          >
-            Start Saving
-          </button>
-        </form>
+            {error ? (
+              <p className="text-sm font-semibold text-warning" role="alert">
+                {error}
+              </p>
+            ) : null}
+
+            <button
+              type="submit"
+              className="btn btn-accent w-full py-4 text-base shadow-sm"
+            >
+              Start Saving
+            </button>
+          </form>
+        )}
       </section>
       </ScrollReveal>
 
@@ -341,6 +399,14 @@ function WarnIcon() {
         d="M12 8v5M12 17h.01M10.3 4.8 2.8 18a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3L13.7 4.8a2 2 0 0 0-3.4 0z"
       />
     </svg>
+  );
+}
+
+export default function LearnPage() {
+  return (
+    <Suspense>
+      <LearnPageContent />
+    </Suspense>
   );
 }
 

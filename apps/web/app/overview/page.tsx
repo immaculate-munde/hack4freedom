@@ -3,7 +3,8 @@
 import { Suspense } from "react";
 
 import Link from "next/link";
-import { PAST_PERFORMANCE_DISCLAIMER, demoProfiles } from "@pesasense/core";
+import { PAST_PERFORMANCE_DISCLAIMER } from "@pesasense/core";
+import { ProfileRequired } from "../../components/profile-required";
 import { ProfileSync } from "../../components/profile-sync";
 import { SensiAvatar } from "../../components/sensi-avatar";
 import { UssdAccess } from "../../components/ussd-access";
@@ -11,8 +12,8 @@ import { WalletActivity } from "../../components/wallet-activity";
 import { formatKes, habitPercentOfFloor } from "../../lib/format";
 import { ImportTrigger } from "../../components/import-trigger";
 import { AnimatedNumber } from "../../components/animated-number";
-import { useProfile } from "../../contexts/profile-context";
-import { useSearchParams } from "next/navigation";
+import { showBufferFirstUx } from "../../lib/buffer-gate";
+import { useActiveProfile } from "../../lib/use-active-profile";
 
 const TRUST_ICONS: Record<string, string> = {
   key: "🔑",
@@ -34,15 +35,13 @@ function TrustChip({ label, icon }: { label: string; icon: string }) {
 }
 
 function OverviewContent() {
-  const searchParams = useSearchParams();
-  const profileQuery = searchParams?.get("profile");
-  const { profile: contextProfile, isDemo: contextIsDemo } = useProfile();
+  const active = useActiveProfile();
+  if (!active.ready) {
+    return <ProfileRequired />;
+  }
 
-  const demoId = profileQuery === "brian" ? "brian" : "amina";
-  const profile = contextProfile || demoProfiles[demoId];
-  const isDemo = contextProfile ? false : contextIsDemo;
-  const persona = demoId === "brian" ? "Brian (invented)" : "Amina (invented)";
-  const name = demoId === "brian" ? "Brian" : "Amina";
+  const { profile, profileId, isDemo, displayName: name } = active;
+  const persona = isDemo ? `${name} (invented demo)` : "Your profile on this phone";
 
   const { floor, typical, ceiling } = profile.surplus.monthlyKes;
 
@@ -51,12 +50,13 @@ function OverviewContent() {
 
   const span = Math.max(ceiling - floor, 1);
   const typicalPercent = Math.round(((typical - floor) / span) * 100);
-  const query = demoId === "brian" ? "?profile=brian" : "";
+  const query = isDemo && profileId === "brian" ? "?profile=brian" : "";
   const cushionMonths = profile.resilience.monthsOfExpensesCovered;
   const cushionPercent = Math.max(
     0,
     Math.min(100, Math.round((cushionMonths / 3) * 100)),
   );
+  const bufferFirst = showBufferFirstUx(profile);
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-4">
@@ -66,7 +66,7 @@ function OverviewContent() {
         </span>
         <p className="text-sm leading-5 text-ink">
           <span className="font-semibold">Habari {name} 👋</span>{" "}
-          {profile.surplus.bufferFirst
+          {bufferFirst
             ? "The buffer comes first. This history is not ready for a Bitcoin habit yet."
             : "Everything essential is covered this month."}
         </p>
@@ -107,7 +107,7 @@ function OverviewContent() {
         </p>
       </section>
 
-      {profile.surplus.bufferFirst ? (
+      {bufferFirst ? (
         <section className="rounded-[20px] border border-mint/60 bg-mint/20 p-5 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
           <p className="text-[11px] font-semibold tracking-[0.12em] text-moss uppercase">
             Safety cushion
@@ -141,9 +141,6 @@ function OverviewContent() {
             </Link>
           </div>
           <p className="mt-2 text-sm text-slate">
-            <span className="mr-1 rounded-full border border-line px-2 py-0.5 text-[11px] font-semibold">
-              Demo
-            </span>
             Sats appear when there is a quote. {share}% of the safe floor.
           </p>
         </section>
@@ -155,9 +152,11 @@ function OverviewContent() {
         <TrustChip label="Never leaves phone" icon="phone" />
       </section>
 
-      {isDemo ? <WalletActivity profileId={demoId} /> : null}
-      {isDemo ? <UssdAccess profileId={demoId} /> : null}
-      {isDemo ? <ProfileSync profile={profile} profileId={demoId} /> : null}
+      <WalletActivity profileId={profileId} />
+      {profileId === "amina" || profileId === "brian" ? (
+        <UssdAccess profileId={profileId} />
+      ) : null}
+      <ProfileSync profile={profile} profileId={profileId} />
 
       {isDemo ? (
         <section className="card space-y-3">
@@ -169,7 +168,7 @@ function OverviewContent() {
           </p>
           <ImportTrigger />
           <div className="flex gap-3 pt-1 text-sm">
-            {demoId === "brian" ? (
+            {profileId === "brian" ? (
               <Link href="/overview" className="text-teal underline underline-offset-2">View Amina</Link>
             ) : (
               <Link href="/overview?profile=brian" className="text-teal underline underline-offset-2">View the thin profile</Link>

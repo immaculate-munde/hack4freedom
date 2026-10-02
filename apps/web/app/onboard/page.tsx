@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { FinancialProfile } from "@pesasense/core";
 import { useProfile } from "../../contexts/profile-context";
+import { PdfImportForm } from "../../components/pdf-import-form";
 import { SmsImportForm } from "../../components/sms-import-form";
 
 export default function OnboardPage() {
@@ -20,7 +21,12 @@ export default function OnboardPage() {
   const handleGoToDashboard = () => {
     if (parsedProfile) {
       setProfile(parsedProfile);
-      router.push("/");
+      try {
+        localStorage.setItem("hasSeenWelcome", "true");
+      } catch {
+        // ignore
+      }
+      router.push("/overview");
     }
   };
 
@@ -104,27 +110,20 @@ export default function OnboardPage() {
 
           <section className="card space-y-4">
             <h2 className="font-semibold text-pine">M-Pesa PDF Upload</h2>
-            <div className="flex cursor-not-allowed flex-col items-center justify-center rounded-2xl border-2 border-dashed border-sand/60 bg-paper/50 py-10 opacity-60">
-              <svg
-                className="h-8 w-8 text-sand"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={1.5}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
-                />
-              </svg>
-              <p className="mt-3 text-sm font-semibold text-ink/70">
-                Upload PDF Statement
-              </p>
-              <p className="mt-1 text-xs text-ink/50">(Coming Soon)</p>
-            </div>
+            <PdfImportForm
+              onProfileReady={setParsedProfile}
+              onDemoFallback={handleUseDemo}
+            />
             <p className="text-[11px] leading-4 text-ink/55">
-              If importing a PDF, the password is whatever you type. It is NOT your ID, and it is NOT saved.
+              Demo fixture:{" "}
+              <a
+                href="/fixtures/amina-statement.pdf"
+                className="font-semibold text-teal underline underline-offset-2"
+                download
+              >
+                amina-statement.pdf
+              </a>{" "}
+              (password <code className="text-[10px]">demo-statement</code>)
             </p>
           </section>
         </>

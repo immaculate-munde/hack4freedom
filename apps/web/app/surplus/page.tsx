@@ -1,9 +1,13 @@
+"use client";
+
 import Link from "next/link";
+import { Suspense } from "react";
 import { PAST_PERFORMANCE_DISCLAIMER } from "@pesasense/core";
-import { formatKes } from "../../lib/format";
 import { AnimatedNumber } from "../../components/animated-number";
-import { loadProfile } from "../../lib/load-profile";
+import { ProfileRequired } from "../../components/profile-required";
+import { formatKes } from "../../lib/format";
 import { SensiAvatar } from "../../components/sensi-avatar";
+import { useActiveProfile } from "../../lib/use-active-profile";
 
 function getCategoryColor(category: string) {
   const c = (category || "").toLowerCase();
@@ -15,23 +19,13 @@ function getCategoryColor(category: string) {
   return "var(--color-sand)";
 }
 
-export default async function SurplusPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ profile?: string }>;
-}) {
-  const params = await searchParams;
-  const loaded = loadProfile(params.profile);
-  if (loaded.status === "not-ready") {
-    return (
-      <main className="card">
-        <h1 className="text-2xl font-semibold">No profile yet</h1>
-        <p className="mt-3 text-sm text-slate">{loaded.reason}</p>
-      </main>
-    );
+function SurplusContent() {
+  const active = useActiveProfile();
+  if (!active.ready) {
+    return <ProfileRequired />;
   }
 
-  const { profile, isDemo, demoId } = loaded;
+  const { profile, profileId, isDemo } = active;
   const { floor, typical, ceiling } = profile.surplus.monthlyKes;
   const habit = profile.investmentPlan;
   const rows = [
@@ -49,7 +43,7 @@ export default async function SurplusPage({
     })),
   ];
   const total = rows.reduce((sum, row) => sum + row.amount, 0);
-  const query = demoId === "brian" ? "?profile=brian" : "";
+  const query = isDemo && profileId === "brian" ? "?profile=brian" : "";
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-4">
@@ -156,7 +150,7 @@ export default async function SurplusPage({
       </Link>
       {isDemo ? (
         <p className="text-sm">
-          {demoId === "brian" ? (
+          {profileId === "brian" ? (
             <Link href="/surplus">View Amina</Link>
           ) : (
             <Link href={`/surplus${query === "" ? "?profile=brian" : query}`}>
@@ -167,5 +161,13 @@ export default async function SurplusPage({
       ) : null}
       <p className="text-xs leading-5 text-slate">{PAST_PERFORMANCE_DISCLAIMER}</p>
     </main>
+  );
+}
+
+export default function SurplusPage() {
+  return (
+    <Suspense>
+      <SurplusContent />
+    </Suspense>
   );
 }
