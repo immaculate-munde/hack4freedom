@@ -26,7 +26,7 @@ function HabitContent() {
   const monthly = cadence !== "weekly";
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-col gap-5">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-5">
       <header>
         <p className="text-[11px] font-semibold tracking-[0.14em] text-teal uppercase">
           Patient habit
@@ -134,7 +134,7 @@ function HabitContent() {
         Keys stay on your device · Backup is coming soon
       </p>
 
-      <Link href="/invest" className="btn btn-primary inline-flex items-center justify-center">
+      <Link href="/invest" className="btn btn-accent inline-flex items-center justify-center">
         Review my first purchase
       </Link>
       <p className="text-center text-sm text-slate">
@@ -186,7 +186,7 @@ export default function HabitPage() {
   return (
     <Suspense
       fallback={
-        <main className="mx-auto flex w-full max-w-lg flex-col gap-4">
+        <main className="mx-auto flex w-full max-w-2xl flex-col gap-4">
           <div className="animate-pulse h-6 w-32 rounded-full bg-pearl" />
           <div className="animate-pulse h-10 w-64 rounded-full bg-pearl" />
           <div className="card animate-pulse h-40 bg-pearl" />

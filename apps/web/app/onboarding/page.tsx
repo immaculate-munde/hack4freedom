@@ -1,10 +1,3 @@
-/**
- * A few questions.
- *
- * One card at a time. Placeholder text only. Answers are a draft in
- * sessionStorage until the encrypted on-device store exists. They are not
- * the financial profile, and they are not kept in localStorage.
- */
 "use client";
 
 import { useRouter } from "next/navigation";
@@ -16,6 +9,14 @@ const DRAFT_KEY = "pesasense.onboarding";
 
 type GoalId = "emergency_buffer" | "long_horizon" | "school_fees" | "inflation";
 
+type BitcoinReasonId =
+  | "scam_risk"
+  | "no_understanding"
+  | "capital"
+  | "regulation"
+  | "returns"
+  | "other";
+
 type Draft = {
   hasDebt: boolean | null;
   debtNotes: string;
@@ -26,6 +27,11 @@ type Draft = {
   chamaCadence: "weekly" | "monthly";
   goalId: GoalId | null;
   goalNotes: string;
+  wantsChama: boolean | null;
+  hasInvestedBitcoin: boolean | null;
+  bitcoinWhere: string;
+  bitcoinReasons: BitcoinReasonId[];
+  bitcoinOtherReason: string;
 };
 
 const EMPTY: Draft = {
@@ -38,6 +44,11 @@ const EMPTY: Draft = {
   chamaCadence: "monthly",
   goalId: null,
   goalNotes: "",
+  wantsChama: null,
+  hasInvestedBitcoin: null,
+  bitcoinWhere: "",
+  bitcoinReasons: [],
+  bitcoinOtherReason: "",
 };
 
 const GOALS: { id: GoalId; label: string }[] = [
@@ -47,13 +58,23 @@ const GOALS: { id: GoalId; label: string }[] = [
   { id: "inflation", label: "Protect against inflation" },
 ];
 
+const BITCOIN_REASONS: { id: BitcoinReasonId; label: string }[] = [
+  { id: "scam_risk", label: "Scam Risk" },
+  { id: "no_understanding", label: "I do not understand how it works" },
+  { id: "capital", label: "It requires too much capital" },
+  { id: "regulation", label: "There are no regulations surrounding bitcoin in Kenya" },
+  { id: "returns", label: "I prefer investments with quicker returns" },
+  { id: "other", label: "Other" },
+];
+
+const TOTAL_STEPS = 5;
+
 function wholeKes(value: string): number | null {
   const parsed = Number(value.replace(/,/g, "").trim());
   if (!Number.isFinite(parsed) || parsed < 0) return null;
   return Math.round(parsed);
 }
 
-/** Map the chips onto the profile goal. School fees and inflation have no own kind. */
 function toGoal(draft: Draft): UserGoal {
   const notes = draft.goalNotes.trim();
   if (draft.goalId === "emergency_buffer") {
@@ -77,7 +98,6 @@ function toGoal(draft: Draft): UserGoal {
   return { kind: "other", notes: notes || undefined };
 }
 
-/** Turn the draft into onboarding answers. Incomplete yes-answers are left out. */
 function toAnswers(draft: Draft): OnboardingAnswers {
   const balance = wholeKes(draft.debtBalance);
   const debts =
@@ -86,7 +106,6 @@ function toAnswers(draft: Draft): OnboardingAnswers {
       : [];
 
   const contribution = wholeKes(draft.chamaAmount);
-  // The profile stores a monthly figure. A weekly amount is four contributions.
   const monthly =
     contribution === null
       ? null
@@ -119,11 +138,11 @@ function loadDraft(): Draft {
   }
 }
 
-/** Three questions. Skip leaves that answer blank and moves on. */
 export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState<Draft>(EMPTY);
+  const [isCelebrating, setIsCelebrating] = useState(false);
 
   useEffect(() => {
     setDraft(loadDraft());
@@ -140,15 +159,28 @@ export default function OnboardingPage() {
   function advance(nextDraft: Draft) {
     sessionStorage.setItem(DRAFT_KEY, JSON.stringify(nextDraft));
     setDraft(nextDraft);
-    if (step < 2) {
+    if (step < TOTAL_STEPS - 1) {
       setStep((current) => current + 1);
       return;
     }
-    sessionStorage.setItem(
-      DRAFT_KEY,
-      JSON.stringify({ draft: nextDraft, answers: toAnswers(nextDraft) }),
-    );
-    router.push("/onboard");
+    
+    setIsCelebrating(true);
+    setTimeout(() => {
+      sessionStorage.setItem(
+        DRAFT_KEY,
+        JSON.stringify({
+          draft: nextDraft,
+          answers: toAnswers(nextDraft),
+          wantsChama: nextDraft.wantsChama === true,
+          bitcoinExperience: {
+            hasInvested: nextDraft.hasInvestedBitcoin === true,
+            where: nextDraft.bitcoinWhere.trim(),
+            reasons: nextDraft.bitcoinReasons,
+          },
+        }),
+      );
+      router.push("/onboard");
+    }, 1500);
   }
 
   function next() {
@@ -156,28 +188,37 @@ export default function OnboardingPage() {
   }
 
   function skip() {
-    if (step === 0) {
-      advance({ ...draft, hasDebt: null, debtNotes: "", debtBalance: "" });
-      return;
-    }
-    if (step === 1) {
-      advance({
-        ...draft,
-        inChama: null,
-        chamaName: "",
-        chamaAmount: "",
-        chamaCadence: "monthly",
-      });
-      return;
-    }
-    advance({ ...draft, goalId: null, goalNotes: "" });
+    const blanks: Partial<Draft>[] = [
+      { hasDebt: null, debtNotes: "", debtBalance: "" },
+      { inChama: null, chamaName: "", chamaAmount: "", chamaCadence: "monthly" },
+      { wantsChama: null },
+      { hasInvestedBitcoin: null, bitcoinWhere: "", bitcoinReasons: [], bitcoinOtherReason: "" },
+      { goalId: null, goalNotes: "" },
+    ];
+    advance({ ...draft, ...(blanks[step] ?? {}) });
+  }
+
+  const isLastStep = step === TOTAL_STEPS - 1;
+
+  if (isCelebrating) {
+    return (
+      <main className="mx-auto flex w-full max-w-md flex-col items-center justify-center py-24 text-center animate-in fade-in zoom-in duration-500">
+        <span className="flex h-16 w-16 items-center justify-center rounded-full bg-mint text-teal mb-5">
+          <svg viewBox="0 0 24 24" aria-hidden="true" className="h-8 w-8 fill-none stroke-current" strokeWidth="2.5">
+            <polyline strokeLinecap="round" strokeLinejoin="round" points="20 6 9 17 4 12" />
+          </svg>
+        </span>
+        <h2 className="text-2xl font-bold tracking-tight text-ink">You're all set</h2>
+        <p className="mt-2 text-sm text-slate">Saving your answers…</p>
+      </main>
+    );
   }
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-col">
       <div className="flex items-center justify-between">
         <p className="text-[11px] font-semibold tracking-[0.14em] text-teal uppercase">
-          Step {step + 1} of 3
+          Step {step + 1} of {TOTAL_STEPS}
         </p>
         <button type="button" onClick={skip} className="btn text-sm font-semibold text-slate">
           Skip for now
@@ -189,22 +230,22 @@ export default function OnboardingPage() {
           <Sensi className="h-11 w-11" />
         </span>
         <div className="rounded-[18px] bg-white px-4 py-3 shadow-card">
-          <p className="text-[11px] font-semibold tracking-wide text-teal uppercase">
-            Sensi
-          </p>
+          <p className="text-[11px] font-semibold tracking-wide text-teal uppercase">Sensi</p>
           <p className="mt-1 text-sm leading-5 text-ink">
-            Three quick questions, so the picture stays honest. One at a time.
+            A few quick questions, so the picture stays honest. One at a time.
           </p>
         </div>
       </div>
 
       {step === 0 ? <DebtStep draft={draft} patch={patch} /> : null}
       {step === 1 ? <ChamaStep draft={draft} patch={patch} /> : null}
-      {step === 2 ? <GoalStep draft={draft} patch={patch} /> : null}
+      {step === 2 ? <WantsChamaStep draft={draft} patch={patch} /> : null}
+      {step === 3 ? <BitcoinExperienceStep draft={draft} patch={patch} /> : null}
+      {step === 4 ? <GoalStep draft={draft} patch={patch} /> : null}
 
       <div className="mt-8 flex flex-col gap-2">
         <button type="button" onClick={next} className="btn btn-primary w-full text-base">
-          {step === 2 ? "Continue to M-Pesa history" : "Next"}
+          {isLastStep ? "Continue to M-Pesa history" : "Next"}
         </button>
       </div>
       <p className="mt-6 text-center text-xs leading-5 text-slate">
@@ -379,9 +420,9 @@ function GoalStep({
   patch: (next: Partial<Draft>) => void;
 }) {
   return (
-    <section className="mt-6 rounded-[20px] bg-white p-5 shadow-card">
+    <section className="mt-6 rounded-[20px] bg-white p-5 shadow-card hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
       <p className="text-[11px] font-semibold tracking-[0.12em] text-slate uppercase">
-        Question 03
+        Question 05
       </p>
       <h2 className="mt-1 text-lg font-semibold text-ink">
         What would you like your money to do?
@@ -412,6 +453,113 @@ function GoalStep({
           onChange={(event) => patch({ goalNotes: event.target.value })}
         />
       </label>
+    </section>
+  );
+}
+
+function WantsChamaStep({
+  draft,
+  patch,
+}: {
+  draft: Draft;
+  patch: (next: Partial<Draft>) => void;
+}) {
+  return (
+    <section className="mt-6 rounded-[20px] bg-white p-5 shadow-card hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+      <p className="text-[11px] font-semibold tracking-[0.12em] text-slate uppercase">
+        Question 03
+      </p>
+      <h2 className="mt-1 text-lg font-semibold text-ink">Do you want a Chama?</h2>
+      <p className="mt-1 text-sm leading-6 text-slate">
+        We can show you a Chama tab to track group savings.
+      </p>
+      <YesNo
+        value={draft.wantsChama}
+        onChange={(wantsChama) => patch({ wantsChama })}
+      />
+    </section>
+  );
+}
+
+function BitcoinExperienceStep({
+  draft,
+  patch,
+}: {
+  draft: Draft;
+  patch: (next: Partial<Draft>) => void;
+}) {
+  function toggleReason(id: BitcoinReasonId) {
+    const current = draft.bitcoinReasons;
+    const next = current.includes(id)
+      ? current.filter((r) => r !== id)
+      : [...current, id];
+    patch({ bitcoinReasons: next });
+  }
+
+  return (
+    <section className="mt-6 rounded-[20px] bg-white p-5 shadow-card hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+      <p className="text-[11px] font-semibold tracking-[0.12em] text-slate uppercase">
+        Question 04
+      </p>
+      <h2 className="mt-1 text-lg font-semibold text-ink">
+        Have you been investing in Bitcoin?
+      </h2>
+      <YesNo
+        value={draft.hasInvestedBitcoin}
+        onChange={(hasInvestedBitcoin) =>
+          patch({ hasInvestedBitcoin, bitcoinWhere: "", bitcoinReasons: [], bitcoinOtherReason: "" })
+        }
+      />
+
+      {draft.hasInvestedBitcoin === true && (
+        <label className="mt-4 block text-sm text-ink">
+          Where do you currently invest?
+          <input
+            className="field mt-1"
+            placeholder="e.g. Coinbase, Paxful, Binance…"
+            value={draft.bitcoinWhere}
+            onChange={(e) => patch({ bitcoinWhere: e.target.value })}
+          />
+        </label>
+      )}
+
+      {draft.hasInvestedBitcoin === false && (
+        <div className="mt-4 flex flex-col gap-2">
+          {BITCOIN_REASONS.map((reason) => {
+            const selected = draft.bitcoinReasons.includes(reason.id);
+            return (
+              <button
+                key={reason.id}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => toggleReason(reason.id)}
+                className={`btn flex min-h-12 w-full items-center justify-between rounded-2xl border px-4 py-3 text-left text-sm font-semibold ${
+                  selected ? "border-teal bg-mint text-ink" : "border-line bg-white text-ink"
+                }`}
+              >
+                {reason.label}
+                <span
+                  aria-hidden="true"
+                  className={`h-4 w-4 rounded-full border ${
+                    selected ? "border-teal bg-teal" : "border-line"
+                  }`}
+                />
+              </button>
+            );
+          })}
+          {draft.bitcoinReasons.includes("other") && (
+            <label className="mt-1 block text-sm text-ink">
+              Please describe
+              <input
+                className="field mt-1"
+                placeholder="Your reason"
+                value={draft.bitcoinOtherReason}
+                onChange={(e) => patch({ bitcoinOtherReason: e.target.value })}
+              />
+            </label>
+          )}
+        </div>
+      )}
     </section>
   );
 }

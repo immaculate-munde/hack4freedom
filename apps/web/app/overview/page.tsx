@@ -10,6 +10,7 @@ import { UssdAccess } from "../../components/ussd-access";
 import { WalletActivity } from "../../components/wallet-activity";
 import { formatKes, habitPercentOfFloor } from "../../lib/format";
 import { ImportTrigger } from "../../components/import-trigger";
+import { AnimatedNumber } from "../../components/animated-number";
 import { useProfile } from "../../contexts/profile-context";
 import { useSearchParams } from "next/navigation";
 
@@ -58,8 +59,8 @@ function OverviewContent() {
   );
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-col gap-4">
-      <section className="flex items-center gap-3 rounded-[20px] bg-white px-4 py-3 shadow-card">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-4">
+      <section className="flex items-center gap-3 rounded-[20px] bg-white px-4 py-3 shadow-card hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-mint">
           <Sensi className="h-9 w-9" />
         </span>
@@ -71,7 +72,7 @@ function OverviewContent() {
         </p>
       </section>
 
-      <section className="rounded-[20px] bg-white p-5 shadow-card">
+      <section className="rounded-[20px] bg-gradient-to-br from-pine/5 to-moss/10 p-5 shadow-card hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
         <div className="flex items-center justify-between gap-3">
           <p className="text-[11px] font-semibold tracking-[0.12em] text-slate uppercase">
             Safe monthly surplus
@@ -79,7 +80,7 @@ function OverviewContent() {
           {isDemo ? <DemoTag /> : null}
         </div>
         <p className="mt-3 text-[32px] leading-10 font-bold tracking-tight text-ink tabular-nums">
-          {formatKes(floor)} – {formatKes(ceiling)}
+          <AnimatedNumber value={floor} /> – <AnimatedNumber value={ceiling} />
         </p>
         <p className="mt-1 text-sm text-slate">
           Calm surplus after bills, chamas, and daily life.
@@ -107,7 +108,7 @@ function OverviewContent() {
       </section>
 
       {profile.surplus.bufferFirst ? (
-        <section className="rounded-[20px] bg-white p-5 shadow-card">
+        <section className="rounded-[20px] bg-white p-5 shadow-card hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
           <p className="text-[11px] font-semibold tracking-[0.12em] text-slate uppercase">
             Safety cushion
           </p>
@@ -120,22 +121,22 @@ function OverviewContent() {
               style={{ width: `${cushionPercent}%` }}
             />
           </div>
-          <Link href={`/habit${query}`} className="btn btn-secondary mt-4 inline-flex">
+          <Link href={`/habit${query}`} className="btn btn-accent mt-4 inline-flex">
             Here&apos;s how
           </Link>
         </section>
       ) : (
-        <section className="rounded-[20px] bg-white p-5 shadow-card">
+        <section className="rounded-[20px] bg-white p-5 shadow-card hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
           <p className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.12em] text-teal uppercase">
             <span className="h-1.5 w-1.5 rounded-full bg-teal" aria-hidden="true" />
             Your habit
           </p>
           <div className="mt-2 flex items-end justify-between gap-3">
             <p className="text-[28px] leading-9 font-bold text-ink tabular-nums">
-              {formatKes(habit)}{" "}
+              <AnimatedNumber value={habit} />{" "}
               <span className="text-base font-semibold text-slate">/ month</span>
             </p>
-            <Link href={`/habit${query}`} className="btn btn-secondary px-4 py-2">
+            <Link href={`/habit${query}`} className="btn btn-accent px-4 py-2">
               Adjust
             </Link>
           </div>

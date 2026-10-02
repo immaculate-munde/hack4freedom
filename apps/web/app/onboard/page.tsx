@@ -25,7 +25,7 @@ export default function OnboardPage() {
   };
 
   return (
-    <main className="mx-auto flex w-full max-w-lg flex-col gap-6 py-8 px-4 sm:px-0">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 py-8 px-4 sm:px-0">
       <header>
         <h1 className="font-serif text-3xl font-bold text-pine">Import your data</h1>
         <div className="mt-3 flex items-start gap-3 rounded-xl bg-moss/10 p-3 text-sm text-ink/80">

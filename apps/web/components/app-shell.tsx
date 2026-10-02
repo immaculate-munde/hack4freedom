@@ -10,7 +10,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { LogoMark } from "./brand/LogoMark";
 
 type Language = "en" | "sw";
@@ -58,11 +58,12 @@ const TABS = [
   { href: "/learn", key: "learn", match: (p: string) => p.startsWith("/learn") },
 ] as const;
 
-const SIDE = [
+const SIDE_BASE = [
   { href: "/invest", key: "invest", match: (p: string) => p.startsWith("/invest") },
   { href: "/wallet", key: "wallet", match: (p: string) => p.startsWith("/wallet") },
-  { href: "/chama", key: "chama", match: (p: string) => p.startsWith("/chama") },
 ] as const;
+
+const CHAMA_ITEM = { href: "/chama", key: "chama", match: (p: string) => p.startsWith("/chama") } as const;
 
 function hidesNav(pathname: string): boolean {
   return (
@@ -77,7 +78,20 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname() ?? "/";
   const quiet = hidesNav(pathname);
   const [language, setLanguage] = useState<Language>("en");
+  const [wantsChama, setWantsChama] = useState(false);
   const t = copy[language];
+
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("pesasense.onboarding");
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      setWantsChama(parsed.wantsChama === true);
+    } catch {
+    }
+  }, []);
+
+  const sideNav = wantsChama ? [...SIDE_BASE, CHAMA_ITEM] : SIDE_BASE;
 
   return (
     <div className="app-shell">
@@ -99,7 +113,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               ))}
             </nav>
             <div className="mt-auto flex flex-col gap-1 border-t border-line pt-4">
-              {SIDE.map((item) => (
+              {sideNav.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}

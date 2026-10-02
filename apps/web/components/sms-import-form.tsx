@@ -77,12 +77,22 @@ export function SmsImportForm({
 
   return (
     <div className="space-y-4 w-full">
-      <textarea
-        className="field min-h-[160px] text-sm leading-6 w-full"
-        placeholder="Paste your raw M-Pesa transaction messages here..."
-        value={smsData}
-        onChange={(e) => setSmsData(e.target.value)}
-      />
+      {loading ? (
+        <div className="animate-pulse flex flex-col gap-3 min-h-[160px] rounded-xl border border-line bg-surface p-4">
+          <div className="h-5 w-1/3 rounded-full bg-pearl" />
+          <div className="h-3 w-3/4 rounded-full bg-pearl" />
+          <div className="h-3 w-5/6 rounded-full bg-pearl" />
+          <div className="mt-4 h-3 w-1/2 rounded-full bg-pearl" />
+          <div className="h-3 w-full rounded-full bg-pearl" />
+        </div>
+      ) : (
+        <textarea
+          className="field min-h-[160px] text-sm leading-6 w-full"
+          placeholder="Paste your raw M-Pesa transaction messages here..."
+          value={smsData}
+          onChange={(e) => setSmsData(e.target.value)}
+        />
+      )}
       
       {error && (
         <p className="rounded-xl bg-brass/10 px-3 py-2 text-xs font-medium text-brass">
@@ -90,23 +100,15 @@ export function SmsImportForm({
         </p>
       )}
       
-      <button 
-        onClick={handleAnalyze} 
-        disabled={loading || !smsData.trim()}
-        className="btn btn-primary w-full py-4 text-base flex items-center justify-center gap-2"
-      >
-        {loading ? (
-          <>
-            <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            Analyzing Data...
-          </>
-        ) : (
-          "Analyze Data"
-        )}
-      </button>
+      {!loading && (
+        <button 
+          onClick={handleAnalyze} 
+          disabled={!smsData.trim()}
+          className="btn btn-primary w-full py-4 text-base"
+        >
+          Analyze Data
+        </button>
+      )}
     </div>
   );
 }

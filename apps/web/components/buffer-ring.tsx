@@ -61,7 +61,7 @@ export function BufferRing({ monthsCovered, targetMonths = 3 }: BufferRingProps)
           stroke="currentColor"
           strokeWidth={strokeWidth}
           strokeLinecap="round"
-          className={isSafe ? "text-pine" : "text-brass"}
+          className={isSafe ? "text-pine" : "text-brass animate-pulse"}
           style={{
             strokeDasharray: circumference,
             strokeDashoffset: offset,
