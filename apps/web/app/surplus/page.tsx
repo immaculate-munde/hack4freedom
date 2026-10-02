@@ -98,12 +98,19 @@ function SurplusContent() {
           </dl>
           {habit ? (
             <p className="mt-4 text-sm text-paper/90">
-              Recommended habit {formatKes(habit.amountKes)} / {habit.cadence}, within the
-              safe floor.
+              Habit {formatKes(habit.amountKes)} / {habit.cadence}, within the safe floor.
             </p>
-          ) : (
+          ) : profile.surplus.bufferFirst || floor <= 0 ? (
             <p className="mt-4 text-sm text-paper/90">No habit yet. The buffer comes first.</p>
+          ) : (
+            <p className="mt-4 text-sm text-paper/90">No habit yet. Set one from this floor.</p>
           )}
+          <Link
+            href={`/habit${query}`}
+            className="btn btn-accent mt-4 inline-flex justify-center"
+          >
+            {habit ? "Review the habit" : "Set the habit from this floor"}
+          </Link>
         </section>
 
         <section className="w-full">

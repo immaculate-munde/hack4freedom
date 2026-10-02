@@ -6,10 +6,12 @@
  */
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
-  --color-canvas: #f4efe6;
+  --color-canvas: #f3efe4;
   --color-surface: #fdfbf7;
-  --color-pearl: #f4efe6;
+  --color-pearl: #f3efe4;
   --color-ink: #1a1f1c;
   --color-ink-soft: #3d4b43;
   --color-slate: #6e7a72;
@@ -27,9 +29,9 @@
   --color-cat-default: #e8e0d2;
 
   --color-paper: #fdfbf7;
-  --color-pine: #1f4a3f;
+  --color-pine: #1e3a32;
   --color-moss: #6b8f71;
-  --color-brass: #e8940a;
+  --color-brass: #e3b23c;
   --color-terracotta: #c96a4d;
   --color-sky: #7ba8c4;
   --color-lavender: #a99bc4;
@@ -60,27 +62,80 @@ body {
   font-family: var(--font-sans);
 }
 
+.dark {
+  color-scheme: dark;
+  --color-canvas: #101614;
+  --color-surface: #1a2420;
+  --color-pearl: #15201c;
+  --color-ink: #f4f1e8;
+  --color-ink-soft: #d7e0d8;
+  --color-slate: #b4c0b8;
+  --color-line: #31403a;
+  --color-paper: #1a2420;
+  --color-sand: #31403a;
+  --color-mint: #24362f;
+  --shadow-card: 0 4px 20px -2px rgb(0 0 0 / 0.35);
+}
+
+.dark .text-pine {
+  color: #f4f1e8;
+}
+
+.dark .app-sidebar .text-pine,
+.dark .btn-accent,
+.dark .btn-primary,
+.dark .choice-picked {
+  color: #1e3a32;
+}
+
+/* Onboarding answers stay a light paper surface in dark mode.
+   Picked state is brass with pine text, same exception as .btn-accent. */
+.choice-idle {
+  border-color: #8f8270;
+  background-color: #fdfbf7;
+  color: #1a1f1c;
+}
+
+.choice-picked {
+  border-color: #c9962a;
+  background-color: var(--color-brass);
+  color: #1e3a32;
+}
+
+.choice-mark {
+  border-color: #8f8270;
+  background-color: transparent;
+}
+
+.choice-picked .choice-mark {
+  border-color: #1e3a32;
+  background-color: #1e3a32;
+}
+
+.dark .bg-white {
+  background-color: var(--color-paper);
+}
+
 /* Layout: mobile bottom nav + desktop sidebar */
 @layer components {
   .app-shell {
     display: flex;
     min-height: 100dvh;
-    background: var(--color-pearl);
+    background: var(--color-canvas);
   }
 
   .app-sidebar {
     position: sticky;
     top: 0;
     height: 100dvh;
-    width: 16.75rem;
+    width: 16.5rem;
     flex-shrink: 0;
-    border-right: 1px solid var(--color-sand);
-    background: linear-gradient(180deg, var(--color-paper) 0%, var(--color-pearl) 100%);
-    backdrop-filter: blur(8px);
+    background: var(--color-pine);
+    color: var(--color-paper);
   }
 
   .app-main-column {
-    border-right: 1px solid var(--color-line);
+    display: flex;
     flex: 1;
     flex-direction: column;
     min-width: 0;
@@ -108,6 +163,12 @@ body {
     padding: 1rem 1rem 5.5rem;
   }
 
+  .app-content.app-content-landing {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+
   @media (min-width: 640px) {
     .app-content {
       padding: 1.5rem 1.5rem 5.75rem;
@@ -115,10 +176,50 @@ body {
   }
 
   @media (min-width: 1024px) {
-    .app-content {
-      max-width: 1120px;
-      padding: 2.5rem 2.5rem 3rem;
+    .app-shell:has(.app-sidebar) {
+      gap: 1rem;
+      padding: 1rem;
+      background: #efe8d8;
     }
+
+    .app-sidebar {
+      top: 1rem;
+      height: calc(100dvh - 2rem);
+      overflow: auto;
+      border-radius: 28px;
+    }
+
+    .app-content {
+      max-width: none;
+      padding: 0.25rem 0 1.5rem;
+    }
+
+    .desk-top {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+      border-radius: 999px;
+      background: #f7f3ea;
+      padding: 0.55rem 0.55rem 0.55rem 1rem;
+    }
+
+    .desk-rail {
+      position: sticky;
+      top: 0;
+      width: 18.5rem;
+      flex-shrink: 0;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+  }
+
+  .dark .app-shell:has(.app-sidebar) {
+    background: #0c1210;
+  }
+
+  .dark .desk-top {
+    background: #1a2420;
   }
 
   .app-mobile-nav {
@@ -330,20 +431,10 @@ body {
   }
 
   .page-frame {
-    display: grid;
-    gap: 2rem;
-  }
-
-  @media (min-width: 1024px) {
-    .page-frame {
-      grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem);
-      align-items: start;
-      gap: 2.5rem;
-    }
-
-    .page-frame:not(:has(.page-frame-aside)) {
-      grid-template-columns: minmax(0, 42rem);
-    }
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+    gap: 1.25rem;
   }
 
   .page-title {
@@ -391,6 +482,81 @@ body {
   .card:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 14px rgb(26 36 32 / 12%);
+  }
+
+  .sensi {
+    display: inline-flex;
+    flex-shrink: 0;
+  }
+
+  .sensi-float {
+    animation: sensi-float 4.6s ease-in-out infinite;
+  }
+
+  .sensi-bob {
+    transform-origin: 50px 88px;
+    animation: sensi-bob 3.4s ease-in-out infinite;
+  }
+
+  .sensi-hair {
+    transform-origin: 50px 28px;
+    animation: sensi-sway 4.2s ease-in-out infinite;
+  }
+
+  .sensi-eyes {
+    transform-origin: 50px 46px;
+    animation: sensi-blink 5s infinite;
+  }
+
+  @keyframes sensi-float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  @keyframes sensi-bob {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-1.5px);
+    }
+  }
+
+  @keyframes sensi-sway {
+    0%,
+    100% {
+      transform: rotate(-1.4deg);
+    }
+    50% {
+      transform: rotate(1.4deg);
+    }
+  }
+
+  @keyframes sensi-blink {
+    0%,
+    46%,
+    52%,
+    100% {
+      transform: scaleY(1);
+    }
+    49% {
+      transform: scaleY(0.08);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sensi-float,
+    .sensi-bob,
+    .sensi-hair,
+    .sensi-eyes {
+      animation: none;
+    }
   }
 
   @media (min-width: 640px) {
@@ -462,7 +628,7 @@ body {
     padding: 0.75rem 1rem;
     font-size: 0.875rem;
     font-weight: 600;
-    color: var(--color-paper);
+    color: var(--color-pine);
   }
 
   .btn-primary:hover:not(:disabled) {
@@ -490,7 +656,7 @@ body {
     padding: 0.75rem 1rem;
     font-size: 0.875rem;
     font-weight: 600;
-    color: var(--color-paper);
+    color: var(--color-pine);
   }
 
   .btn-accent:hover:not(:disabled) {

@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import type { FinancialProfile } from "@pesasense/core";
+import { useRouter } from "next/navigation";
+import { demoProfiles, type FinancialProfile } from "@pesasense/core";
 import { useProfile } from "../contexts/profile-context";
 import { PdfImportForm } from "./pdf-import-form";
 import { SmsImportForm } from "./sms-import-form";
+import { routeAfterImport } from "../lib/profile-from-import";
 
 function XIcon() {
   return (
@@ -31,6 +33,7 @@ export interface ImportMpesaModalProps {
 }
 
 export function ImportMpesaModal({ isOpen, onClose }: ImportMpesaModalProps) {
+  const router = useRouter();
   const { setProfile } = useProfile();
   const [result, setResult] = useState<FinancialProfile | null>(null);
 
@@ -43,13 +46,26 @@ export function ImportMpesaModal({ isOpen, onClose }: ImportMpesaModalProps) {
 
   function handleCommit() {
     if (!result) return;
-    setProfile(result);
+    const next = result;
+    setProfile(next);
+    try {
+      localStorage.setItem("hasSeenWelcome", "true");
+    } catch {
+      // ignore
+    }
     handleClose();
+    router.push(routeAfterImport(next));
   }
 
   function handleUseDemo() {
-    setProfile(null);
+    setProfile(demoProfiles.amina);
+    try {
+      localStorage.setItem("hasSeenWelcome", "true");
+    } catch {
+      // ignore
+    }
     handleClose();
+    router.push("/overview");
   }
 
   return (
@@ -137,7 +153,7 @@ export function ImportMpesaModal({ isOpen, onClose }: ImportMpesaModalProps) {
                   </div >
                 </div >
                 <button onClick={handleCommit} className="btn btn-primary mt-2 w-full">
-                  Use this profile
+                  {routeAfterImport(result) === "/habit" ? "Set the habit" : "Use this profile"}
                 </button>
               </div >
             ) : (

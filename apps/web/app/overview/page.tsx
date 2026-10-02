@@ -12,7 +12,8 @@ import { WalletActivity } from "../../components/wallet-activity";
 import { formatKes, habitPercentOfFloor } from "../../lib/format";
 import { ImportTrigger } from "../../components/import-trigger";
 import { AnimatedNumber } from "../../components/animated-number";
-import { showBufferFirstUx } from "../../lib/buffer-gate";
+import { appInvestAllowance, showBufferFirstUx } from "../../lib/buffer-gate";
+import { useHabitReminder } from "../../lib/habit-reminder";
 import { useActiveProfile } from "../../lib/use-active-profile";
 
 const TRUST_ICONS: Record<string, string> = {
@@ -36,6 +37,7 @@ function TrustChip({ label, icon }: { label: string; icon: string }) {
 
 function OverviewContent() {
   const active = useActiveProfile();
+  const reminder = useHabitReminder();
   if (!active.ready) {
     return <ProfileRequired />;
   }
@@ -45,7 +47,7 @@ function OverviewContent() {
 
   const { floor, typical, ceiling } = profile.surplus.monthlyKes;
 
-  const habit = Math.round(floor * 0.75);
+  const habit = profile.investmentPlan?.amountKes ?? 0;
   const share = habitPercentOfFloor(habit, floor);
 
   const span = Math.max(ceiling - floor, 1);
@@ -56,10 +58,12 @@ function OverviewContent() {
     0,
     Math.min(100, Math.round((cushionMonths / 3) * 100)),
   );
-  const bufferFirst = showBufferFirstUx(profile);
+  const bufferFirst = showBufferFirstUx(profile) || floor <= 0;
+  const hasPlan = (profile.investmentPlan?.amountKes ?? 0) > 0;
+  const allowance = appInvestAllowance(profile);
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-4">
+    <main className="flex w-full flex-col gap-4">
       <section className="flex items-center gap-3 rounded-[20px] border border-mint/40 bg-mint/35 px-4 py-3 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-mint">
           <SensiAvatar size="sm" mood="happy" />
@@ -125,7 +129,7 @@ function OverviewContent() {
             Here&apos;s how
           </Link>
         </section>
-      ) : (
+      ) : hasPlan ? (
         <section className="rounded-[20px] border border-brass/40 bg-brass/15 p-5 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
           <p className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.12em] text-teal uppercase">
             <span className="h-1.5 w-1.5 rounded-full bg-teal" aria-hidden="true" />
@@ -134,17 +138,48 @@ function OverviewContent() {
           <div className="mt-2 flex items-end justify-between gap-3">
             <p className="text-[28px] leading-9 font-bold text-ink tabular-nums">
               <AnimatedNumber value={habit} />{" "}
-              <span className="text-base font-semibold text-slate">/ month</span>
+              <span className="text-base font-semibold text-slate">
+                / {profile.investmentPlan?.cadence === "weekly" ? "week" : "month"}
+              </span>
             </p>
-            <Link href={`/habit${query}`} className="btn btn-accent px-4 py-2">
+            <Link href={`/habit${query}`} className="btn btn-ghost px-4 py-2">
               Adjust
             </Link>
           </div>
           <p className="mt-2 text-sm text-slate">
             Sats appear when there is a quote. {share}% of the safe floor.
           </p>
+          {allowance.ok ? (
+            <Link href="/invest" className="btn btn-accent mt-4 inline-flex w-full justify-center">
+              Review and approve
+            </Link>
+          ) : null}
+          {allowance.ok ? (
+            <p className="mt-2 text-sm text-slate">
+              You review the purchase here. Nothing is sent until you approve it.
+            </p>
+          ) : null}
+        </section>
+      ) : (
+        <section className="rounded-[20px] border border-brass/40 bg-brass/15 p-5 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+          <p className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.12em] text-teal uppercase">
+            <span className="h-1.5 w-1.5 rounded-full bg-teal" aria-hidden="true" />
+            Your habit
+          </p>
+          <p className="mt-2 text-sm leading-6 text-ink">
+            No habit yet. The safe floor is {formatKes(floor)}.
+          </p>
+          <Link href={`/habit${query}`} className="btn btn-accent mt-4 inline-flex w-full justify-center">
+            Set the habit
+          </Link>
         </section>
       )}
+
+      {reminder ? (
+        <p className="text-sm leading-6 text-slate">
+          We&apos;ll remind you on the 1st. You approve each purchase.
+        </p>
+      ) : null}
 
       <section className="grid grid-cols-3 gap-1 rounded-[20px] bg-pearl px-2 py-4 text-center">
         <TrustChip label="Never hold keys" icon="key" />

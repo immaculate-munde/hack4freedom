@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useState, type ReactNode } from "react";
 import { LogoMark } from "./brand/LogoMark";
+import { CustomerRail } from "./customer-rail";
 import { SensiAvatar } from "./sensi-avatar";
 import { SensiBubble } from "./sensi-bubble";
+import { ThemeToggle } from "./theme-toggle";
 
 type Language = "en" | "sw";
 type ShellCopy = (typeof copy)[Language];
@@ -14,6 +16,7 @@ const copy = {
   en: {
     brand: "PesaSense",
     stays: "Stays on your phone",
+    customer: "Customer profile",
     profile: "Profile",
     language: "Language",
     overview: "Overview",
@@ -24,10 +27,17 @@ const copy = {
     wallet: "Wallet",
     chama: "Chama",
     nav: "Primary",
+    encrypted: "Encrypted on your device.",
+    phoneLine: "Your statements never leave your phone.",
+    reminder: "We'll remind you on the 1st.",
+    approve: "You approve each purchase.",
+    review: "Review the habit",
+    monthly: "Monthly",
   },
   sw: {
     brand: "PesaSense",
     stays: "Inabaki kwenye simu yako",
+    customer: "Wasifu wa mteja",
     profile: "Wasifu",
     language: "Lugha",
     overview: "Muhtasari",
@@ -38,6 +48,12 @@ const copy = {
     wallet: "Mkoba",
     chama: "Chama",
     nav: "Kuu",
+    encrypted: "Imesimbwa kwenye kifaa chako.",
+    phoneLine: "Taarifa zako hazitoki kwenye simu.",
+    reminder: "Tutakukumbusha tarehe ya 1.",
+    approve: "Unakubali kila ununuzi.",
+    review: "Tazama tabia",
+    monthly: "Kila mwezi",
   },
 } as const;
 
@@ -64,16 +80,11 @@ const NAV = [...TABS, ...SIDE_BASE, CHAMA_ITEM] as const;
 type NavKey = (typeof NAV)[number]["key"];
 
 function hidesNav(pathname: string): boolean {
-  return (
-    pathname === "/" ||
-    pathname === "/welcome" ||
-    pathname.startsWith("/onboarding") ||
-    pathname.startsWith("/onboard")
-  );
+  return pathname === "/welcome" || pathname === "/onboarding" || pathname === "/onboard";
 }
 
 function hidesSensi(pathname: string): boolean {
-  return pathname === "/welcome" || pathname.startsWith("/onboarding");
+  return pathname === "/welcome" || pathname === "/onboarding" || pathname === "/onboard";
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -95,60 +106,57 @@ export function AppShell({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const sideNav = wantsChama ? [...SIDE_BASE, CHAMA_ITEM] : SIDE_BASE;
+  const sideNav = wantsChama ? [...TABS, ...SIDE_BASE, CHAMA_ITEM] : [...TABS, ...SIDE_BASE];
 
   return (
     <div className="app-shell">
       {quiet ? null : (
         <aside className="app-sidebar hidden lg:flex" aria-label={t.nav}>
-          <div className="flex h-full flex-col p-5">
-            <Brand t={t} />
-            <nav className="flex flex-col gap-1">
-              {TABS.map((tab) => {
+          <div className="flex h-full flex-col px-4 py-6">
+            <div className="mb-8 flex items-center gap-3 px-2">
+              <button
+                type="button"
+                aria-label="Open Sensi guide"
+                aria-expanded={isSensiOpen}
+                onClick={() => setIsSensiOpen((current) => !current)}
+                className="btn flex h-12 w-12 items-center justify-center rounded-full bg-[#f3efe4]"
+              >
+                <SensiAvatar size="sm" mood={isSensiOpen ? "happy" : "neutral"} />
+              </button>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-bold text-[#f6f1e4]">{t.brand}</p>
+                <p className="text-xs text-[#e3b23c]">{t.stays}</p>
+              </div>
+            </div>
+            <nav className="flex min-h-0 flex-1 flex-col gap-2">
+              {sideNav.map((tab) => {
                 const active = tab.match(pathname);
                 return (
                   <Link
                     key={tab.href}
                     href={tab.href}
                     aria-current={active ? "page" : undefined}
-                    className={`rounded-control px-3 py-2 text-sm font-semibold ${
-                      active ? "bg-moss/20 text-pine" : "text-slate"
+                    className={`flex min-h-12 w-full flex-1 items-center gap-3 rounded-2xl px-4 text-sm font-semibold ${
+                      active
+                        ? "bg-[#f3efe4] text-pine"
+                        : "text-[#f6f1e4]/85 hover:bg-white/10"
                     }`}
                   >
-                    <span
-                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
-                        active ? "bg-white text-teal" : "bg-pearl text-slate"
-                      }`}
-                    >
-                      <NavIcon name={tab.key} />
-                    </span>
+                    <NavIcon name={tab.key} />
                     {t[tab.key]}
                   </Link>
                 );
               })}
             </nav>
-            <div className="mt-auto flex flex-col gap-1 border-t border-line pt-4">
-              {sideNav.map((item) => {
-                const active = item.match(pathname);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    aria-current={active ? "page" : undefined}
-                    className={`rounded-control px-3 py-2 text-sm font-semibold ${
-                      active ? "bg-moss/20 text-pine" : "text-slate"
-                    }`}
-                  >
-                    {t[item.key]}
-                  </Link>
-                );
-              })}
-            </div>
+            <p className="mt-auto px-3 pt-6 pb-2 text-xs leading-5 text-[#f6f1e4]/75">
+              {t.encrypted}
+            </p>
           </div>
         </aside>
       )}
 
       <div className="app-main-column">
+        {quiet ? null : (
         <header className="app-mobile-header lg:hidden">
           <div className="flex items-center justify-between gap-2">
             <Brand t={t} compact />
@@ -172,6 +180,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   onClick={() => setLanguage("sw")}
                 />
               </div>
+              <ThemeToggle />
               <button
                 type="button"
                 aria-label={t.profile}
@@ -182,8 +191,54 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
           </div>
         </header>
+        )}
 
-        <div className="app-content">{children}</div>
+        {quiet ? null : (
+          <div className="desk-top hidden lg:flex">
+            <p className="rounded-full bg-paper px-4 py-2 text-xs font-semibold text-pine">
+              {t.phoneLine}
+            </p>
+            <p className="rounded-full bg-paper px-4 py-2 text-xs font-semibold text-slate">
+              {t.monthly}
+            </p>
+            <p className="hidden rounded-full bg-paper px-4 py-2 text-xs font-semibold text-slate xl:block">
+              {t.approve}
+            </p>
+            <div className="ml-auto flex items-center gap-2">
+              <ThemeToggle />
+              <div
+                role="group"
+                aria-label={t.language}
+                className="flex h-10 items-center rounded-full bg-paper px-1"
+              >
+                <LangButton
+                  label="EN"
+                  pressed={language === "en"}
+                  onClick={() => setLanguage("en")}
+                />
+                <LangButton
+                  label="SW"
+                  pressed={language === "sw"}
+                  onClick={() => setLanguage("sw")}
+                />
+              </div>
+              <Link href="/habit" className="btn btn-accent rounded-full px-5 py-2">
+                {t.review}
+              </Link>
+            </div>
+          </div>
+        )}
+
+        <div className="flex min-w-0 flex-1 items-start gap-4">
+          <div className={quiet ? "app-content app-content-landing" : "app-content"}>{children}</div>
+          {quiet ? null : (
+            <aside className="desk-rail hidden xl:flex" aria-label={t.customer}>
+              <Suspense fallback={null}>
+                <CustomerRail language={language} />
+              </Suspense>
+            </aside>
+          )}
+        </div>
 
         {quiet ? null : (
           <nav className="app-mobile-nav safe-bottom lg:hidden" aria-label={t.nav}>
@@ -219,7 +274,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div
               role="dialog"
               aria-label="Sensi guide"
-              className="fixed right-4 bottom-24 z-40 w-[min(22rem,calc(100vw-2rem))] rounded-3xl border border-sand bg-paper p-4 shadow-2xl lg:right-6 lg:bottom-6"
+              className="fixed right-4 bottom-24 z-40 w-[min(22rem,calc(100vw-2rem))] rounded-3xl border border-sand bg-paper p-4 shadow-2xl lg:bottom-6 lg:right-6 xl:right-[21rem]"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-2">
@@ -262,7 +317,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             aria-label="Open Sensi guide"
             aria-expanded={isSensiOpen}
             onClick={() => setIsSensiOpen((current) => !current)}
-            className="btn fixed right-4 bottom-20 z-40 flex h-14 w-14 items-center justify-center rounded-full border-2 border-paper bg-mint shadow-[0_8px_24px_rgb(13_122_115/0.2)] transition-all duration-200 hover:-translate-y-0.5 lg:right-6 lg:bottom-6"
+            className="btn fixed right-4 bottom-20 z-40 flex h-14 w-14 items-center justify-center rounded-full border-2 border-paper bg-[#f3efe4] shadow-[0_8px_24px_rgb(30_58_50/0.18)] lg:hidden"
           >
             <SensiAvatar size="sm" mood={isSensiOpen ? "happy" : "neutral"} />
           </button>

@@ -42,3 +42,17 @@ export function buildProfileFromTransactions(transactions: Transaction[]): Finan
   }
   return profile;
 }
+
+/**
+ * After a successful parse, a profile with a surplus floor and no plan goes
+ * to the habit editor. This does not invent an amount or start a purchase.
+ * Buffer-first profiles, and anyone who already has a plan, open Overview.
+ */
+export function routeAfterImport(profile: FinancialProfile): "/habit" | "/overview" {
+  const bufferFirst = profile.resilience.bufferFirst || profile.surplus.bufferFirst;
+  const floor = profile.surplus.monthlyKes.floor;
+  if (!bufferFirst && floor > 0 && !profile.investmentPlan) {
+    return "/habit";
+  }
+  return "/overview";
+}

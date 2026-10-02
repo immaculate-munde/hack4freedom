@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense } from "react";
+import Link from "next/link";
 import { appInvestAllowance } from "../../lib/buffer-gate";
 import { PageFrame } from "../../components/page-frame";
 import { ProfileRequired } from "../../components/profile-required";
@@ -22,15 +23,33 @@ function InvestPageContent({ bitikaMode: mode }: { bitikaMode: "sandbox" | "live
 
   const { profile, profileId, isDemo } = active;
   const allowance = appInvestAllowance(profile);
-  const planAmount =
-    profile.investmentPlan?.amountKes ??
-    (allowance.ok ? Math.min(allowance.maxKes, 500) : 500);
+  const planAmount = profile.investmentPlan?.amountKes;
+  const hasPlan = typeof planAmount === "number" && planAmount > 0;
 
   if (!allowance.ok) {
     return (
       <PageFrame title="Not ready yet" backHref="/" backLabel="Back to overview">
         <section className="card">
           <p className="text-sm leading-6 text-ink/80">{allowance.reason}</p>
+        </section>
+        {profileId === "amina" || profileId === "brian" ? (
+          <UssdAccess profileId={profileId} />
+        ) : null}
+      </PageFrame>
+    );
+  }
+
+  if (!hasPlan || planAmount === undefined) {
+    return (
+      <PageFrame title="Set the habit" backHref="/habit" backLabel="Set the habit">
+        <section className="card">
+          <p className="text-sm leading-6 text-ink/80">
+            Save a habit amount first. A purchase waits until you review and approve it.
+            Nothing is sent on its own.
+          </p>
+          <Link href="/habit" className="btn btn-accent mt-4 inline-flex">
+            Set the habit
+          </Link>
         </section>
         {profileId === "amina" || profileId === "brian" ? (
           <UssdAccess profileId={profileId} />
