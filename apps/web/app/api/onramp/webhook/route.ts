@@ -1,5 +1,6 @@
 import { normalizeBitikaTransaction, purchaseFromBitika, verifyBitikaWebhook } from "@pesasense/wallet";
-import { claimWebhookEvent, rememberPurchase } from "../../../../lib/onramp-purchases";
+import { claimWebhookEvent, releaseWebhookEvent } from "../../../../lib/onramp-purchases";
+import { syncSharedStatus } from "../../../../lib/shared-purchases";
 
 export async function POST(req: Request) {
   const secret = process.env.BITIKA_WEBHOOK_SECRET;
@@ -32,7 +33,12 @@ export async function POST(req: Request) {
   if (!claimWebhookEvent(body.id)) {
     return Response.json({ ok: true, duplicate: true });
   }
-  rememberPurchase(purchase);
+  try {
+    syncSharedStatus(purchase);
+  } catch {
+    releaseWebhookEvent(body.id);
+    return Response.json({ error: "Could not store the update." }, { status: 500 });
+  }
 
   return Response.json({ ok: true });
 }

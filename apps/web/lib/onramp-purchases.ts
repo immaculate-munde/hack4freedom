@@ -38,3 +38,8 @@ export function claimWebhookEvent(eventId: string): boolean {
   seenEventIds.add(eventId);
   return true;
 }
+
+/** Let a failed follow-up write be retried by the provider. */
+export function releaseWebhookEvent(eventId: string): void {
+  seenEventIds.delete(eventId);
+}

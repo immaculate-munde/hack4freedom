@@ -11,3 +11,7 @@ Thumbs.db
 .env.*
 !.env.example
 .vercel
+.data/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm

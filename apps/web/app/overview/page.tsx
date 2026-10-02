@@ -6,6 +6,7 @@
 import Link from "next/link";
 import { PAST_PERFORMANCE_DISCLAIMER } from "@pesasense/core";
 import { ProfileSync } from "../../components/profile-sync";
+import { UssdAccess } from "../../components/ussd-access";
 import { WalletActivity } from "../../components/wallet-activity";
 import { formatKes, habitPercentOfFloor } from "../../lib/format";
 import { loadProfile } from "../../lib/load-profile";
@@ -146,6 +147,7 @@ export default async function OverviewPage({
       </nav>
 
       {isDemo ? <WalletActivity profileId={demoId} /> : null}
+      {isDemo ? <UssdAccess profileId={demoId} /> : null}
       {isDemo ? <ProfileSync profile={profile} profileId={demoId} /> : null}
 
       {isDemo ? (

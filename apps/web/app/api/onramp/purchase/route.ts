@@ -1,6 +1,7 @@
 import { assertInvestAmount, demoProfiles } from "@pesasense/core";
 import { clientSafeOnRampError, parseDestination, toBitikaPhone } from "@pesasense/wallet";
 import { getBitikaRamp } from "../../../../lib/bitika";
+import { rememberSharedPurchase } from "../../../../lib/shared-purchases";
 
 export async function POST(req: Request) {
   try {
@@ -40,12 +41,20 @@ export async function POST(req: Request) {
     const payerPhone = toBitikaPhone(body.payerPhone);
 
     const ramp = getBitikaRamp();
+    const destination = body.destination.trim();
     const purchase = await ramp.startPurchase({
       amountKes,
       payerPhone,
-      destination: body.destination.trim(),
+      destination,
       approvedByUser: true,
       idempotencyKey: body.idempotencyKey,
+    });
+    rememberSharedPurchase({
+      purchase,
+      phone: payerPhone,
+      profileId: body.profileId,
+      destination,
+      source: "web",
     });
 
     return Response.json(purchase);

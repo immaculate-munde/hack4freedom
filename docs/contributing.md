@@ -29,7 +29,7 @@ Not instead of the demo path:
 
 - Finish the parser and `buildProfile()` so `PROFILE_SOURCE=parsed` can replace the invented profiles.
 - Historical scenarios on the client, with the disclaimer already in the schema.
-- WhatsApp or Telegram for SMS forwarding, and a USSD fallback, only after the on-device profile works.
+- WhatsApp or Telegram for SMS forwarding, only after the on-device profile works.
 - A multi-chain advisory layer, still without trading and still without holding funds.
 
-USSD, Telegram, and spending Bitcoin through other apps stay out of the hackathon demo. Crypto history import remains a stretch.
+USSD is a second interface over the demo profiles and the on-ramp (`packages/ussd`, [ussd.md](ussd.md)). It does not read on-device statements. Telegram, and spending Bitcoin through other apps, stay out of this demo. Crypto history import remains a stretch.

@@ -17,6 +17,9 @@ Next.js server
   BITIKA_API_KEY            quote, collect, status
   BITIKA_WEBHOOK_SECRET     HMAC check on POST /api/onramp/webhook
   purchase map              in memory for this process only
+  USSD store                phone link, session, purchase index
+                            SQLite file in development (apps/web/.data)
+                            in-memory in production unless USSD_STORE_PATH is set
 
 Outside this app
   Bitika                    M-Pesa collect, sats to a Lightning address
@@ -36,6 +39,7 @@ The webhook verifies `X-Bitika-Signature` in `packages/wallet/src/bitika-webhook
 | `apps/web` | PWA. Overview, surplus, habit, learn, invest, wallet, chama, welcome, onboarding, import. |
 | `packages/core` | Types, demo profiles, SMS and PDF fixtures, invest allowance. `parseStatement`, `parseSmsBatch`, `buildProfile`, `computeSurplus`, and `runScenario` throw. |
 | `packages/wallet` | `BitcoinOnRamp`, Bitika adapter, exchange-rate fallback, phone and Lightning helpers, webhook verification. |
+| `packages/ussd` | Handset menu. Calls `investAllowance` and the same Bitika collect. Does not store statements. |
 | `packages/nostr` | NIP-44 encrypt-to-self, replaceable kind `30078` event (`d` = `pesasense-profile:v1`), anonymous kind `5910` surplus job, chama ledger rules. |
 
 `packages/core` has no UI imports. Screens read a profile through `apps/web/lib/load-profile.ts`. Demo mode loads `amina.profile.json` or `brian.profile.json`. Parsed mode calls the stubs and surfaces the error. It does not fall back to the hand-written numbers.
@@ -74,4 +78,4 @@ eCash is out of scope. There is no pooled wallet and no eCash mint in this repo.
 
 ## Libraries this repo does not use
 
-Dexie, Recharts, shadcn/ui, and Postgres are not dependencies. Device state that exists today is `localStorage` and `sessionStorage`, as listed above. Do not document them as the current storage layer.
+Dexie, Recharts, shadcn/ui, and Postgres are not dependencies. Device state that exists today is `localStorage` and `sessionStorage`, as listed above. The USSD phone link and purchase index use Node's built-in SQLite in development so the handset and the browser share one server record. That file does not hold statements, keys, or a second profile. Production without `USSD_STORE_PATH` keeps it in memory for the process, the same limit as the webhook map.

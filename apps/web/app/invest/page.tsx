@@ -1,6 +1,7 @@
 import { demoProfiles } from "@pesasense/core";
 import { PageFrame } from "../../components/page-frame";
 import { bitikaMode } from "../../lib/bitika";
+import { UssdAccess } from "../../components/ussd-access";
 import { WalletActivity } from "../../components/wallet-activity";
 import { InvestFlow } from "./invest-flow";
 
@@ -24,6 +25,7 @@ export default async function InvestPage({
             Build your buffer first. Bitcoin comes after your emergency cushion.
           </p>
         </section>
+        <UssdAccess profileId={demoId} />
       </PageFrame>
     );
   }
@@ -42,6 +44,7 @@ export default async function InvestPage({
         sandbox={mode === "sandbox"}
       />
       <WalletActivity profileId={demoId} />
+      <UssdAccess profileId={demoId} />
       {mode === "missing" ? (
         <p className="mt-4 text-xs text-red-800">
           Set BITIKA_API_KEY in apps/web/.env.local to run purchases.
