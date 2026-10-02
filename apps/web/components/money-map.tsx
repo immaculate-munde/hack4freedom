@@ -151,9 +151,12 @@ function curveThrough(points: Array<{ x: number; y: number }>): string {
 export function MoneyMap({
   profile,
   isDemo,
+  focusRequest,
 }: {
   profile: FinancialProfile;
   isDemo: boolean;
+  /** Ask the path to open a stop. A new token repeats the same id. */
+  focusRequest?: { id: string; token: number } | null;
 }) {
   const stops = useMemo(() => buildMoneyStops(profile), [profile]);
   const [selectedId, setSelectedId] = useState(stops[0]?.id ?? "income");
@@ -173,6 +176,13 @@ export function MoneyMap({
     return () => observer.disconnect();
   }, []);
 
+  useEffect(() => {
+    if (!focusRequest) return;
+    if (stops.some((stop) => stop.id === focusRequest.id)) {
+      setSelectedId(focusRequest.id);
+    }
+  }, [focusRequest, stops]);
+
   const points = stops.map((_, index) => {
     const span = Math.max(stops.length - 1, 1);
     return {
@@ -185,6 +195,7 @@ export function MoneyMap({
 
   return (
     <section
+      id="month-path"
       className="rounded-[28px] bg-[#141210] px-4 py-6 sm:px-6"
       aria-labelledby={headingId}
     >

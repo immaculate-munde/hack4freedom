@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 
 import Link from "next/link";
 import { PAST_PERFORMANCE_DISCLAIMER, type FinancialProfile } from "@pesasense/core";
@@ -9,13 +9,10 @@ import { ProfileSync } from "../../components/profile-sync";
 import { SensiAvatar } from "../../components/sensi-avatar";
 import { UssdAccess } from "../../components/ussd-access";
 import { WalletActivity } from "../../components/wallet-activity";
-import { formatKes, habitPercentOfFloor } from "../../lib/format";
 import { ImportTrigger } from "../../components/import-trigger";
-import { appInvestAllowance, showBufferFirstUx } from "../../lib/buffer-gate";
+import { showBufferFirstUx } from "../../lib/buffer-gate";
 import { LifeMarkers } from "../../components/life-markers";
-import { MoneyMap } from "../../components/money-map";
-import { habitOffer } from "../../lib/habit-plan";
-import { useHabitReminder } from "../../lib/habit-reminder";
+import { buildMoneyStops, MoneyMap } from "../../components/money-map";
 import { useActiveProfile } from "../../lib/use-active-profile";
 
 const TRUST_ICONS: Record<string, string> = {
@@ -61,7 +58,7 @@ function statementPeriod(profile: FinancialProfile, isDemo: boolean): string {
 
 function OverviewContent() {
   const active = useActiveProfile();
-  const reminder = useHabitReminder();
+  const [pathFocus, setPathFocus] = useState<{ id: string; token: number } | null>(null);
   if (!active.ready) {
     return <ProfileRequired />;
   }
@@ -69,24 +66,17 @@ function OverviewContent() {
   const { profile, profileId, isDemo, displayName: name } = active;
   const persona = isDemo ? `${name} (invented demo)` : "Your profile on this phone";
 
-  const { floor, typical } = profile.surplus.monthlyKes;
-  const habit = profile.investmentPlan?.amountKes ?? 0;
-  const cadence = profile.investmentPlan?.cadence === "weekly" ? "week" : "month";
-  const share = habitPercentOfFloor(habit, floor);
-
+  const floor = profile.surplus.monthlyKes.floor;
   const query = isDemo && profileId === "brian" ? "?profile=brian" : "";
-  const cushionMonths = profile.resilience.monthsOfExpensesCovered;
   const bufferFirst = showBufferFirstUx(profile) || floor <= 0;
-  const hasPlan = (profile.investmentPlan?.amountKes ?? 0) > 0;
-  const allowance = appInvestAllowance(profile);
-  const offer = habitOffer(profile);
   const period = statementPeriod(profile, isDemo);
 
-  const reading = bufferFirst
-    ? `The buffer comes first. ${cushionMonths} months of expenses are covered, and the aim is 3. This history is not ready for a Bitcoin habit yet. Nothing is sent from this screen.`
-    : hasPlan
-      ? `The safe floor, ${formatKes(floor)}, is what is left after the regular bills. Your habit is ${formatKes(habit)} a ${cadence}, ${share}% of that floor, not of the typical surplus (${formatKes(typical)}). Bitcoin can lose value. We'll remind you on the 1st. You approve each purchase. It goes to your own wallet. Nothing is sent from this screen.`
-      : `The safe floor, ${formatKes(floor)}, is what is left after the regular bills. No habit is saved yet. You can set one within that floor. Bitcoin can lose value. You approve each purchase. Nothing is sent from this screen.`;
+  function openPromisedOnPath() {
+    const stop = buildMoneyStops(profile).find((item) => item.id.startsWith("commitment-"));
+    if (!stop) return;
+    setPathFocus({ id: stop.id, token: Date.now() });
+    document.getElementById("month-path")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
 
   return (
     <main className="flex w-full flex-col gap-4">
@@ -114,43 +104,14 @@ function OverviewContent() {
         </p>
       </section>
 
-      <MoneyMap profile={profile} isDemo={isDemo} />
+      <MoneyMap profile={profile} isDemo={isDemo} focusRequest={pathFocus} />
 
-      <LifeMarkers profile={profile} isDemo={isDemo} />
-
-      <section className="rounded-[20px] bg-white p-5 shadow-card">
-        <h2 className="text-base font-semibold text-ink">How to read this</h2>
-        <p className="mt-2 text-sm leading-6 text-ink">{reading}</p>
-        {reminder ? (
-          <p className="mt-3 text-sm leading-6 text-slate">
-            We&apos;ll remind you on the 1st. You approve each purchase.
-          </p>
-        ) : null}
-      </section>
-
-      {allowance.ok && hasPlan ? (
-        <div className="flex flex-col gap-2">
-          <Link href="/invest" className="btn btn-accent inline-flex w-full justify-center">
-            Review an investment
-          </Link>
-          <p className="text-center text-sm text-slate">
-            You review it on the next screen. Nothing is sent until you approve it.
-          </p>
-        </div>
-      ) : offer.ok && !hasPlan ? (
-        <div className="flex flex-col gap-2">
-          <Link href={`/habit${query}`} className="btn btn-accent inline-flex w-full justify-center">
-            Set the habit
-          </Link>
-          <p className="text-center text-sm text-slate">
-            Save the amount first. A review comes after that. Nothing is sent from here.
-          </p>
-        </div>
-      ) : bufferFirst ? (
-        <Link href={`/habit${query}`} className="btn btn-accent inline-flex w-full justify-center">
-          Here&apos;s how
-        </Link>
-      ) : null}
+      <LifeMarkers
+        profile={profile}
+        isDemo={isDemo}
+        habitHref={`/habit${query}`}
+        onOpenPromisedStop={openPromisedOnPath}
+      />
 
       <section className="grid grid-cols-3 gap-1 rounded-[20px] bg-pearl px-2 py-4 text-center">
         <TrustChip label="Never hold keys" icon="key" />
