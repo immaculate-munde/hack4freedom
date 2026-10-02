@@ -130,7 +130,7 @@ pnpm typecheck
 pnpm lint
 ```
 
-`pnpm test` runs Vitest across the packages. Covered today: the profile contract and fixtures, profile-source switching, invest allowance, wallet-event status, Bitika status mapping, webhook signature checks, phone and Lightning-address helpers, encrypted profile storage, the anonymous surplus job, and the chama rules. The profile acceptance spec stays skipped while `buildProfile` throws.
+`pnpm test` runs Vitest across the packages. Covered today: the profile contract and fixtures, profile-source switching, invest allowance, wallet-event status, Bitika status mapping, webhook signature checks, phone and Lightning-address helpers, encrypted profile storage, the anonymous surplus job, the chama rules, and the USSD menu, sessions, and purchase index. The profile acceptance spec stays skipped while `buildProfile` throws.
 
 The SMS fixtures follow published M-Pesa receipt shapes, including reversals, a failed send, Fuliza, and a withdrawal whose date comes before the word "Withdraw". The encrypted statement is `packages/core/src/fixtures/statements/amina-statement.pdf`. Its demo password is `demo-statement`, not a national ID.
 
