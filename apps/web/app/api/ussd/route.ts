@@ -3,15 +3,28 @@
  * Register this path as the callback: https://<host>/api/ussd
  */
 
-import { demoFacts, handleUssd, ussdConfigFromEnv, type UssdPurchaseInput } from "@pesasense/ussd";
+import {
+  demoFacts,
+  handleUssd,
+  ussdConfigFromEnv,
+  type UssdPurchaseInput,
+} from "@pesasense/ussd";
 import { getBitikaRamp } from "../../../lib/bitika";
-import { rememberPurchase, recallPurchase, isTerminalPurchase } from "../../../lib/onramp-purchases";
+import {
+  rememberPurchase,
+  recallPurchase,
+  isTerminalPurchase,
+} from "../../../lib/onramp-purchases";
 import { getUssdStore } from "../../../lib/ussd-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function providedKey(req: Request, bodyText: string, contentType: string | null): string | null {
+function providedKey(
+  req: Request,
+  bodyText: string,
+  contentType: string | null,
+): string | null {
   const header = req.headers.get("x-ussd-key")?.trim();
   if (header) return header;
   const authorization = req.headers.get("authorization");
@@ -24,7 +37,8 @@ function providedKey(req: Request, bodyText: string, contentType: string | null)
   if (contentType?.toLowerCase().includes("application/json")) {
     try {
       const parsed = JSON.parse(bodyText) as { apiKey?: unknown };
-      if (typeof parsed.apiKey === "string" && parsed.apiKey.trim()) return parsed.apiKey.trim();
+      if (typeof parsed.apiKey === "string" && parsed.apiKey.trim())
+        return parsed.apiKey.trim();
     } catch {
       return null;
     }

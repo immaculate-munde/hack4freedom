@@ -2,7 +2,12 @@
  * A short code the handset can enter when the browser and the SIM are not linked yet.
  */
 
-import { isProfileId, newLinkCode, publicServiceCode, ussdDestination } from "@pesasense/ussd";
+import {
+  isProfileId,
+  newLinkCode,
+  publicServiceCode,
+  ussdDestination,
+} from "@pesasense/ussd";
 import { isCrossSite } from "../../../../lib/same-origin";
 import { getUssdStore } from "../../../../lib/ussd-server";
 
@@ -29,7 +34,11 @@ export async function POST(req: Request) {
     typeof body.destination === "string" && body.destination.trim() !== ""
       ? ussdDestination(body.destination)
       : null;
-  if (typeof body.destination === "string" && body.destination.trim() !== "" && !destination) {
+  if (
+    typeof body.destination === "string" &&
+    body.destination.trim() !== "" &&
+    !destination
+  ) {
     return Response.json(
       { error: "Enter a Lightning address like name@wallet.com." },
       { status: 400 },
@@ -54,7 +63,10 @@ export async function POST(req: Request) {
     }
   }
   if (!code) {
-    return Response.json({ error: "Could not create a code. Try again." }, { status: 500 });
+    return Response.json(
+      { error: "Could not create a code. Try again." },
+      { status: 500 },
+    );
   }
 
   const service = publicServiceCode(process.env);

@@ -52,12 +52,12 @@ A buy started in the browser is stored on that phone number. USSD option **4** r
 
 Africa's Talking sends `application/x-www-form-urlencoded`:
 
-| Field | Meaning |
-| --- | --- |
-| `sessionId` | Provider session. Bound to the phone number on the first screen. |
-| `serviceCode` | Must match `USSD_SERVICE_CODE` when that variable is set. |
-| `phoneNumber` | MSISDN. Normalised to `2547…`. |
-| `text` | Empty on the first screen, then `1*1500*1`. |
+| Field         | Meaning                                                          |
+| ------------- | ---------------------------------------------------------------- |
+| `sessionId`   | Provider session. Bound to the phone number on the first screen. |
+| `serviceCode` | Must match `USSD_SERVICE_CODE` when that variable is set.        |
+| `phoneNumber` | MSISDN. Normalised to `2547…`.                                   |
+| `text`        | Empty on the first screen, then `1*1500*1`.                      |
 
 The response is `text/plain`: `CON …` to keep the session, `END …` to finish it. JSON with the same field names is accepted so you can test with curl. `msisdn` is accepted as an alias for the phone number.
 
@@ -100,14 +100,14 @@ A public tunnel is only needed when a real gateway must reach your laptop. The a
 
 Development writes `apps/web/.data/ussd.sqlite` (gitignored). The schema is migration `001_init`:
 
-| Table | What it is |
-| --- | --- |
-| `ussd_accounts` | Phone → demo profile id and Lightning address |
-| `ussd_sessions` | `sessionId`, last text, last response, expiry |
-| `ussd_link_codes` | Six-digit codes |
-| `purchase_index` | Web and USSD buys, indexed by phone and time |
-| `rate_buckets` | Request and buy limits |
-| `schema_migrations` | Applied migration ids |
+| Table               | What it is                                    |
+| ------------------- | --------------------------------------------- |
+| `ussd_accounts`     | Phone → demo profile id and Lightning address |
+| `ussd_sessions`     | `sessionId`, last text, last response, expiry |
+| `ussd_link_codes`   | Six-digit codes                               |
+| `purchase_index`    | Web and USSD buys, indexed by phone and time  |
+| `rate_buckets`      | Request and buy limits                        |
+| `schema_migrations` | Applied migration ids                         |
 
 Indexes: `idx_ussd_sessions_phone`, `idx_ussd_sessions_expires`, `idx_ussd_link_codes_expires`, `idx_purchase_phone_created`.
 
@@ -115,15 +115,15 @@ This is not a second financial profile. Postgres is still not a dependency. Node
 
 ## Environment
 
-| Variable | Role |
-| --- | --- |
-| `USSD_PROVIDER` | Label for logs. Default `africastalking`. The callback fields are the ones above. |
-| `USSD_SERVICE_CODE` | Expected short code, for example `*384*40401#`. Unset accepts any code, and the screen shows that example. |
-| `USSD_API_KEY` | Shared secret for the callback. Required in production. |
-| `USSD_SESSION_TTL_SECONDS` | Default 180. |
-| `USSD_STORE_PATH` | SQLite file. Unset uses `.data/ussd.sqlite` in development and memory in production. |
-| `USSD_MAX_REQUESTS_PER_MINUTE` | Default 20 per phone. |
-| `USSD_MAX_BUYS_PER_HOUR` | Default 3 per phone. |
+| Variable                       | Role                                                                                                       |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| `USSD_PROVIDER`                | Label for logs. Default `africastalking`. The callback fields are the ones above.                          |
+| `USSD_SERVICE_CODE`            | Expected short code, for example `*384*40401#`. Unset accepts any code, and the screen shows that example. |
+| `USSD_API_KEY`                 | Shared secret for the callback. Required in production.                                                    |
+| `USSD_SESSION_TTL_SECONDS`     | Default 180.                                                                                               |
+| `USSD_STORE_PATH`              | SQLite file. Unset uses `.data/ussd.sqlite` in development and memory in production.                       |
+| `USSD_MAX_REQUESTS_PER_MINUTE` | Default 20 per phone.                                                                                      |
+| `USSD_MAX_BUYS_PER_HOUR`       | Default 3 per phone.                                                                                       |
 
 There is no `USSD_USERNAME`. This app receives the callback. It does not call the provider's send API.
 

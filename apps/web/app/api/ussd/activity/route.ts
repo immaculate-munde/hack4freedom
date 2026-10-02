@@ -26,7 +26,10 @@ export async function GET(req: Request) {
   const store = getUssdStore();
   const attempts = store.hitRate(`activity:${phone}`, Date.now(), 60_000);
   if (attempts > 40) {
-    return Response.json({ error: "Too many requests. Wait a minute." }, { status: 429 });
+    return Response.json(
+      { error: "Too many requests. Wait a minute." },
+      { status: 429 },
+    );
   }
 
   const account = store.getAccount(phone);

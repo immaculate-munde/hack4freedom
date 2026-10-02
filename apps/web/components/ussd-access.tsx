@@ -65,7 +65,9 @@ function writeSaved(profileId: ProfileId, phone: string): void {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return {};
       const parsed = JSON.parse(raw) as unknown;
-      return parsed && typeof parsed === "object" ? (parsed as Record<string, string>) : {};
+      return parsed && typeof parsed === "object"
+        ? (parsed as Record<string, string>)
+        : {};
     } catch {
       return {};
     }
@@ -101,7 +103,9 @@ export function UssdAccess({ profileId }: { profileId: ProfileId }) {
   }, []);
 
   const loadActivity = useCallback(async (nextPhone: string) => {
-    const res = await fetch(`/api/ussd/activity?phone=${encodeURIComponent(nextPhone)}`);
+    const res = await fetch(
+      `/api/ussd/activity?phone=${encodeURIComponent(nextPhone)}`,
+    );
     const body = (await res.json()) as Activity & { error?: string };
     if (!res.ok) throw new Error(body.error ?? "Could not load USSD activity.");
     setActivity(body);
@@ -165,7 +169,8 @@ export function UssdAccess({ profileId }: { profileId: ProfileId }) {
         }),
       });
       const body = (await res.json()) as { error?: string; code?: string };
-      if (!res.ok || !body.code) throw new Error(body.error ?? "Could not create a code.");
+      if (!res.ok || !body.code)
+        throw new Error(body.error ?? "Could not create a code.");
       setCode(body.code);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create a code.");
@@ -179,8 +184,8 @@ export function UssdAccess({ profileId }: { profileId: ProfileId }) {
       <p className="text-xs font-semibold tracking-wide text-slate uppercase">USSD</p>
       <h2 className="mt-1 text-lg font-semibold text-ink">Use this on a handset</h2>
       <p className="mt-2 text-sm leading-6 text-slate">
-        Dial from the M-Pesa line you link to {label}. Surplus, habit, and buys use the same
-        rules as this screen. Statements stay on this phone. You confirm every buy.
+        Dial from the M-Pesa line you link to {label}. Surplus, habit, and buys use the
+        same rules as this screen. Statements stay on this phone. You confirm every buy.
       </p>
       <p className="mt-3 text-sm font-semibold text-ink">
         Dial {serviceCode}
@@ -230,15 +235,19 @@ export function UssdAccess({ profileId }: { profileId: ProfileId }) {
       </div>
       {code ? (
         <p className="mt-3 text-sm text-ink">
-          On the handset choose <span className="font-semibold">Link with code</span> and enter{" "}
-          <span className="font-semibold tabular-nums">{code}</span>. It lasts 15 minutes.
+          On the handset choose <span className="font-semibold">Link with code</span>{" "}
+          and enter <span className="font-semibold tabular-nums">{code}</span>. It lasts
+          15 minutes.
         </p>
       ) : null}
       {error ? <p className="mt-3 text-sm text-red-800">{error}</p> : null}
       {activity?.linked ? (
         <p className="mt-3 text-sm text-slate">
           {activity.phoneMasked} is linked
-          {activity.profileId ? ` to ${activity.profileId === "brian" ? "Brian" : "Amina"}` : ""}.
+          {activity.profileId
+            ? ` to ${activity.profileId === "brian" ? "Brian" : "Amina"}`
+            : ""}
+          .
           {activity.hasDestination
             ? " A Lightning address is set."
             : " Set a Lightning address before a USSD buy."}
@@ -247,7 +256,10 @@ export function UssdAccess({ profileId }: { profileId: ProfileId }) {
       {activity && activity.purchases.length > 0 ? (
         <ul className="mt-3 divide-y divide-sand text-sm">
           {activity.purchases.map((purchase) => (
-            <li key={purchase.purchaseId} className="flex items-start justify-between gap-3 py-3">
+            <li
+              key={purchase.purchaseId}
+              className="flex items-start justify-between gap-3 py-3"
+            >
               <div>
                 <p className="font-semibold text-ink">KES {purchase.amountKes}</p>
                 <p className="mt-0.5 text-xs text-ink/55">

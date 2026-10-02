@@ -31,14 +31,18 @@ export async function POST(req: Request) {
     return Response.json({ error: "Choose a known demo profile." }, { status: 400 });
   }
   if (typeof body.phone !== "string") {
-    return Response.json({ error: "Enter the M-Pesa number that will dial." }, { status: 400 });
+    return Response.json(
+      { error: "Enter the M-Pesa number that will dial." },
+      { status: 400 },
+    );
   }
 
   let phone: string;
   try {
     phone = toBitikaPhone(body.phone);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Enter a Kenyan M-Pesa number.";
+    const message =
+      error instanceof Error ? error.message : "Enter a Kenyan M-Pesa number.";
     return Response.json({ error: message }, { status: 400 });
   }
 
@@ -46,7 +50,11 @@ export async function POST(req: Request) {
     typeof body.destination === "string" && body.destination.trim() !== ""
       ? ussdDestination(body.destination)
       : null;
-  if (typeof body.destination === "string" && body.destination.trim() !== "" && !destination) {
+  if (
+    typeof body.destination === "string" &&
+    body.destination.trim() !== "" &&
+    !destination
+  ) {
     return Response.json(
       {
         error:
@@ -59,7 +67,10 @@ export async function POST(req: Request) {
   const store = getUssdStore();
   const attempts = store.hitRate(`link:${phone}`, Date.now(), LINK_WINDOW_MS);
   if (attempts > LINK_LIMIT) {
-    return Response.json({ error: "Too many link attempts. Wait and try again." }, { status: 429 });
+    return Response.json(
+      { error: "Too many link attempts. Wait and try again." },
+      { status: 429 },
+    );
   }
 
   const existing = store.getAccount(phone);
