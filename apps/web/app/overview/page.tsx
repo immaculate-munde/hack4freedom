@@ -2,8 +2,8 @@
 
 import { Suspense, useState } from "react";
 
-import Link from "next/link";
 import { PAST_PERFORMANCE_DISCLAIMER, type FinancialProfile } from "@pesasense/core";
+import { DemoProfileSwitch } from "../../components/demo-profile-switch";
 import { ProfileRequired } from "../../components/profile-required";
 import { ProfileSync } from "../../components/profile-sync";
 import { SensiAvatar } from "../../components/sensi-avatar";
@@ -135,11 +135,7 @@ function OverviewContent() {
           </p>
           <ImportTrigger />
           <div className="flex gap-3 pt-1 text-sm">
-            {profileId === "brian" ? (
-              <Link href="/overview" className="text-teal underline underline-offset-2">View Amina</Link>
-            ) : (
-              <Link href="/overview?profile=brian" className="text-teal underline underline-offset-2">View the thin profile</Link>
-            )}
+            <DemoProfileSwitch profileId={profileId} />
           </div>
         </section>
       ) : null}

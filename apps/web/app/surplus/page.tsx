@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { PAST_PERFORMANCE_DISCLAIMER } from "@pesasense/core";
 import { AnimatedNumber } from "../../components/animated-number";
+import { DemoProfileSwitch } from "../../components/demo-profile-switch";
 import { ProfileRequired } from "../../components/profile-required";
 import { formatKes } from "../../lib/format";
 import { SensiAvatar } from "../../components/sensi-avatar";
@@ -157,13 +158,7 @@ function SurplusContent() {
       </Link>
       {isDemo ? (
         <p className="text-sm">
-          {profileId === "brian" ? (
-            <Link href="/surplus">View Amina</Link>
-          ) : (
-            <Link href={`/surplus${query === "" ? "?profile=brian" : query}`}>
-              View the thin profile
-            </Link>
-          )}
+          <DemoProfileSwitch profileId={profileId} />
         </p>
       ) : null}
       <p className="text-xs leading-5 text-slate">{PAST_PERFORMANCE_DISCLAIMER}</p>

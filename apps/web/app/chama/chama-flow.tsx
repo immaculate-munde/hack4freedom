@@ -109,7 +109,7 @@ export function ChamaFlow() {
   if (!circle) {
     return (
       <PageFrame title="Chama" description="Loading the demo circle.">
-        <section className="card text-sm text-ink/70">Loading Chama Sisters.</section>
+        <section className="card text-sm text-ink/70">Loading.</section>
       </PageFrame>
     );
   }
@@ -268,7 +268,7 @@ export function ChamaFlow() {
       description={
         onboardingChama
           ? `${onboardingChama.name}: ${formatKes(onboardingChama.amountKes)} ${onboardingChama.cadence === "weekly" ? "a week" : "a month"}. Payments come from your own wallet.`
-          : "Chama Sisters is an invented merry-go-round. Each person pays the member whose turn it is, from a wallet they control. Nobody holds the group's money."
+          : "No chama name was entered on this phone. The round below is a demo record only. Nobody holds the group's money."
       }
       aside={aside}
     >
@@ -290,7 +290,7 @@ export function ChamaFlow() {
           </span>
           <span className="text-xs text-ink/60">KES {current.monthlyContributionKes} each month</span>
         </div>
-        <h2 className="font-serif text-2xl text-pine">{current.name}</h2>
+        <h2 className="font-serif text-2xl text-pine">{onboardingChama?.name ?? "Demo round"}</h2>
         <p className="mt-2 text-sm leading-6 text-ink/75">
           Still waiting this round: {formatKes(view.waitingKes)}. A finished round is just a
           record that every payer confirmed their own payment.
