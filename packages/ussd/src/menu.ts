@@ -103,9 +103,10 @@ export function runMenu(input: MenuInput): MenuOutcome {
     };
   }
 
-  let state: MenuState = input.flow === "menu" ? { kind: "main" } : { kind: "unlinked" };
+  let state: MenuState =
+    input.flow === "menu" ? { kind: "main" } : { kind: "unlinked" };
   let profileId = input.profileId;
-  let destination = input.destination;
+  const destination = input.destination;
   let linkProfileId: ProfileId | undefined;
 
   const context = (): StepContext => ({
@@ -204,13 +205,17 @@ function fromCode(input: string): Step {
 
 function fromMain(input: string, ctx: StepContext): Step {
   const facts = requireFacts(ctx);
-  if (!facts) return halt({ kind: "main" }, end("This number is not linked. Dial again."));
+  if (!facts)
+    return halt({ kind: "main" }, end("This number is not linked. Dial again."));
   if (input === "0") return halt({ kind: "main" }, end("Goodbye."));
   if (input === "1") return halt({ kind: "main" }, surplusScreen(facts));
   if (input === "2") return halt({ kind: "main" }, habitScreen(facts));
   if (input === "3") {
     if (!facts.buyAllowed) {
-      return halt({ kind: "main" }, end(facts.buyRefusal ?? "This buy is not allowed."));
+      return halt(
+        { kind: "main" },
+        end(facts.buyRefusal ?? "This buy is not allowed."),
+      );
     }
     return { state: { kind: "buy_amount" }, halt: false };
   }
@@ -246,7 +251,10 @@ function fromAmount(input: string, ctx: StepContext): Step {
 
 function fromConfirm(amountKes: number, input: string, ctx: StepContext): Step {
   if (!ctx.profileId) {
-    return halt({ kind: "buy_confirm", amountKes }, end("This number is not linked. Dial again."));
+    return halt(
+      { kind: "buy_confirm", amountKes },
+      end("This number is not linked. Dial again."),
+    );
   }
   const destination = ussdDestination(ctx.destination);
   if (!destination) {
@@ -256,7 +264,10 @@ function fromConfirm(amountKes: number, input: string, ctx: StepContext): Step {
     );
   }
   if (input === "2") {
-    return halt({ kind: "buy_confirm", amountKes }, end("Cancelled. Nothing was sent."));
+    return halt(
+      { kind: "buy_confirm", amountKes },
+      end("Cancelled. Nothing was sent."),
+    );
   }
   if (input === "1") {
     return {
@@ -303,8 +314,7 @@ function promptFor(state: MenuState, ctx: StepContext): string {
     case "buy_amount": {
       const facts = requireFacts(ctx);
       if (!facts) return end("This number is not linked. Dial again.");
-      const habit =
-        facts.habitKes !== null ? `\nHabit is ${kes(facts.habitKes)}.` : "";
+      const habit = facts.habitKes !== null ? `\nHabit is ${kes(facts.habitKes)}.` : "";
       return con(`Buy up to ${kes(facts.maxKes)}.${habit}\nEnter amount in KES:`);
     }
     case "buy_confirm": {
@@ -339,7 +349,8 @@ function habitScreen(facts: ProfileFacts): string {
   if (facts.bufferFirst || facts.habitKes === null) {
     return end("No Bitcoin habit yet.\nBuild a buffer first.");
   }
-  const pct = facts.floorKes > 0 ? Math.round((facts.habitKes / facts.floorKes) * 100) : 0;
+  const pct =
+    facts.floorKes > 0 ? Math.round((facts.habitKes / facts.floorKes) * 100) : 0;
   const cadence = facts.habitCadence === "weekly" ? "weekly" : "monthly";
   return end(
     `Habit ${kes(facts.habitKes)} ${cadence}.\n${pct}% of the safe floor.\nYou approve each buy.`,
@@ -359,8 +370,16 @@ export function statusLine(purchase: PurchaseSummary): string {
   return `${kes(purchase.amountKes)}\n${statusLabel(purchase.status)}`;
 }
 
-export function purchaseResultLine(amountKes: number, purchaseId: string, status: string): string {
-  if (status === "cannot_fill" || status === "failed" || status === "paid_not_delivered") {
+export function purchaseResultLine(
+  amountKes: number,
+  purchaseId: string,
+  status: string,
+): string {
+  if (
+    status === "cannot_fill" ||
+    status === "failed" ||
+    status === "paid_not_delivered"
+  ) {
     return "Could not start this buy. Nothing was taken.";
   }
   const code = purchaseId.length > 22 ? purchaseId.slice(0, 22) : purchaseId;

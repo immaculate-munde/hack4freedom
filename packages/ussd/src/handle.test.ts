@@ -52,7 +52,10 @@ function harness(store: UssdStore = createMemoryUssdStore()) {
       };
     },
   };
-  async function dial(text: string, extra?: { sessionId?: string; phone?: string; key?: string }) {
+  async function dial(
+    text: string,
+    extra?: { sessionId?: string; phone?: string; key?: string },
+  ) {
     const result = await handleUssd(
       {
         contentType: "application/json",
@@ -150,7 +153,9 @@ describe("USSD handler", () => {
     const learn = await dial("5", { sessionId: "session-learn" });
     expect(learn.body).toContain("CON ");
     expect(learn.body).toContain("What is Bitcoin");
-    expect((await dial("5*1", { sessionId: "session-learn" })).body).toContain("hold yourself");
+    expect((await dial("5*1", { sessionId: "session-learn" })).body).toContain(
+      "hold yourself",
+    );
 
     await dial("", { sessionId: "session-chama" });
     const chama = await dial("6", { sessionId: "session-chama" });
@@ -306,7 +311,10 @@ describe("USSD handler", () => {
     advance(5_000);
     const freshPhone = "254733333333";
     await dial("", { sessionId: "session-0008", phone: freshPhone });
-    const expired = await dial("1*654321", { sessionId: "session-0008", phone: freshPhone });
+    const expired = await dial("1*654321", {
+      sessionId: "session-0008",
+      phone: freshPhone,
+    });
     expect(expired.body).toContain("not recognised");
   });
 
@@ -322,7 +330,10 @@ describe("USSD handler", () => {
     expect(expired.body).toContain("Session expired");
 
     await dial("", { sessionId: "session-0003" });
-    const mismatch = await dial("1", { sessionId: "session-0003", phone: "0712000000" });
+    const mismatch = await dial("1", {
+      sessionId: "session-0003",
+      phone: "0712000000",
+    });
     expect(mismatch.body).toContain("does not match");
   });
 
@@ -519,9 +530,9 @@ describe("USSD handler", () => {
     const parsed = ussdConfigFromEnv({}, "production");
     expect(parsed.requireApiKey).toBe(true);
     expect(parsed.apiKey).toBeNull();
-    expect(ussdConfigFromEnv({ USSD_SERVICE_CODE: SERVICE }, "development").serviceCode).toBe(
-      SERVICE,
-    );
+    expect(
+      ussdConfigFromEnv({ USSD_SERVICE_CODE: SERVICE }, "development").serviceCode,
+    ).toBe(SERVICE);
   });
 });
 
@@ -539,7 +550,12 @@ describe("request parsing", () => {
     });
     const json = parseUssdBody(
       "application/json",
-      JSON.stringify({ session_id: "abc12345", service_code: SERVICE, msisdn: PHONE, text: "" }),
+      JSON.stringify({
+        session_id: "abc12345",
+        service_code: SERVICE,
+        msisdn: PHONE,
+        text: "",
+      }),
     );
     expect(json.phoneNumber).toBe(PHONE);
     expect(json.text).toBe("");

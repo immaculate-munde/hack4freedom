@@ -32,7 +32,10 @@ const LABELS: Record<ProfileId, string> = {
   brian: "Brian",
 };
 
-export function factsFromProfile(id: ProfileId, profile: FinancialProfile): ProfileFacts {
+export function factsFromProfile(
+  id: ProfileId,
+  profile: FinancialProfile,
+): ProfileFacts {
   const allowance = investAllowance(profile);
   const chama = profile.onboarding?.chamaMemberships[0];
   return {

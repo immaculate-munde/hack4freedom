@@ -7,7 +7,10 @@ export class UssdParseError extends Error {
   }
 }
 
-export function parseUssdBody(contentType: string | null, bodyText: string): UssdInbound {
+export function parseUssdBody(
+  contentType: string | null,
+  bodyText: string,
+): UssdInbound {
   if (bodyText.length > 4096) throw new UssdParseError();
   const type = contentType?.toLowerCase() ?? "";
   try {
@@ -28,7 +31,12 @@ function fromRecord(value: unknown): UssdInbound {
   const record = value as Record<string, unknown>;
   const sessionId = stringField(record, ["sessionId", "session_id"]);
   const serviceCode = stringField(record, ["serviceCode", "service_code"]);
-  const phoneNumber = stringField(record, ["phoneNumber", "phone_number", "msisdn", "phone"]);
+  const phoneNumber = stringField(record, [
+    "phoneNumber",
+    "phone_number",
+    "msisdn",
+    "phone",
+  ]);
   const textRaw = stringField(record, ["text"]) ?? "";
   if (!sessionId || !serviceCode || !phoneNumber) throw new UssdParseError();
   return {

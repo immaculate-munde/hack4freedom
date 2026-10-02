@@ -89,7 +89,9 @@ export function migrate(db: DatabaseSync): void {
     id TEXT PRIMARY KEY,
     applied_at TEXT NOT NULL
   )`);
-  const existing = db.prepare("SELECT id FROM schema_migrations WHERE id = ?").get("001_init");
+  const existing = db
+    .prepare("SELECT id FROM schema_migrations WHERE id = ?")
+    .get("001_init");
   if (existing) return;
   db.exec("BEGIN");
   try {
@@ -252,7 +254,8 @@ class SqliteUssdStore implements UssdStore {
   }
 
   updatePurchase(purchaseId: string, patch: PurchasePatch): void {
-    const amountKes = patch.amountKes !== undefined && patch.amountKes > 0 ? patch.amountKes : null;
+    const amountKes =
+      patch.amountKes !== undefined && patch.amountKes > 0 ? patch.amountKes : null;
     this.db
       .prepare(
         `UPDATE purchase_index
@@ -295,7 +298,9 @@ class SqliteUssdStore implements UssdStore {
         .run(bucket, now);
       return 1;
     }
-    this.db.prepare("UPDATE rate_buckets SET count = count + 1 WHERE bucket = ?").run(bucket);
+    this.db
+      .prepare("UPDATE rate_buckets SET count = count + 1 WHERE bucket = ?")
+      .run(bucket);
     return asNumber(row.count) + 1;
   }
 
@@ -308,7 +313,8 @@ function accountFrom(row: unknown): UssdAccount {
   if (!isRecord(row)) throw new Error("Bad account row");
   const profileId = asString(row.profile_id);
   const source = asString(row.source);
-  if (!isProfileId(profileId) || !isPurchaseSource(source)) throw new Error("Bad account row");
+  if (!isProfileId(profileId) || !isPurchaseSource(source))
+    throw new Error("Bad account row");
   return {
     phone: asString(row.phone),
     profileId,
@@ -340,7 +346,8 @@ function purchaseFrom(row: unknown): PurchaseRecord {
   if (!isRecord(row)) throw new Error("Bad purchase row");
   const profileId = asString(row.profile_id);
   const source = asString(row.source);
-  if (!isProfileId(profileId) || !isPurchaseSource(source)) throw new Error("Bad purchase row");
+  if (!isProfileId(profileId) || !isPurchaseSource(source))
+    throw new Error("Bad purchase row");
   return {
     purchaseId: asString(row.purchase_id),
     phone: asString(row.phone),
@@ -366,6 +373,7 @@ function asString(value: unknown): string {
 
 function asNumber(value: unknown): number {
   if (typeof value === "bigint") return Number(value);
-  if (typeof value !== "number" || !Number.isFinite(value)) throw new Error("Expected number");
+  if (typeof value !== "number" || !Number.isFinite(value))
+    throw new Error("Expected number");
   return value;
 }

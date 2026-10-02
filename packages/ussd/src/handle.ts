@@ -109,7 +109,13 @@ export async function handleUssd(
       return text(200, existing.lastResponse);
     }
     if (existing?.closed) {
-      return finish(deps, existing, phone, textBody, end("This session is finished. Dial again."));
+      return finish(
+        deps,
+        existing,
+        phone,
+        textBody,
+        end("This session is finished. Dial again."),
+      );
     }
     if (!existing && textBody !== "") {
       log(deps, "expired", { sessionId: inbound.sessionId, phone: maskPhone(phone) });
@@ -140,7 +146,12 @@ export async function handleUssd(
       const redeemed = deps.store.redeemLinkCode(outcome.redeemCode, phone, deps.now());
       if (!redeemed) {
         response = end("Code not recognised or it has expired.");
-        outcome = { ...outcome, purchase: undefined, refreshStatus: false, linkProfileId: undefined };
+        outcome = {
+          ...outcome,
+          purchase: undefined,
+          refreshStatus: false,
+          linkProfileId: undefined,
+        };
       } else {
         const previous = deps.store.getAccount(phone);
         deps.store.saveAccount({
@@ -194,7 +205,10 @@ export async function handleUssd(
         if (buys > config.maxBuysPerHour) {
           response = end("Buy limit reached. Try again later.");
         } else {
-          const idempotencyKey = ussdIdempotencyKey(inbound.sessionId, outcome.purchase.amountKes);
+          const idempotencyKey = ussdIdempotencyKey(
+            inbound.sessionId,
+            outcome.purchase.amountKes,
+          );
           try {
             const purchase = await deps.startPurchase({
               amountKes: outcome.purchase.amountKes,
@@ -205,7 +219,8 @@ export async function handleUssd(
               profileId: outcome.purchase.profileId,
             });
             purchaseId = purchase.purchaseId;
-            const amountKes = purchase.amountKes > 0 ? purchase.amountKes : outcome.purchase.amountKes;
+            const amountKes =
+              purchase.amountKes > 0 ? purchase.amountKes : outcome.purchase.amountKes;
             deps.store.indexPurchase({
               purchaseId: purchase.purchaseId,
               phone,
@@ -218,7 +233,9 @@ export async function handleUssd(
               createdAt: new Date(deps.now()).toISOString(),
               createdAtMs: deps.now(),
             });
-            response = end(purchaseResultLine(amountKes, purchase.purchaseId, purchase.status));
+            response = end(
+              purchaseResultLine(amountKes, purchase.purchaseId, purchase.status),
+            );
             log(deps, "purchase", {
               phone: maskPhone(phone),
               profileId: outcome.purchase.profileId,
@@ -248,15 +265,25 @@ export async function handleUssd(
             amountSats: checked.amountSats ?? null,
             amountKes: checked.amountKes,
           });
-          const amountKes = checked.amountKes > 0 ? checked.amountKes : latest.amountKes;
-          response = end(statusLine({ purchaseId: latest.purchaseId, amountKes, status: checked.status }));
+          const amountKes =
+            checked.amountKes > 0 ? checked.amountKes : latest.amountKes;
+          response = end(
+            statusLine({
+              purchaseId: latest.purchaseId,
+              amountKes,
+              status: checked.status,
+            }),
+          );
           log(deps, "status", {
             phone: maskPhone(phone),
             status: checked.status,
           });
         } catch (error) {
           response = end("Could not check the buy. Try again shortly.");
-          log(deps, "status-failed", { phone: maskPhone(phone), message: safeError(error) });
+          log(deps, "status-failed", {
+            phone: maskPhone(phone),
+            message: safeError(error),
+          });
         }
       }
     }

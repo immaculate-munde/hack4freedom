@@ -113,7 +113,8 @@ export function createMemoryUssdStore(): UssdStore {
       purchases.set(purchaseId, {
         ...existing,
         status: patch.status,
-        amountSats: patch.amountSats === undefined ? existing.amountSats : patch.amountSats,
+        amountSats:
+          patch.amountSats === undefined ? existing.amountSats : patch.amountSats,
         amountKes:
           patch.amountKes !== undefined && patch.amountKes > 0
             ? patch.amountKes
