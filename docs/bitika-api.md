@@ -1,6 +1,6 @@
 # Bitika API (summary for PesaSense)
 
-Public docs: https://bitika.xyz/developers/docs
+Public docs: <https://bitika.xyz/developers/docs>
 
 Base URL: `https://bitikaserver.up.railway.app`
 

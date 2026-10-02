@@ -38,6 +38,9 @@ importers:
       '@pesasense/nostr':
         specifier: workspace:*
         version: link:../../packages/nostr
+      '@pesasense/ussd':
+        specifier: workspace:*
+        version: link:../../packages/ussd
       '@pesasense/wallet':
         specifier: workspace:*
         version: link:../../packages/wallet
@@ -100,6 +103,25 @@ importers:
         specifier: ^2.25.2
         version: 2.25.2(typescript@5.9.3)
     devDependencies:
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.7(@types/node@24.19.0)(jiti@2.7.0)(lightningcss@1.32.0)
+
+  packages/ussd:
+    dependencies:
+      '@pesasense/core':
+        specifier: workspace:*
+        version: link:../core
+      '@pesasense/wallet':
+        specifier: workspace:*
+        version: link:../wallet
+    devDependencies:
+      '@types/node':
+        specifier: ^24.5.2
+        version: 24.19.0
       typescript:
         specifier: ^5.9.3
         version: 5.9.3

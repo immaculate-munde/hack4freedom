@@ -1,197 +1,196 @@
+/**
+ * Learn.
+ *
+ * The knowledge screen from the designs: scam signs, three short guides, one
+ * check. No forecast chart, no savings form, and no community card.
+ * Warnings use clay, not a price-red panel.
+ */
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { SavingsLadder } from "../../components/savings-ladder";
-import { ScenarioChart } from "../../components/scenario-chart";
-import { useProfile } from "../../contexts/profile-context";
-import { demoProfiles } from "@pesasense/core";
 
-const MOCK_BUFFER_MONTHS = 1.5;
-const MOCK_CURRENT_STEP = 1;
+const GUIDES = [
+  {
+    title: "What is Bitcoin?",
+    body: "It is money you can hold yourself. There will only ever be 21 million. No bank, manager, or admin can print more, freeze it, or hold it for you.",
+  },
+  {
+    title: "Why 3 to 5 years?",
+    body: "The price moves a lot from day to day. A habit is for money you can leave alone for years. You can lose money. This is education, not a forecast.",
+  },
+  {
+    title: "How self-custody works",
+    body: "The keys stay on your phone. The recovery words are the backup. Anyone who sees those words can take the bitcoin. PesaSense never asks for them.",
+  },
+] as const;
 
+const FLAGS = [
+  "Guaranteed returns",
+  "Someone offering to trade or manage it for you",
+  "Anyone asking for your recovery words",
+] as const;
+
+type Answer = "drop" | "years" | "rent";
+
+/** Education only. The check explains the habit. It does not score the person. */
 export default function LearnPage() {
-  const router = useRouter();
-  const { profile } = useProfile();
-  
-  const activeProfile = profile || demoProfiles.amina;
-  const surplusFloor = activeProfile.surplus.monthlyKes.floor;
-  const recommendedHabit = Math.round(surplusFloor * 0.75);
-
-  const [amount, setAmount] = useState<string>(recommendedHabit.toString());
-  const [cadence, setCadence] = useState<"weekly" | "monthly">("monthly");
-  const [error, setError] = useState<string | null>(null);
-
-  const handleStartSaving = (e: React.FormEvent) => {
-    e.preventDefault();
-    const num = Number(amount);
-    
-    if (isNaN(num) || num <= 0) {
-      setError("Please enter a valid amount.");
-      return;
-    }
-    
-    if (num > surplusFloor) {
-      setError(`Amount cannot exceed your safe surplus of KES ${surplusFloor}.`);
-      return;
-    }
-    
-    setError(null);
-    router.push("/invest");
-  };
+  const [open, setOpen] = useState<number | null>(0);
+  const [answer, setAnswer] = useState<Answer | null>(null);
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-12 pb-20 pt-6">
+    <main className="mx-auto flex w-full max-w-md flex-col gap-6">
       <header>
-        <h1 className="font-serif text-3xl font-bold tracking-tight text-pine sm:text-4xl">
-          Learn at your pace.
+        <p className="text-[11px] font-semibold tracking-[0.14em] text-teal uppercase">
+          Knowledge and safety
+        </p>
+        <h1 className="mt-1 text-2xl font-bold tracking-tight text-ink">
+          Learn at your pace
         </h1>
-        <p className="mt-3 text-sm leading-6 text-ink/75">
-          Your path to building a secure, long-term financial habit.
+        <p className="mt-1 text-sm leading-6 text-slate">
+          Short essentials. No hype, and no price chart.
         </p>
       </header>
 
-      <section aria-labelledby="ladder-heading">
-        <h2 id="ladder-heading" className="mb-5 font-serif text-2xl font-semibold text-pine">
-          Your Savings Journey
-        </h2>
-        <SavingsLadder currentStep={MOCK_CURRENT_STEP} bufferMonths={MOCK_BUFFER_MONTHS} />
-      </section>
-
-      <section aria-labelledby="education-heading" className="space-y-4">
-        <h2 id="education-heading" className="mb-5 font-serif text-2xl font-semibold text-pine">
-          Bitcoin Basics
-        </h2>
-        
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="rounded-2xl border border-sand bg-paper p-5 shadow-sm">
-            <h3 className="font-semibold text-moss">What is Bitcoin?</h3>
-            <p className="mt-2 text-sm leading-6 text-ink/80">
-              It is digital money that you can hold yourself. There is no central bank, manager, or admin. It is built for long-term saving, not getting rich quick.
-            </p>
-          </div>
-          
-          <div className="rounded-2xl border border-sand bg-paper p-5 shadow-sm">
-            <h3 className="font-semibold text-moss">Volatility</h3>
-            <p className="mt-2 text-sm leading-6 text-ink/80">
-              The price goes up and down, sometimes by a lot. This is normal. You protect yourself by holding for years and only saving what you can afford to leave alone.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-sand bg-paper p-5 shadow-sm sm:col-span-2">
-            <h3 className="font-semibold text-moss">Not a trading app</h3>
-            <p className="mt-2 text-sm leading-6 text-ink/80">
-              PesaSense is here to help you save steadily over time. We do not support day trading, gambling, or borrowing against your savings.
-            </p>
+      <section className="rounded-[20px] border border-warning/20 bg-[#FBF6EF] p-4 shadow-card">
+        <div className="flex items-center gap-2">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-warning/10 text-warning">
+            <WarnIcon />
+          </span>
+          <div>
+            <h2 className="text-sm font-semibold text-ink">Scam signs</h2>
+            <p className="text-[11px] text-slate">Worth a pause</p>
           </div>
         </div>
+        <ul className="mt-3 space-y-2">
+          {FLAGS.map((flag) => (
+            <li
+              key={flag}
+              className="flex items-center gap-2 rounded-xl bg-white px-3 py-2.5 text-sm text-ink"
+            >
+              <span className="text-warning" aria-hidden="true">
+                ×
+              </span>
+              {flag}
+            </li>
+          ))}
+        </ul>
+        <p className="mt-3 text-[13px] leading-5 text-slate">
+          Real Bitcoin has no manager. You hold it yourself.
+        </p>
       </section>
 
       <section>
-        <div className="rounded-2xl border-2 border-red-800/20 bg-red-50 p-5 shadow-sm">
-          <div className="flex items-start gap-4">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              className="mt-0.5 h-6 w-6 shrink-0 text-red-700"
-              aria-hidden="true"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-            <div>
-              <h3 className="font-bold text-red-900">Security Warning</h3>
-              <p className="mt-1 text-sm leading-6 text-red-800/90">
-                Never share your 12-word seed phrase with anyone. Anyone who has those words can steal your money. PesaSense will never ask for them.
-              </p>
-            </div>
-          </div>
+        <div className="mb-2 flex items-baseline justify-between">
+          <h2 className="text-base font-semibold text-ink">Plain language guides</h2>
+          <p className="text-xs font-semibold text-slate">3 topics</p>
+        </div>
+        <div className="space-y-2">
+          {GUIDES.map((guide, index) => {
+            const expanded = open === index;
+            return (
+              <article key={guide.title} className="rounded-[18px] bg-white shadow-card">
+                <button
+                  type="button"
+                  aria-expanded={expanded}
+                  onClick={() => setOpen(expanded ? null : index)}
+                  className="btn flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+                >
+                  <span className="text-sm font-semibold text-ink">{guide.title}</span>
+                  <span className="text-slate" aria-hidden="true">
+                    {expanded ? "–" : "+"}
+                  </span>
+                </button>
+                {expanded ? (
+                  <p className="px-4 pb-4 text-sm leading-6 text-slate">{guide.body}</p>
+                ) : null}
+              </article>
+            );
+          })}
         </div>
       </section>
 
-      <section aria-labelledby="forecast-heading">
-        <h2 id="forecast-heading" className="mb-5 font-serif text-2xl font-semibold text-pine">
-          What could happen to your savings?
-        </h2>
-        <ScenarioChart />
-      </section>
-
-      <section aria-labelledby="setup-heading">
-        <div className="rounded-3xl border border-sand bg-white/70 p-6 shadow-sm sm:p-8">
-          <h2 id="setup-heading" className="font-serif text-2xl font-semibold text-pine">
-            Start Saving
-          </h2>
-          <p className="mt-2 text-sm text-ink/75">
-            Set up a steady habit based on your available surplus.
+      <section className="rounded-[20px] bg-white p-4 shadow-card">
+        <div className="flex items-baseline justify-between">
+          <p className="text-[11px] font-semibold tracking-[0.14em] text-teal uppercase">
+            Quick check
           </p>
-
-          <form onSubmit={handleStartSaving} className="mt-8 space-y-6">
-            <div>
-              <label htmlFor="amount" className="block text-sm font-semibold text-ink">
-                Amount (KES)
-              </label>
-              <div className="mt-2 flex items-center gap-3">
-                <span className="text-sm font-bold text-ink/50">KES</span>
-                <input
-                  id="amount"
-                  type="number"
-                  inputMode="numeric"
-                  className="field max-w-[200px]"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder={`e.g. ${recommendedHabit}`}
-                  max={surplusFloor}
-                />
-              </div>
-              <p className="mt-2 text-xs text-ink/60">
-                You can safely save up to <span className="font-semibold text-ink/80">KES {surplusFloor}</span>.
-              </p>
-            </div>
-
-            <div>
-              <span className="block text-sm font-semibold text-ink">Frequency</span>
-              <div className="mt-3 flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setCadence("weekly")}
-                  className={`flex-1 rounded-xl border py-3 text-sm font-semibold transition-colors ${
-                    cadence === "weekly"
-                      ? "border-pine bg-pine text-paper"
-                      : "border-sand bg-paper text-ink hover:bg-sand/30"
-                  }`}
-                >
-                  Weekly
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCadence("monthly")}
-                  className={`flex-1 rounded-xl border py-3 text-sm font-semibold transition-colors ${
-                    cadence === "monthly"
-                      ? "border-pine bg-pine text-paper"
-                      : "border-sand bg-paper text-ink hover:bg-sand/30"
-                  }`}
-                >
-                  Monthly
-                </button>
-              </div>
-            </div>
-
-            {error && (
-              <p className="text-sm font-semibold text-red-700" role="alert">
-                {error}
-              </p>
-            )}
-
-            <div className="pt-2">
-              <button type="submit" className="btn btn-primary w-full py-4 text-base shadow-sm">
-                Start Saving
-              </button>
-            </div>
-          </form>
+          <p className="text-xs text-slate">1 question</p>
         </div>
+        <h2 className="mt-2 text-base font-semibold text-ink">
+          When is this Bitcoin pot for?
+        </h2>
+        <div className="mt-3 space-y-2">
+          <Choice
+            pressed={answer === "drop"}
+            onClick={() => setAnswer("drop")}
+            label="Whenever the price drops"
+          />
+          <Choice
+            pressed={answer === "years"}
+            onClick={() => setAnswer("years")}
+            label="After 3 or more years, for a plan you already have"
+          />
+          <Choice
+            pressed={answer === "rent"}
+            onClick={() => setAnswer("rent")}
+            label="To pay next week's rent"
+          />
+        </div>
+        {answer ? (
+          <p className="mt-3 text-sm leading-6 text-slate">{noteFor(answer)}</p>
+        ) : null}
       </section>
+
+      <p className="text-xs leading-5 text-slate">
+        This is education, not financial advice. Bitcoin can lose value.
+      </p>
     </main>
+  );
+}
+
+function noteFor(answer: Answer): string {
+  if (answer === "years") {
+    return "That matches a patient habit. You still approve each purchase, and the value can fall.";
+  }
+  if (answer === "rent") {
+    return "Money for next week belongs in the cushion. Bitcoin is for money you can leave alone.";
+  }
+  return "Buying because the price fell is trading. This app does not do that.";
+}
+
+function Choice({
+  label,
+  pressed,
+  onClick,
+}: {
+  label: string;
+  pressed: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={pressed}
+      onClick={onClick}
+      className={`btn flex min-h-12 w-full items-center justify-between rounded-2xl border px-4 py-3 text-left text-sm ${
+        pressed ? "border-teal bg-mint text-ink" : "border-line bg-white text-ink"
+      }`}
+    >
+      {label}
+      <span
+        aria-hidden="true"
+        className={`h-4 w-4 rounded-full border ${
+          pressed ? "border-teal bg-teal" : "border-line"
+        }`}
+      />
+    </button>
+  );
+}
+
+function WarnIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 fill-none stroke-current" strokeWidth="1.75">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v5M12 17h.01M10.3 4.8 2.8 18a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3L13.7 4.8a2 2 0 0 0-3.4 0z" />
+    </svg>
   );
 }

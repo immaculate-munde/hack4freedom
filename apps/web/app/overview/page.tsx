@@ -5,11 +5,32 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { PAST_PERFORMANCE_DISCLAIMER, demoProfiles } from "@pesasense/core";
 import { ProfileSync } from "../../components/profile-sync";
+import { Sensi } from "../../components/sensi";
+import { UssdAccess } from "../../components/ussd-access";
 import { WalletActivity } from "../../components/wallet-activity";
 import { formatKes, habitPercentOfFloor } from "../../lib/format";
 import { ImportTrigger } from "../../components/import-trigger";
 import { useProfile } from "../../contexts/profile-context";
 import { useSearchParams } from "next/navigation";
+
+const TRUST_ICONS: Record<string, string> = {
+  key: "🔑",
+  chart: "📊",
+  phone: "📱",
+};
+
+function TrustChip({ label, icon }: { label: string; icon: string }) {
+  return (
+    <div className="flex flex-col items-center gap-1 px-1">
+      <span className="text-2xl" role="img" aria-label={icon}>
+        {TRUST_ICONS[icon] ?? "✅"}
+      </span>
+      <span className="text-[10px] font-semibold leading-tight text-slate">
+        {label}
+      </span>
+    </div>
+  );
+}
 
 function OverviewContent() {
   const searchParams = useSearchParams();
@@ -23,10 +44,10 @@ function OverviewContent() {
   const name = demoId === "brian" ? "Brian" : "Amina";
 
   const { floor, typical, ceiling } = profile.surplus.monthlyKes;
-  
+
   const habit = Math.round(floor * 0.75);
   const share = habitPercentOfFloor(habit, floor);
-  
+
   const span = Math.max(ceiling - floor, 1);
   const typicalPercent = Math.round(((typical - floor) / span) * 100);
   const query = demoId === "brian" ? "?profile=brian" : "";
@@ -37,35 +58,46 @@ function OverviewContent() {
   );
 
   return (
-    <main className="mx-auto flex w-full max-w-lg flex-col gap-4">
-      <section className="card flex items-start gap-3">
-        <p className="text-sm leading-6 text-ink">
+    <main className="mx-auto flex w-full max-w-md flex-col gap-4">
+      <section className="flex items-center gap-3 rounded-[20px] bg-white px-4 py-3 shadow-card">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-mint">
+          <Sensi className="h-9 w-9" />
+        </span>
+        <p className="text-sm leading-5 text-ink">
+          <span className="font-semibold">Habari {name}.</span>{" "}
           {profile.surplus.bufferFirst
-            ? `Habari ${name}. The buffer comes first. This history is not ready for a Bitcoin habit yet.`
-            : `Habari ${name}. Everything essential is covered this month.`}
+            ? "The buffer comes first. This history is not ready for a Bitcoin habit yet."
+            : "Everything essential is covered this month."}
         </p>
       </section>
 
-      <section className="card">
+      <section className="rounded-[20px] bg-white p-5 shadow-card">
         <div className="flex items-center justify-between gap-3">
-          <p className="text-xs font-semibold tracking-wide text-slate uppercase">
+          <p className="text-[11px] font-semibold tracking-[0.12em] text-slate uppercase">
             Safe monthly surplus
           </p>
           {isDemo ? <DemoTag /> : null}
         </div>
-        <p className="mt-3 text-3xl font-bold tabular-nums text-ink">
+        <p className="mt-3 text-[32px] leading-10 font-bold tracking-tight text-ink tabular-nums">
           {formatKes(floor)} – {formatKes(ceiling)}
         </p>
-        <p className="mt-2 text-sm text-slate">
-          Calm surplus after bills and daily life. Typical {formatKes(typical)}.
+        <p className="mt-1 text-sm text-slate">
+          Calm surplus after bills, chamas, and daily life.
         </p>
-        <div className="mt-4" aria-hidden="true">
-          <div className="relative h-2 rounded-full bg-pearl">
-            <div className="absolute inset-y-0 left-0 right-0 rounded-full bg-teal/70" />
+        <div className="mt-5" aria-hidden="true">
+          <div className="relative h-1.5 rounded-full bg-pearl">
+            <div className="absolute inset-y-0 right-0 left-[8%] rounded-full bg-teal/70" />
             <div
-              className="absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-teal"
+              className="absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-teal ring-4 ring-white"
               style={{ left: `${typicalPercent}%` }}
             />
+          </div>
+          <div className="mt-3 flex items-center justify-between gap-2 text-[11px] font-semibold text-slate">
+            <span>Conservative</span>
+            <span className="rounded-full bg-mint px-2 py-1 text-teal">
+              Typical {formatKes(typical)}
+            </span>
+            <span>Relaxed</span>
           </div>
         </div>
         <p className="sr-only">
@@ -75,9 +107,11 @@ function OverviewContent() {
       </section>
 
       {profile.surplus.bufferFirst ? (
-        <section className="card">
-          <p className="text-sm font-semibold text-ink">Safety cushion</p>
-          <p className="mt-2 text-sm leading-6 text-slate">
+        <section className="rounded-[20px] bg-white p-5 shadow-card">
+          <p className="text-[11px] font-semibold tracking-[0.12em] text-slate uppercase">
+            Safety cushion
+          </p>
+          <p className="mt-2 text-sm leading-6 text-ink">
             {cushionMonths} months of expenses covered. The aim is 3 months.
           </p>
           <div className="mt-3 h-2 rounded-full bg-pearl" aria-hidden="true">
@@ -91,57 +125,37 @@ function OverviewContent() {
           </Link>
         </section>
       ) : (
-        <section className="card">
-          <p className="text-xs font-semibold tracking-wide text-slate uppercase">
+        <section className="rounded-[20px] bg-white p-5 shadow-card">
+          <p className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.12em] text-teal uppercase">
+            <span className="h-1.5 w-1.5 rounded-full bg-teal" aria-hidden="true" />
             Your habit
           </p>
-          <p className="mt-2 text-2xl font-bold tabular-nums text-ink">
-            {formatKes(habit)}{" "}
-            <span className="text-base font-semibold text-slate">/ month</span>
-          </p>
-          <p className="mt-1 text-sm text-slate">
-            <span className="rounded-full border border-line px-2 py-0.5 text-[11px] font-semibold">
+          <div className="mt-2 flex items-end justify-between gap-3">
+            <p className="text-[28px] leading-9 font-bold text-ink tabular-nums">
+              {formatKes(habit)}{" "}
+              <span className="text-base font-semibold text-slate">/ month</span>
+            </p>
+            <Link href={`/habit${query}`} className="btn btn-secondary px-4 py-2">
+              Adjust
+            </Link>
+          </div>
+          <p className="mt-2 text-sm text-slate">
+            <span className="mr-1 rounded-full border border-line px-2 py-0.5 text-[11px] font-semibold">
               Demo
-            </span>{" "}
+            </span>
             Sats appear when there is a quote. {share}% of the safe floor.
           </p>
-          <Link href={`/habit${query}`} className="btn btn-secondary mt-4 inline-flex">
-            Adjust
-          </Link>
         </section>
       )}
 
-      <section className="grid grid-cols-3 gap-2 rounded-card border border-line bg-pearl px-2 py-3 text-center text-[11px] font-semibold text-slate">
-        <p>Never hold keys</p>
-        <p>Never push trading</p>
-        <p>Never leaves phone</p>
+      <section className="grid grid-cols-3 gap-1 rounded-[20px] bg-pearl px-2 py-4 text-center">
+        <TrustChip label="Never hold keys" icon="key" />
+        <TrustChip label="Never push trading" icon="chart" />
+        <TrustChip label="Never leaves phone" icon="phone" />
       </section>
 
-      <nav className="grid grid-cols-2 gap-3 text-sm font-semibold" aria-label="More">
-        <Link className="card" href={`/surplus${query}`}>
-          Surplus
-        </Link>
-        <Link className="card" href={`/habit${query}`}>
-          Habit
-        </Link>
-        <Link className="card" href="/learn">
-          Learn
-        </Link>
-        <Link
-          className="card"
-          href={demoId === "brian" ? "/invest?profile=brian" : "/invest"}
-        >
-          Invest
-        </Link>
-        <Link className="card" href="/wallet">
-          Wallet
-        </Link>
-        <Link className="card" href="/chama">
-          Chama
-        </Link>
-      </nav>
-
       {isDemo ? <WalletActivity profileId={demoId} /> : null}
+      {isDemo ? <UssdAccess profileId={demoId} /> : null}
       {isDemo ? <ProfileSync profile={profile} profileId={demoId} /> : null}
 
       {isDemo ? (
@@ -172,7 +186,7 @@ function OverviewContent() {
 
 function DemoTag() {
   return (
-    <span className="rounded-full border border-line bg-pearl px-2.5 py-1 text-[11px] font-semibold text-slate">
+    <span className="rounded-full bg-pearl px-2.5 py-1 text-[11px] font-semibold text-slate">
       Demo data
     </span>
   );
@@ -180,15 +194,7 @@ function DemoTag() {
 
 export default function OverviewPage() {
   return (
-    <Suspense
-      fallback={
-        <main className="mx-auto flex w-full max-w-lg flex-col gap-4">
-          <div className="card animate-pulse h-20 bg-pearl" />
-          <div className="card animate-pulse h-36 bg-pearl" />
-          <div className="card animate-pulse h-24 bg-pearl" />
-        </main>
-      }
-    >
+    <Suspense>
       <OverviewContent />
     </Suspense>
   );

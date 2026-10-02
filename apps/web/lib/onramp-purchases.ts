@@ -26,7 +26,11 @@ export function recallPurchase(purchaseId: string): OnRampPurchase | undefined {
 
 export function rememberPurchase(purchase: OnRampPurchase): void {
   const existing = purchases.get(purchase.purchaseId);
-  if (existing && isTerminalPurchase(existing.status) && !isTerminalPurchase(purchase.status)) {
+  if (
+    existing &&
+    isTerminalPurchase(existing.status) &&
+    !isTerminalPurchase(purchase.status)
+  ) {
     return;
   }
   purchases.set(purchase.purchaseId, purchase);
@@ -37,4 +41,9 @@ export function claimWebhookEvent(eventId: string): boolean {
   if (seenEventIds.has(eventId)) return false;
   seenEventIds.add(eventId);
   return true;
+}
+
+/** Let a failed follow-up write be retried by the provider. */
+export function releaseWebhookEvent(eventId: string): void {
+  seenEventIds.delete(eventId);
 }

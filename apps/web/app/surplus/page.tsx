@@ -42,42 +42,52 @@ export default async function SurplusPage({
   const query = demoId === "brian" ? "?profile=brian" : "";
 
   return (
-    <main className="mx-auto flex w-full max-w-lg flex-col gap-4">
+    <main className="mx-auto flex w-full max-w-md flex-col gap-4">
       <div className="flex items-end justify-between gap-3">
-        <h1 className="text-2xl font-bold text-ink">M-Pesa analysis</h1>
-        <p className="text-xs font-semibold text-teal">
-          {profile.window.monthsCovered} mo.
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-ink">M-Pesa analysis</h1>
+          <p className="mt-1 text-sm text-slate">Read on this phone.</p>
+        </div>
+        <p className="rounded-full bg-mint px-3 py-1 text-xs font-semibold text-teal">
+          {profile.window.monthsCovered} mo. actuals
         </p>
       </div>
       {isDemo ? (
         <p className="text-xs font-semibold text-slate">
-          <span className="rounded-full border border-line px-2 py-0.5">Demo data</span>
+          <span className="rounded-full bg-pearl px-2.5 py-1">Demo data</span>
         </p>
       ) : null}
-      <p className="rounded-card border border-line bg-pearl px-4 py-3 text-sm text-ink">
-        Read on your phone. Your statements never leave it.
+      <p className="flex items-center gap-2 rounded-[18px] bg-mint px-4 py-3 text-sm text-ink">
+        <span className="text-teal" aria-hidden="true">
+          ●
+        </span>
+        Your statements never leave your phone. Backups are encrypted with your key.
       </p>
 
-      <section className="card">
-        <p className="text-xs font-semibold tracking-wide text-slate uppercase">
+      <section className="rounded-[20px] bg-white p-5 shadow-card">
+        <p className="text-[11px] font-semibold tracking-[0.12em] text-slate uppercase">
           Stress-tested cushion
         </p>
-        <p className="mt-2 text-xl font-bold text-ink">Safe surplus range</p>
+        <p className="mt-1 text-xl font-bold text-ink">Safe surplus range</p>
         <p className="mt-1 text-sm text-slate">Typical monthly {formatKes(typical)}</p>
-        <dl className="mt-4 grid grid-cols-3 gap-2 text-sm">
-          <div>
-            <dt className="text-xs text-slate">Floor</dt>
-            <dd className="font-semibold tabular-nums">{formatKes(floor)}</dd>
+        <dl className="mt-4 grid grid-cols-3 gap-2">
+          <div className="rounded-2xl bg-pearl px-2 py-3 text-center">
+            <dt className="text-[11px] font-semibold text-slate">Floor</dt>
+            <dd className="mt-1 text-sm font-bold text-ink tabular-nums">
+              {formatKes(floor)}
+            </dd>
           </div>
-          <div>
-            <dt className="text-xs text-slate">Typical</dt>
-            <dd className="font-semibold tabular-nums text-teal">
+          <div className="rounded-2xl bg-mint px-2 py-3 text-center">
+            <dt className="text-[11px] font-semibold text-teal">Typical</dt>
+            <dd className="mt-1 text-sm font-bold text-teal tabular-nums">
               {formatKes(typical)}
             </dd>
           </div>
-          <div>
-            <dt className="text-xs text-slate">High</dt>
-            <dd className="font-semibold tabular-nums">{formatKes(ceiling)}</dd>
+          <div className="rounded-2xl bg-pearl px-2 py-3 text-center">
+            <dt className="text-[11px] font-semibold text-slate">High</dt>
+            <dd className="mt-1 text-sm font-bold text-ink tabular-nums">
+              {formatKes(ceiling)}
+            </dd>
           </div>
         </dl>
         {habit ? (
@@ -92,20 +102,25 @@ export default async function SurplusPage({
 
       <section>
         <div className="mb-2 flex items-baseline justify-between">
-          <h2 className="text-lg font-semibold">Monthly commitments</h2>
-          <p className="text-sm font-semibold tabular-nums">{formatKes(total)}</p>
+          <h2 className="text-base font-semibold text-ink">Monthly commitments</h2>
+          <p className="text-sm font-bold text-ink tabular-nums">{formatKes(total)}</p>
         </div>
-        <ul className="space-y-2">
+        <ul className="overflow-hidden rounded-[20px] bg-white shadow-card">
           {rows.map((row) => (
             <li
               key={`${row.label}-${row.detail}`}
-              className="card flex items-center justify-between gap-3"
+              className="flex items-center justify-between gap-3 border-t border-line px-4 py-3 first:border-t-0"
             >
-              <div>
-                <p className="text-sm font-semibold">{row.label}</p>
-                <p className="text-xs text-slate">{row.detail}</p>
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-mint text-xs font-semibold text-teal">
+                  {row.label.slice(0, 1)}
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-ink">{row.label}</p>
+                  <p className="text-xs text-slate">{row.detail}</p>
+                </div>
               </div>
-              <p className="text-sm font-semibold tabular-nums">
+              <p className="shrink-0 text-sm font-semibold text-ink tabular-nums">
                 {formatKes(row.amount)}
               </p>
             </li>

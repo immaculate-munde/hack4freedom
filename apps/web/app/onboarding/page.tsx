@@ -10,6 +10,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { OnboardingAnswers, UserGoal } from "@pesasense/core";
+import { Sensi } from "../../components/sensi";
 
 const DRAFT_KEY = "pesasense.onboarding";
 
@@ -173,29 +174,42 @@ export default function OnboardingPage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-lg flex-col">
-      <p className="text-xs font-semibold tracking-widest text-moss uppercase">
-        Step {step + 1} of 3
-      </p>
-      <h1 className="mt-2 font-serif text-3xl text-pine">A few questions</h1>
+    <main className="mx-auto flex w-full max-w-md flex-col">
+      <div className="flex items-center justify-between">
+        <p className="text-[11px] font-semibold tracking-[0.14em] text-teal uppercase">
+          Step {step + 1} of 3
+        </p>
+        <button type="button" onClick={skip} className="btn text-sm font-semibold text-slate">
+          Skip for now
+        </button>
+      </div>
+
+      <div className="mt-5 flex items-start gap-3">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white shadow-card">
+          <Sensi className="h-11 w-11" />
+        </span>
+        <div className="rounded-[18px] bg-white px-4 py-3 shadow-card">
+          <p className="text-[11px] font-semibold tracking-wide text-teal uppercase">
+            Sensi
+          </p>
+          <p className="mt-1 text-sm leading-5 text-ink">
+            Three quick questions, so the picture stays honest. One at a time.
+          </p>
+        </div>
+      </div>
 
       {step === 0 ? <DebtStep draft={draft} patch={patch} /> : null}
       {step === 1 ? <ChamaStep draft={draft} patch={patch} /> : null}
       {step === 2 ? <GoalStep draft={draft} patch={patch} /> : null}
 
-      <div className="mt-8 flex flex-col gap-3">
-        <button type="button" onClick={next} className="btn btn-primary w-full py-4">
+      <div className="mt-8 flex flex-col gap-2">
+        <button type="button" onClick={next} className="btn btn-primary w-full text-base">
           {step === 2 ? "Continue to M-Pesa history" : "Next"}
         </button>
-        <button
-          type="button"
-          onClick={skip}
-          className="btn btn-ghost w-full py-2 text-sm"
-        >
-          Skip for now
-        </button>
       </div>
-      <p className="mt-6 text-center text-xs text-ink/55">Stored on your phone only.</p>
+      <p className="mt-6 text-center text-xs leading-5 text-slate">
+        Stored on this phone for this visit. Your statements never leave your phone.
+      </p>
     </main>
   );
 }
@@ -215,8 +229,8 @@ function YesNo({
         onClick={() => onChange(true)}
         className={`btn min-h-12 rounded-2xl border px-4 py-3 text-sm font-semibold ${
           value === true
-            ? "border-pine bg-pine text-paper"
-            : "border-sand bg-white/70 text-ink"
+            ? "border-teal bg-teal text-on-primary"
+            : "border-line bg-white text-ink"
         }`}
       >
         Yes
@@ -227,8 +241,8 @@ function YesNo({
         onClick={() => onChange(false)}
         className={`btn min-h-12 rounded-2xl border px-4 py-3 text-sm font-semibold ${
           value === false
-            ? "border-pine bg-pine text-paper"
-            : "border-sand bg-white/70 text-ink"
+            ? "border-teal bg-teal text-on-primary"
+            : "border-line bg-white text-ink"
         }`}
       >
         No
@@ -245,15 +259,18 @@ function DebtStep({
   patch: (next: Partial<Draft>) => void;
 }) {
   return (
-    <section className="card mt-6">
-      <h2 className="text-lg font-semibold text-ink">Any loans or debts?</h2>
-      <p className="mt-1 text-sm leading-6 text-ink/70">
-        Statements miss most of these. Your answer is used first.
+    <section className="mt-6 rounded-[20px] bg-white p-5 shadow-card">
+      <p className="text-[11px] font-semibold tracking-[0.12em] text-slate uppercase">
+        Question 01
+      </p>
+      <h2 className="mt-1 text-lg font-semibold text-ink">Any loans or debts?</h2>
+      <p className="mt-1 text-sm leading-6 text-slate">
+        No judgment. Statements miss most of these, so your answer is used first.
       </p>
       <YesNo value={draft.hasDebt} onChange={(hasDebt) => patch({ hasDebt })} />
       {draft.hasDebt ? (
         <div className="mt-4 space-y-3">
-          <label className="block text-sm text-ink/80">
+          <label className="block text-sm text-ink">
             Notes
             <input
               className="field mt-1"
@@ -262,7 +279,7 @@ function DebtStep({
               onChange={(event) => patch({ debtNotes: event.target.value })}
             />
           </label>
-          <label className="block text-sm text-ink/80">
+          <label className="block text-sm text-ink">
             Balance, if you know it
             <span className="mt-1 flex items-center gap-2">
               <span className="text-xs font-semibold text-ink/50">KES</span>
@@ -289,15 +306,18 @@ function ChamaStep({
   patch: (next: Partial<Draft>) => void;
 }) {
   return (
-    <section className="card mt-6">
-      <h2 className="text-lg font-semibold text-ink">Are you in a chama?</h2>
-      <p className="mt-1 text-sm leading-6 text-ink/70">
+    <section className="mt-6 rounded-[20px] bg-white p-5 shadow-card">
+      <p className="text-[11px] font-semibold tracking-[0.12em] text-slate uppercase">
+        Question 02
+      </p>
+      <h2 className="mt-1 text-lg font-semibold text-ink">Are you in a chama?</h2>
+      <p className="mt-1 text-sm leading-6 text-slate">
         This records the contribution. It never holds the money.
       </p>
       <YesNo value={draft.inChama} onChange={(inChama) => patch({ inChama })} />
       {draft.inChama ? (
         <div className="mt-4 space-y-3">
-          <label className="block text-sm text-ink/80">
+          <label className="block text-sm text-ink">
             Name
             <input
               className="field mt-1"
@@ -306,7 +326,7 @@ function ChamaStep({
               onChange={(event) => patch({ chamaName: event.target.value })}
             />
           </label>
-          <label className="block text-sm text-ink/80">
+          <label className="block text-sm text-ink">
             Contribution
             <span className="mt-1 flex items-center gap-2">
               <span className="text-xs font-semibold text-ink/50">KES</span>
@@ -326,8 +346,8 @@ function ChamaStep({
               onClick={() => patch({ chamaCadence: "monthly" })}
               className={`btn min-h-12 rounded-2xl border text-sm font-semibold ${
                 draft.chamaCadence === "monthly"
-                  ? "border-pine bg-pine text-paper"
-                  : "border-sand text-ink"
+                  ? "border-teal bg-teal text-on-primary"
+                  : "border-line bg-white text-ink"
               }`}
             >
               Monthly
@@ -338,8 +358,8 @@ function ChamaStep({
               onClick={() => patch({ chamaCadence: "weekly" })}
               className={`btn min-h-12 rounded-2xl border text-sm font-semibold ${
                 draft.chamaCadence === "weekly"
-                  ? "border-pine bg-pine text-paper"
-                  : "border-sand text-ink"
+                  ? "border-teal bg-teal text-on-primary"
+                  : "border-line bg-white text-ink"
               }`}
             >
               Weekly
@@ -359,8 +379,13 @@ function GoalStep({
   patch: (next: Partial<Draft>) => void;
 }) {
   return (
-    <section className="card mt-6">
-      <h2 className="text-lg font-semibold text-ink">What is the money for?</h2>
+    <section className="mt-6 rounded-[20px] bg-white p-5 shadow-card">
+      <p className="text-[11px] font-semibold tracking-[0.12em] text-slate uppercase">
+        Question 03
+      </p>
+      <h2 className="mt-1 text-lg font-semibold text-ink">
+        What would you like your money to do?
+      </h2>
       <div className="mt-4 flex flex-col gap-2">
         {GOALS.map((goal) => (
           <button
@@ -370,15 +395,15 @@ function GoalStep({
             onClick={() => patch({ goalId: goal.id })}
             className={`btn min-h-12 rounded-2xl border px-4 py-3 text-left text-sm font-semibold ${
               draft.goalId === goal.id
-                ? "border-pine bg-pine text-paper"
-                : "border-sand bg-white/70 text-ink"
+                ? "border-teal bg-mint text-ink"
+                : "border-line bg-white text-ink"
             }`}
           >
             {goal.label}
           </button>
         ))}
       </div>
-      <label className="mt-4 block text-sm text-ink/80">
+      <label className="mt-4 block text-sm text-ink">
         Anything else
         <input
           className="field mt-1"

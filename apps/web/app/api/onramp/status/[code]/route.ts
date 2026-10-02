@@ -3,8 +3,8 @@ import { getBitikaRamp } from "../../../../../lib/bitika";
 import {
   isTerminalPurchase,
   recallPurchase,
-  rememberPurchase,
 } from "../../../../../lib/onramp-purchases";
+import { syncSharedStatus } from "../../../../../lib/shared-purchases";
 
 export async function GET(
   _req: Request,
@@ -21,7 +21,11 @@ export async function GET(
     }
     const ramp = getBitikaRamp();
     const purchase = await ramp.checkStatus(code);
-    rememberPurchase(purchase);
+    try {
+      syncSharedStatus(purchase);
+    } catch {
+      return Response.json(purchase);
+    }
     return Response.json(purchase);
   } catch (e) {
     return Response.json(
