@@ -6,6 +6,7 @@ import { demoProfiles } from "@pesasense/core";
 import { useProfile } from "../../contexts/profile-context";
 import { SavingsLadder } from "../../components/savings-ladder";
 import { ScenarioChart } from "../../components/scenario-chart";
+import { SensiAvatar } from "../../components/sensi-avatar";
 
 const GUIDES = [
   {
@@ -65,10 +66,11 @@ export default function LearnPage() {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6">
       <header>
-        <p className="text-[11px] font-semibold tracking-[0.14em] text-teal uppercase">
+        <p className="text-[11px] font-semibold tracking-[0.14em] text-brass uppercase">
           Knowledge and safety
         </p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight text-ink">
+        <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold tracking-tight text-ink">
+          <SensiAvatar size="sm" mood="happy" />
           Learn at your pace
         </h1>
         <p className="mt-1 text-sm leading-6 text-slate">
@@ -77,13 +79,13 @@ export default function LearnPage() {
       </header>
 
       <ScrollReveal>
-        <section className="rounded-[20px] border border-warning/20 bg-[#FBF6EF] p-4 shadow-card">
+        <section className="rounded-[20px] border border-coral/35 bg-coral/10 p-4 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
         <div className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-warning/10 text-warning">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-coral/20 text-coral">
             <WarnIcon />
           </span>
           <div>
-            <h2 className="text-sm font-semibold text-ink">Scam signs</h2>
+            <h2 className="text-sm font-semibold text-coral">Scam signs</h2>
             <p className="text-[11px] text-slate">Worth a pause</p>
           </div>
         </div>
@@ -91,9 +93,9 @@ export default function LearnPage() {
           {FLAGS.map((flag) => (
             <li
               key={flag}
-              className="flex items-center gap-2 rounded-xl bg-white px-3 py-2.5 text-sm text-ink"
+              className="flex items-center gap-2 rounded-xl bg-paper px-3 py-2.5 text-sm text-ink"
             >
-              <span className="text-warning" aria-hidden="true">×</span>
+              <span className="text-coral" aria-hidden="true">×</span>
               {flag}
             </li>
           ))}
@@ -107,14 +109,17 @@ export default function LearnPage() {
       <ScrollReveal>
         <section>
         <div className="mb-2 flex items-baseline justify-between">
-          <h2 className="text-base font-semibold text-ink">Plain language guides</h2>
+          <div>
+            <p className="text-[11px] font-semibold tracking-[0.14em] text-moss uppercase">Start here</p>
+            <h2 className="mt-1 text-base font-semibold text-ink">Plain language guides</h2>
+          </div>
           <p className="text-xs font-semibold text-slate">3 topics</p>
         </div>
         <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3">
           {GUIDES.map((guide, index) => {
             const expanded = open === index;
             return (
-              <article key={guide.title} className="rounded-[18px] bg-white shadow-card">
+              <article key={guide.title} className="rounded-[18px] border border-mint/60 bg-mint/15 shadow-card">
                 <button
                   type="button"
                   aria-expanded={expanded}
@@ -138,6 +143,7 @@ export default function LearnPage() {
 
       <ScrollReveal>
         <section aria-labelledby="ladder-heading">
+        <p className="text-[11px] font-semibold tracking-[0.14em] text-sky uppercase">A steadier path</p>
         <h2
           id="ladder-heading"
           className="mb-5 text-base font-semibold text-ink"
@@ -150,6 +156,7 @@ export default function LearnPage() {
 
       <ScrollReveal>
       <section aria-labelledby="scenario-heading">
+        <p className="text-[11px] font-semibold tracking-[0.14em] text-brass uppercase">See the range</p>
         <h2
           id="scenario-heading"
           className="mb-4 text-base font-semibold text-ink"
@@ -161,7 +168,8 @@ export default function LearnPage() {
       </ScrollReveal>
 
       <ScrollReveal>
-      <section aria-labelledby="start-saving-heading" className="rounded-[20px] bg-white p-5 shadow-card">
+      <section aria-labelledby="start-saving-heading" className="rounded-[20px] border border-sand/70 bg-gradient-to-br from-paper to-pearl p-5 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+        <p className="text-[11px] font-semibold tracking-[0.14em] text-terracotta uppercase">Make it a habit</p>
         <h2
           id="start-saving-heading"
           className="text-base font-semibold text-ink"
@@ -203,7 +211,7 @@ export default function LearnPage() {
                 onClick={() => setCadence("weekly")}
                 className={`flex-1 rounded-xl border py-3 text-sm font-semibold transition-colors ${
                   cadence === "weekly"
-                    ? "border-pine bg-pine text-on-primary"
+                    ? "border-brass bg-brass text-paper"
                     : "border-sand bg-paper text-ink hover:bg-sand/30"
                 }`}
               >
@@ -214,7 +222,7 @@ export default function LearnPage() {
                 onClick={() => setCadence("monthly")}
                 className={`flex-1 rounded-xl border py-3 text-sm font-semibold transition-colors ${
                   cadence === "monthly"
-                    ? "border-pine bg-pine text-on-primary"
+                    ? "border-brass bg-brass text-paper"
                     : "border-sand bg-paper text-ink hover:bg-sand/30"
                 }`}
               >
@@ -224,7 +232,7 @@ export default function LearnPage() {
           </div>
 
           {error && (
-            <p className="text-sm font-semibold text-warning" role="alert">
+            <p className="rounded-xl border border-coral/35 bg-coral/10 px-3 py-2 text-sm font-semibold text-coral" role="alert">
               {error}
             </p>
           )}
@@ -240,7 +248,7 @@ export default function LearnPage() {
       </ScrollReveal>
 
       <ScrollReveal>
-      <section className="rounded-[20px] bg-white p-4 shadow-card">
+      <section className="rounded-[20px] border border-sky/35 bg-sky/10 p-4 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
         <div className="flex items-baseline justify-between">
           <p className="text-[11px] font-semibold tracking-[0.14em] text-teal uppercase">
             Quick check
@@ -305,7 +313,7 @@ function Choice({
       aria-pressed={pressed}
       onClick={onClick}
       className={`btn flex min-h-12 w-full items-center justify-between rounded-2xl border px-4 py-3 text-left text-sm ${
-        pressed ? "border-teal bg-mint text-ink" : "border-line bg-white text-ink"
+        pressed ? "border-moss bg-mint text-pine" : "border-line bg-paper text-ink"
       }`}
     >
       {label}

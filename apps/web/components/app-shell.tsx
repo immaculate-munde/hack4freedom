@@ -1,17 +1,11 @@
-/**
- * App shell.
- *
- * Header matches Serene Shilling: mark, wordmark, on-phone line, EN / SW, profile.
- * The designed tabs are Overview, Surplus, Habit, and Learn.
- * Invest, Wallet, and Chama stay in the side column so those flows remain reachable.
- * Welcome, questions, and import hide the tabs.
- */
 "use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { LogoMark } from "./brand/LogoMark";
+import { SensiAvatar } from "./sensi-avatar";
+import { SensiBubble } from "./sensi-bubble";
 
 type Language = "en" | "sw";
 type ShellCopy = (typeof copy)[Language];
@@ -73,12 +67,16 @@ function hidesNav(pathname: string): boolean {
   );
 }
 
-/** Shell around every screen. */
+function hidesSensi(pathname: string): boolean {
+  return pathname === "/welcome" || pathname.startsWith("/onboarding");
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname() ?? "/";
   const quiet = hidesNav(pathname);
   const [language, setLanguage] = useState<Language>("en");
   const [wantsChama, setWantsChama] = useState(false);
+  const [isSensiOpen, setIsSensiOpen] = useState(false);
   const t = copy[language];
 
   useEffect(() => {
@@ -92,7 +90,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, []);
 
   const sideNav = wantsChama ? [...SIDE_BASE, CHAMA_ITEM] : SIDE_BASE;
-
   return (
     <div className="app-shell">
       {quiet ? null : (
@@ -105,7 +102,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   key={tab.href}
                   href={tab.href}
                   aria-current={tab.match(pathname) ? "page" : undefined}
-                  className={`rounded-control px-3 py-2 text-sm font-semibold ${tab.match(pathname) ? "bg-mint text-teal" : "text-slate"
+                  className={`rounded-control px-3 py-2 text-sm font-semibold ${tab.match(pathname) ? "bg-moss/20 text-pine" : "text-slate"
                     }`}
                 >
                   {t[tab.key]}
@@ -118,7 +115,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   key={item.href}
                   href={item.href}
                   aria-current={item.match(pathname) ? "page" : undefined}
-                  className={`rounded-control px-3 py-2 text-sm font-semibold ${item.match(pathname) ? "bg-mint text-teal" : "text-slate"
+                  className={`rounded-control px-3 py-2 text-sm font-semibold ${item.match(pathname) ? "bg-moss/20 text-pine" : "text-slate"
                     }`}
                 >
                   {t[item.key]}
@@ -156,7 +153,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <button
                 type="button"
                 aria-label={t.profile}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-teal text-on-primary"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-pine text-paper"
               >
                 <PersonIcon />
               </button>
@@ -175,11 +172,11 @@ export function AppShell({ children }: { children: ReactNode }) {
                   key={tab.href}
                   href={tab.href}
                   aria-current={active ? "page" : undefined}
-                  className={`flex min-h-nav flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-semibold ${active ? "text-teal" : "text-slate"
+                      className={`flex min-h-nav flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-semibold ${active ? "text-pine" : "text-slate"
                     }`}
                 >
                   <span
-                    className={`flex h-7 w-12 items-center justify-center rounded-full ${active ? "bg-mint" : ""
+                    className={`flex h-7 w-12 items-center justify-center rounded-full ${active ? "bg-moss/20" : ""
                       }`}
                   >
                     <NavIcon name={tab.key} />
@@ -191,6 +188,56 @@ export function AppShell({ children }: { children: ReactNode }) {
           </nav>
         )}
       </div>
+
+      {hidesSensi(pathname) ? null : (
+        <>
+          {isSensiOpen ? (
+            <div
+              role="dialog"
+              aria-label="Sensi guide"
+              className="fixed right-4 bottom-24 z-40 w-[min(22rem,calc(100vw-2rem))] rounded-3xl border border-sand bg-paper p-4 shadow-2xl lg:right-6 lg:bottom-6"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <SensiAvatar size="sm" mood="happy" />
+                  <div>
+                    <p className="text-sm font-semibold text-pine">Hi, I&apos;m Sensi</p>
+                    <p className="text-xs text-slate">Your calm money guide</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  aria-label="Close Sensi"
+                  onClick={() => setIsSensiOpen(false)}
+                  className="btn inline-flex h-8 w-8 items-center justify-center rounded-full bg-pearl text-slate"
+                >
+                  ×
+                </button>
+              </div>
+              <SensiBubble tailPosition="bottom">
+                Ask me anything as you explore PesaSense. I&apos;ll keep it simple.
+              </SensiBubble>
+              <div className="mt-3 grid gap-2">
+                <button type="button" className="btn rounded-2xl border border-sand bg-surface px-3 py-2 text-left text-xs font-semibold text-ink">
+                  Ask me about your surplus
+                </button>
+                <button type="button" className="btn rounded-2xl border border-sand bg-surface px-3 py-2 text-left text-xs font-semibold text-ink">
+                  How does Bitcoin work?
+                </button>
+              </div>
+            </div>
+          ) : null}
+          <button
+            type="button"
+            aria-label="Open Sensi guide"
+            aria-expanded={isSensiOpen}
+            onClick={() => setIsSensiOpen((current) => !current)}
+            className="btn fixed right-4 bottom-20 z-40 flex h-14 w-14 items-center justify-center rounded-full border-2 border-paper bg-mint shadow-[0_8px_24px_rgb(13_122_115/0.2)] transition-all duration-200 hover:-translate-y-0.5 lg:right-6 lg:bottom-6"
+          >
+            <SensiAvatar size="sm" mood={isSensiOpen ? "happy" : "neutral"} />
+          </button>
+        </>
+      )}
     </div>
   );
 }
@@ -221,7 +268,7 @@ function LangButton({
       type="button"
       aria-pressed={pressed}
       onClick={onClick}
-      className={`inline-flex h-8 min-w-9 items-center justify-center rounded-full px-2 text-xs font-semibold ${pressed ? "bg-white text-teal shadow-card" : "text-slate"
+      className={`inline-flex h-8 min-w-9 items-center justify-center rounded-full px-2 text-xs font-semibold ${pressed ? "bg-paper text-pine shadow-card" : "text-slate"
         }`}
     >
       {label}

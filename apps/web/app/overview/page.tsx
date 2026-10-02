@@ -5,7 +5,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { PAST_PERFORMANCE_DISCLAIMER, demoProfiles } from "@pesasense/core";
 import { ProfileSync } from "../../components/profile-sync";
-import { Sensi } from "../../components/sensi";
+import { SensiAvatar } from "../../components/sensi-avatar";
 import { UssdAccess } from "../../components/ussd-access";
 import { WalletActivity } from "../../components/wallet-activity";
 import { formatKes, habitPercentOfFloor } from "../../lib/format";
@@ -60,42 +60,42 @@ function OverviewContent() {
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-4">
-      <section className="flex items-center gap-3 rounded-[20px] bg-white px-4 py-3 shadow-card hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+      <section className="flex items-center gap-3 rounded-[20px] border border-mint/40 bg-mint/35 px-4 py-3 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-mint">
-          <Sensi className="h-9 w-9" />
+          <SensiAvatar size="sm" mood="happy" />
         </span>
         <p className="text-sm leading-5 text-ink">
-          <span className="font-semibold">Habari {name}.</span>{" "}
+          <span className="font-semibold">Habari {name} 👋</span>{" "}
           {profile.surplus.bufferFirst
             ? "The buffer comes first. This history is not ready for a Bitcoin habit yet."
             : "Everything essential is covered this month."}
         </p>
       </section>
 
-      <section className="rounded-[20px] bg-gradient-to-br from-pine/5 to-moss/10 p-5 shadow-card hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+      <section className="rounded-[20px] bg-gradient-to-br from-pine to-moss p-5 text-paper shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
         <div className="flex items-center justify-between gap-3">
-          <p className="text-[11px] font-semibold tracking-[0.12em] text-slate uppercase">
+          <p className="text-[11px] font-semibold tracking-[0.12em] text-brass uppercase">
             Safe monthly surplus
           </p>
-          {isDemo ? <DemoTag /> : null}
+          {isDemo ? <DemoTag dark /> : null}
         </div>
-        <p className="mt-3 text-[32px] leading-10 font-bold tracking-tight text-ink tabular-nums">
+        <p className="mt-3 text-[32px] leading-10 font-bold tracking-tight text-paper tabular-nums">
           <AnimatedNumber value={floor} /> – <AnimatedNumber value={ceiling} />
         </p>
-        <p className="mt-1 text-sm text-slate">
+        <p className="mt-1 text-sm text-paper/80">
           Calm surplus after bills, chamas, and daily life.
         </p>
         <div className="mt-5" aria-hidden="true">
-          <div className="relative h-1.5 rounded-full bg-pearl">
-            <div className="absolute inset-y-0 right-0 left-[8%] rounded-full bg-teal/70" />
+          <div className="relative h-1.5 rounded-full bg-paper/25">
+            <div className="absolute inset-y-0 right-0 left-[8%] rounded-full bg-brass" />
             <div
-              className="absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-teal ring-4 ring-white"
+              className="absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-brass ring-4 ring-moss"
               style={{ left: `${typicalPercent}%` }}
             />
           </div>
-          <div className="mt-3 flex items-center justify-between gap-2 text-[11px] font-semibold text-slate">
+          <div className="mt-3 flex items-center justify-between gap-2 text-[11px] font-semibold text-paper/75">
             <span>Conservative</span>
-            <span className="rounded-full bg-mint px-2 py-1 text-teal">
+            <span className="rounded-full bg-brass px-2 py-1 text-paper">
               Typical {formatKes(typical)}
             </span>
             <span>Relaxed</span>
@@ -108,8 +108,8 @@ function OverviewContent() {
       </section>
 
       {profile.surplus.bufferFirst ? (
-        <section className="rounded-[20px] bg-white p-5 shadow-card hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
-          <p className="text-[11px] font-semibold tracking-[0.12em] text-slate uppercase">
+        <section className="rounded-[20px] border border-mint/60 bg-mint/20 p-5 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+          <p className="text-[11px] font-semibold tracking-[0.12em] text-moss uppercase">
             Safety cushion
           </p>
           <p className="mt-2 text-sm leading-6 text-ink">
@@ -126,7 +126,7 @@ function OverviewContent() {
           </Link>
         </section>
       ) : (
-        <section className="rounded-[20px] bg-white p-5 shadow-card hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+        <section className="rounded-[20px] border border-brass/40 bg-brass/15 p-5 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
           <p className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.12em] text-teal uppercase">
             <span className="h-1.5 w-1.5 rounded-full bg-teal" aria-hidden="true" />
             Your habit
@@ -185,9 +185,9 @@ function OverviewContent() {
   );
 }
 
-function DemoTag() {
+function DemoTag({ dark = false }: { dark?: boolean }) {
   return (
-    <span className="rounded-full bg-pearl px-2.5 py-1 text-[11px] font-semibold text-slate">
+    <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${dark ? "bg-paper/15 text-paper" : "bg-pearl text-slate"}`}>
       Demo data
     </span>
   );

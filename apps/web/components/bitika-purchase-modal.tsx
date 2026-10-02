@@ -108,7 +108,7 @@ export function BitikaPurchaseModal({
         )}
 
         {status === "success" && (
-          <div className="mt-6 flex flex-col items-center gap-3 py-4 text-center animate-in fade-in zoom-in duration-500">
+          <div className="mt-6 flex flex-col items-center gap-3 rounded-2xl border border-mint/60 bg-mint/25 py-5 text-center text-pine animate-in fade-in zoom-in duration-500">
             <span className="flex h-12 w-12 items-center justify-center rounded-full bg-mint text-teal animate-[bounce_1s_ease-in-out]">
               <CheckIcon />
             </span>
@@ -125,7 +125,7 @@ export function BitikaPurchaseModal({
 
         {status === "error" && (
           <div className="mt-6 flex flex-col gap-3">
-            <p className="rounded-xl border border-warning/30 bg-[#FBF6EF] px-3 py-2.5 text-sm text-warning">
+            <p className="rounded-xl border border-coral/35 bg-coral/10 px-3 py-2.5 text-sm text-coral">
               {errorMessage ?? "The payment did not go through. No money left your account."}
             </p>
             <button type="button" className="btn btn-secondary w-full" onClick={onClose}>

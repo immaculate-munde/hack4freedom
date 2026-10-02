@@ -114,7 +114,7 @@ export function ImportMpesaModal({ isOpen, onClose }: ImportMpesaModalProps) {
             </div>
 
             {result ? (
-              <div className="mt-5 space-y-3 rounded-2xl border border-pine/20 bg-moss/5 p-4">
+              <div className="mt-5 space-y-3 rounded-2xl border border-mint/60 bg-mint/25 p-4">
                 <p className="text-sm font-semibold text-pine">Analysis complete</p>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">

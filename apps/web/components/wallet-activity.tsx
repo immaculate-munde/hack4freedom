@@ -3,7 +3,8 @@
 import type { WalletEvent, WalletEventStatus } from "@pesasense/core";
 import { useEffect, useState } from "react";
 import { loadWalletEvents, WALLET_EVENTS_CHANGED } from "../lib/wallet-events";
-import { Sensi } from "./sensi";
+import { SensiAvatar } from "./sensi-avatar";
+import { SensiBubble } from "./sensi-bubble";
 
 function statusLabel(status: WalletEventStatus): string {
   switch (status) {
@@ -26,7 +27,6 @@ export function WalletActivity({ profileId }: { profileId: string }) {
   const [events, setEvents] = useState<WalletEvent[] | null>(null);
 
   useEffect(() => {
-    // Artificial small delay to show off the skeleton UI as requested by user
     const refresh = () => {
       setTimeout(() => {
         setEvents(loadWalletEvents(profileId));
@@ -62,11 +62,11 @@ export function WalletActivity({ profileId }: { profileId: string }) {
   if (events.length === 0) {
     return (
       <section className="card mt-4 flex flex-col items-center justify-center py-8 text-center">
-        <span className="flex h-12 w-12 items-center justify-center rounded-full bg-mint">
-          <Sensi className="h-8 w-8" />
-        </span>
+        <SensiAvatar size="sm" mood="happy" />
         <h2 className="mt-4 font-serif text-xl text-pine">No activity yet</h2>
-        <p className="mt-1 text-sm text-slate">Your first habit starts here.</p>
+        <SensiBubble tailPosition="bottom">
+          <p className="text-sm text-slate">Your first habit starts here.</p>
+        </SensiBubble>
       </section>
     );
   }

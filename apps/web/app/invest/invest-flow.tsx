@@ -6,7 +6,6 @@ import {
   type WalletEvent,
 } from "@pesasense/core";
 import {
-  maskPhone,
   parseDestination,
   toBitcoinCoKeLightningAddress,
   type OnRampPurchase,

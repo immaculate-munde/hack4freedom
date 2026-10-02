@@ -7,30 +7,35 @@
 @import "tailwindcss";
 
 @theme {
-  --color-canvas: #faf8f5;
-  --color-surface: #ffffff;
-  --color-pearl: #f5f3ef;
-  --color-ink: #0f172a;
-  --color-ink-soft: #1e293b;
-  --color-slate: #475569;
-  --color-line: #e2e8f0;
-  --color-teal: #0d7a73;
-  --color-mint: #e6f4f1;
-  --color-positive: #115e59;
-  --color-warning: #b45309;
-  --color-on-primary: #ffffff;
-  --color-cat-housing: #bae6fd;
-  --color-cat-debt: #f8b4a6;
-  --color-cat-utilities: #fde047;
-  --color-cat-chama: #e9d5ff;
-  --color-cat-groceries: #a7f3d0;
-  --color-cat-default: var(--color-pearl);
+  --color-canvas: #f4efe6;
+  --color-surface: #fdfbf7;
+  --color-pearl: #f4efe6;
+  --color-ink: #1a1f1c;
+  --color-ink-soft: #3d4b43;
+  --color-slate: #6e7a72;
+  --color-line: #e8e0d2;
+  --color-teal: #1f4a3f;
+  --color-mint: #c8e3d4;
+  --color-positive: #6b8f71;
+  --color-warning: #c96a4d;
+  --color-on-primary: #fdfbf7;
+  --color-cat-housing: #7ba8c4;
+  --color-cat-debt: #c96a4d;
+  --color-cat-utilities: #f4b93e;
+  --color-cat-chama: #a99bc4;
+  --color-cat-groceries: #c8e3d4;
+  --color-cat-default: #e8e0d2;
 
-  --color-paper: #faf8f5;
-  --color-pine: #0d7a73;
-  --color-moss: #115e59;
-  --color-sand: #e2e8f0;
-  --color-brass: #b45309;
+  --color-paper: #fdfbf7;
+  --color-pine: #1f4a3f;
+  --color-moss: #6b8f71;
+  --color-brass: #e8940a;
+  --color-terracotta: #c96a4d;
+  --color-sky: #7ba8c4;
+  --color-lavender: #a99bc4;
+  --color-sunflower: #f4b93e;
+  --color-coral: #e5735c;
+  --color-sand: #e8e0d2;
 
   --radius-control: 16px;
   --radius-card: 20px;
@@ -38,8 +43,8 @@
   --spacing-tap: 48px;
   --spacing-button: 52px;
   --spacing-nav: 56px;
-  --shadow-card: 0 4px 20px -2px rgb(15 23 42 / 0.04);
-  --shadow-focus: 0 0 0 4px rgb(13 122 115 / 0.15);
+  --shadow-card: 0 4px 20px -2px rgb(31 74 63 / 0.08);
+  --shadow-focus: 0 0 0 4px rgb(31 74 63 / 0.15);
   --container-content: 1120px;
 }
 
@@ -60,7 +65,7 @@ body {
   .app-shell {
     display: flex;
     min-height: 100dvh;
-    background: var(--color-canvas);
+    background: var(--color-pearl);
   }
 
   .app-sidebar {
@@ -70,7 +75,7 @@ body {
     width: 15.5rem;
     flex-shrink: 0;
     border-right: 1px solid var(--color-sand);
-    background: rgb(255 255 255 / 55%);
+    background: linear-gradient(180deg, var(--color-paper) 0%, var(--color-pearl) 100%);
     backdrop-filter: blur(8px);
   }
 
@@ -90,7 +95,7 @@ body {
     align-items: stretch;
     gap: 0.25rem;
     border-bottom: 1px solid var(--color-line);
-    background: rgb(250 248 245 / 94%);
+    background: rgb(253 251 247 / 94%);
     padding: 0.75rem 1rem;
     backdrop-filter: blur(10px);
   }
@@ -125,7 +130,8 @@ body {
     display: flex;
     gap: 0.35rem;
     border-top: 1px solid var(--color-line);
-    background: rgb(250 248 245 / 96%);
+    background: linear-gradient(180deg, var(--color-paper) 0%, var(--color-pearl) 100%);
+    box-shadow: 0 -8px 24px rgb(31 74 63 / 8%);
     padding: 0.35rem 0.5rem 0.35rem;
     backdrop-filter: blur(12px);
   }
@@ -263,15 +269,15 @@ body {
   .btn-primary {
     min-height: var(--spacing-button);
     border-radius: var(--radius-control);
-    background-color: var(--color-teal);
+    background-color: var(--color-brass);
     padding: 0.75rem 1rem;
     font-size: 0.875rem;
     font-weight: 600;
-    color: var(--color-on-primary);
+    color: var(--color-paper);
   }
 
   .btn-primary:hover:not(:disabled) {
-    background-color: var(--color-moss);
+    background-color: var(--color-sunflower);
   }
 
   .btn-secondary {
@@ -286,7 +292,7 @@ body {
 
   .btn-secondary:hover:not(:disabled) {
     border-color: var(--color-moss);
-    background-color: rgb(231 224 212 / 45%);
+    background-color: rgb(232 224 210 / 55%);
   }
 
   .btn-accent {
@@ -295,7 +301,7 @@ body {
     padding: 0.75rem 1rem;
     font-size: 0.875rem;
     font-weight: 600;
-    color: var(--color-ink);
+    color: var(--color-paper);
   }
 
   .btn-accent:hover:not(:disabled) {
@@ -332,6 +338,6 @@ body {
   .field:focus {
     outline: none;
     border-color: var(--color-moss);
-    box-shadow: 0 0 0 3px rgb(61 107 84 / 18%);
+    box-shadow: 0 0 0 3px rgb(107 143 113 / 18%);
   }
 }

@@ -47,7 +47,7 @@ export default function OnboardPage() {
       </header>
 
       {parsedProfile ? (
-        <section className="animate-in fade-in slide-in-from-bottom-4 rounded-3xl border border-pine/20 bg-moss/5 p-6 shadow-sm duration-500">
+        <section className="animate-in fade-in slide-in-from-bottom-4 rounded-3xl border border-mint/60 bg-mint/25 p-6 text-pine shadow-sm duration-500">
           <h2 className="font-serif text-2xl font-semibold text-pine">
             Analysis Complete
           </h2>

@@ -3,7 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { OnboardingAnswers, UserGoal } from "@pesasense/core";
-import { Sensi } from "../../components/sensi";
+import { SensiAvatar, type SensiMood } from "../../components/sensi-avatar";
+import { SensiBubble } from "../../components/sensi-bubble";
 
 const DRAFT_KEY = "pesasense.onboarding";
 
@@ -143,48 +144,76 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState<Draft>(EMPTY);
   const [isCelebrating, setIsCelebrating] = useState(false);
+  const [mood, setMood] = useState<SensiMood>("neutral");
+  const [acknowledgment, setAcknowledgment] = useState<string | null>(null);
+  const [isAdvancing, setIsAdvancing] = useState(false);
 
   useEffect(() => {
+    setMood("neutral");
     setDraft(loadDraft());
   }, []);
 
-  function patch(next: Partial<Draft>) {
-    setDraft((current) => {
-      const updated = { ...current, ...next };
-      sessionStorage.setItem(DRAFT_KEY, JSON.stringify(updated));
-      return updated;
-    });
+  function saveDraft(nextDraft: Draft) {
+    sessionStorage.setItem(DRAFT_KEY, JSON.stringify(nextDraft));
+    setDraft(nextDraft);
+  }
+
+  function complete(nextDraft: Draft) {
+    sessionStorage.setItem(
+      DRAFT_KEY,
+      JSON.stringify({
+        draft: nextDraft,
+        answers: toAnswers(nextDraft),
+        wantsChama: nextDraft.wantsChama === true,
+        bitcoinExperience: {
+          hasInvested: nextDraft.hasInvestedBitcoin === true,
+          where: nextDraft.bitcoinWhere.trim(),
+          reasons: nextDraft.bitcoinReasons,
+        },
+      }),
+    );
+    router.push("/onboard");
   }
 
   function advance(nextDraft: Draft) {
-    sessionStorage.setItem(DRAFT_KEY, JSON.stringify(nextDraft));
-    setDraft(nextDraft);
-    if (step < TOTAL_STEPS - 1) {
-      setStep((current) => current + 1);
-      return;
-    }
-    
-    setIsCelebrating(true);
-    setTimeout(() => {
-      sessionStorage.setItem(
-        DRAFT_KEY,
-        JSON.stringify({
-          draft: nextDraft,
-          answers: toAnswers(nextDraft),
-          wantsChama: nextDraft.wantsChama === true,
-          bitcoinExperience: {
-            hasInvested: nextDraft.hasInvestedBitcoin === true,
-            where: nextDraft.bitcoinWhere.trim(),
-            reasons: nextDraft.bitcoinReasons,
-          },
-        }),
-      );
-      router.push("/onboard");
-    }, 1500);
+    if (isAdvancing) return;
+    saveDraft(nextDraft);
+    setIsAdvancing(true);
+    setMood("happy");
+    setAcknowledgment(ACKNOWLEDGMENTS[step % ACKNOWLEDGMENTS.length] ?? "Got it.");
+    window.setTimeout(() => {
+      setAcknowledgment(null);
+      if (step < TOTAL_STEPS - 1) {
+        setStep((current) => current + 1);
+        setMood("neutral");
+        setIsAdvancing(false);
+        return;
+      }
+      setMood("celebrating");
+      setIsCelebrating(true);
+      window.setTimeout(() => {
+        complete(nextDraft);
+      }, 900);
+    }, 600);
   }
 
-  function next() {
-    advance(draft);
+  function patch(next: Partial<Draft>) {
+    saveDraft({ ...draft, ...next });
+    setMood("happy");
+  }
+
+  function choose(next: Partial<Draft>) {
+    advance({ ...draft, ...next });
+  }
+
+  function back() {
+    if (isAdvancing) return;
+    if (step === 0) {
+      router.back();
+      return;
+    }
+    setStep((current) => current - 1);
+    setMood("neutral");
   }
 
   function skip() {
@@ -198,61 +227,74 @@ export default function OnboardingPage() {
     advance({ ...draft, ...(blanks[step] ?? {}) });
   }
 
-  const isLastStep = step === TOTAL_STEPS - 1;
-
   if (isCelebrating) {
     return (
-      <main className="mx-auto flex w-full max-w-md flex-col items-center justify-center py-24 text-center animate-in fade-in zoom-in duration-500">
-        <span className="flex h-16 w-16 items-center justify-center rounded-full bg-mint text-teal mb-5">
-          <svg viewBox="0 0 24 24" aria-hidden="true" className="h-8 w-8 fill-none stroke-current" strokeWidth="2.5">
-            <polyline strokeLinecap="round" strokeLinejoin="round" points="20 6 9 17 4 12" />
-          </svg>
-        </span>
-        <h2 className="text-2xl font-bold tracking-tight text-ink">You're all set</h2>
-        <p className="mt-2 text-sm text-slate">Saving your answers…</p>
+      <main className="mx-auto flex w-full max-w-2xl flex-col items-center justify-center gap-4 py-16 px-4 text-center">
+        <SensiAvatar size="xl" mood="celebrating" />
+        <h2 className="text-2xl font-bold tracking-tight text-pine">You&apos;re all set</h2>
+        <p className="text-sm text-slate">Saving your answers…</p>
       </main>
     );
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-col">
-      <div className="flex items-center justify-between">
+    <main className="mx-auto flex max-w-2xl flex-col gap-6 py-10 px-4">
+      <header className="flex items-center justify-between">
+        <button
+          type="button"
+          onClick={back}
+          aria-label="Go to previous step"
+          className="btn inline-flex h-10 w-10 items-center justify-center rounded-full border border-sand bg-paper text-xl text-pine"
+        >
+          &lt;
+        </button>
         <p className="text-[11px] font-semibold tracking-[0.14em] text-teal uppercase">
           Step {step + 1} of {TOTAL_STEPS}
         </p>
         <button type="button" onClick={skip} className="btn text-sm font-semibold text-slate">
-          Skip for now
+          Skip
         </button>
+      </header>
+
+      <div className="flex flex-col items-center gap-5 text-center">
+        <SensiAvatar size="xl" mood={mood} />
+        <SensiBubble tailPosition="top">
+          <p className="text-xl leading-8 font-semibold text-pine">{questionForStep(step)}</p>
+        </SensiBubble>
+        {acknowledgment ? <p className="text-sm font-semibold text-teal">{acknowledgment}</p> : null}
       </div>
 
-      <div className="mt-5 flex items-start gap-3">
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white shadow-card">
-          <Sensi className="h-11 w-11" />
-        </span>
-        <div className="rounded-[18px] bg-white px-4 py-3 shadow-card">
-          <p className="text-[11px] font-semibold tracking-wide text-teal uppercase">Sensi</p>
-          <p className="mt-1 text-sm leading-5 text-ink">
-            A few quick questions, so the picture stays honest. One at a time.
-          </p>
-        </div>
+      <div className="flex flex-col gap-3">
+        {step === 0 ? (
+          <DebtStep draft={draft} patch={patch} choose={choose} continueStep={() => advance(draft)} />
+        ) : null}
+        {step === 1 ? (
+          <ChamaStep draft={draft} patch={patch} choose={choose} continueStep={() => advance(draft)} />
+        ) : null}
+        {step === 2 ? <WantsChamaStep draft={draft} choose={choose} /> : null}
+        {step === 3 ? (
+          <BitcoinExperienceStep draft={draft} patch={patch} continueStep={() => advance(draft)} />
+        ) : null}
+        {step === 4 ? (
+          <GoalStep draft={draft} patch={patch} continueStep={() => advance(draft)} />
+        ) : null}
       </div>
 
-      {step === 0 ? <DebtStep draft={draft} patch={patch} /> : null}
-      {step === 1 ? <ChamaStep draft={draft} patch={patch} /> : null}
-      {step === 2 ? <WantsChamaStep draft={draft} patch={patch} /> : null}
-      {step === 3 ? <BitcoinExperienceStep draft={draft} patch={patch} /> : null}
-      {step === 4 ? <GoalStep draft={draft} patch={patch} /> : null}
-
-      <div className="mt-8 flex flex-col gap-2">
-        <button type="button" onClick={next} className="btn btn-primary w-full text-base">
-          {isLastStep ? "Continue to M-Pesa history" : "Next"}
-        </button>
-      </div>
-      <p className="mt-6 text-center text-xs leading-5 text-slate">
-        Stored on this phone for this visit. Your statements never leave your phone.
-      </p>
     </main>
   );
+}
+
+const ACKNOWLEDGMENTS = ["Got it.", "Nice.", "Noted.", "Okay!"];
+
+function questionForStep(step: number): string {
+  const questions = [
+    "Habari! Let's get to know your money. Do you have any debts you pay monthly?",
+    "What monthly commitments should we keep in view, like a loan or a chama contribution?",
+    "Chamas are a big part of saving in Kenya. Would you like to join one?",
+    "Have you tried investing in Bitcoin before?",
+    "What would you like your money to help you feel ready for?",
+  ];
+  return questions[step] ?? questions[0] ?? "";
 }
 
 function YesNo({
@@ -268,49 +310,59 @@ function YesNo({
         type="button"
         aria-pressed={value === true}
         onClick={() => onChange(true)}
-        className={`btn min-h-12 rounded-2xl border px-4 py-3 text-sm font-semibold ${
+        className={`btn flex min-h-12 items-center justify-between rounded-2xl border px-4 py-3 text-sm font-semibold ${
           value === true
             ? "border-teal bg-teal text-on-primary"
-            : "border-line bg-white text-ink"
+            : "border-line bg-paper text-ink hover:-translate-y-0.5"
         }`}
       >
         Yes
+        {value === true ? <span aria-hidden="true">✓</span> : null}
       </button>
       <button
         type="button"
         aria-pressed={value === false}
         onClick={() => onChange(false)}
-        className={`btn min-h-12 rounded-2xl border px-4 py-3 text-sm font-semibold ${
+        className={`btn flex min-h-12 items-center justify-between rounded-2xl border px-4 py-3 text-sm font-semibold ${
           value === false
             ? "border-teal bg-teal text-on-primary"
-            : "border-line bg-white text-ink"
+            : "border-line bg-paper text-ink hover:-translate-y-0.5"
         }`}
       >
         No
+        {value === false ? <span aria-hidden="true">✓</span> : null}
       </button>
     </div>
+  );
+}
+
+function ContinueButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className="btn btn-primary mx-auto min-w-40">
+      Continue
+    </button>
   );
 }
 
 function DebtStep({
   draft,
   patch,
+  choose,
+  continueStep,
 }: {
   draft: Draft;
   patch: (next: Partial<Draft>) => void;
+  choose: (next: Partial<Draft>) => void;
+  continueStep: () => void;
 }) {
   return (
-    <section className="mt-6 rounded-[20px] bg-white p-5 shadow-card">
-      <p className="text-[11px] font-semibold tracking-[0.12em] text-slate uppercase">
-        Question 01
-      </p>
-      <h2 className="mt-1 text-lg font-semibold text-ink">Any loans or debts?</h2>
-      <p className="mt-1 text-sm leading-6 text-slate">
-        No judgment. Statements miss most of these, so your answer is used first.
-      </p>
-      <YesNo value={draft.hasDebt} onChange={(hasDebt) => patch({ hasDebt })} />
+    <div className="flex flex-col gap-4">
+      <YesNo
+        value={draft.hasDebt}
+        onChange={(hasDebt) => (hasDebt ? patch({ hasDebt }) : choose({ hasDebt }))}
+      />
       {draft.hasDebt ? (
-        <div className="mt-4 space-y-3">
+        <div className="space-y-3">
           <label className="block text-sm text-ink">
             Notes
             <input
@@ -333,31 +385,34 @@ function DebtStep({
               />
             </span>
           </label>
+          {draft.debtNotes.trim() || draft.debtBalance.trim() ? (
+            <ContinueButton onClick={continueStep} />
+          ) : null}
         </div>
       ) : null}
-    </section>
+    </div>
   );
 }
 
 function ChamaStep({
   draft,
   patch,
+  choose,
+  continueStep,
 }: {
   draft: Draft;
   patch: (next: Partial<Draft>) => void;
+  choose: (next: Partial<Draft>) => void;
+  continueStep: () => void;
 }) {
   return (
-    <section className="mt-6 rounded-[20px] bg-white p-5 shadow-card">
-      <p className="text-[11px] font-semibold tracking-[0.12em] text-slate uppercase">
-        Question 02
-      </p>
-      <h2 className="mt-1 text-lg font-semibold text-ink">Are you in a chama?</h2>
-      <p className="mt-1 text-sm leading-6 text-slate">
-        This records the contribution. It never holds the money.
-      </p>
-      <YesNo value={draft.inChama} onChange={(inChama) => patch({ inChama })} />
+    <div className="flex flex-col gap-4">
+      <YesNo
+        value={draft.inChama}
+        onChange={(inChama) => (inChama ? patch({ inChama }) : choose({ inChama }))}
+      />
       {draft.inChama ? (
-        <div className="mt-4 space-y-3">
+        <div className="space-y-3">
           <label className="block text-sm text-ink">
             Name
             <input
@@ -406,28 +461,27 @@ function ChamaStep({
               Weekly
             </button>
           </div>
+          {draft.chamaName.trim() || draft.chamaAmount.trim() ? (
+            <ContinueButton onClick={continueStep} />
+          ) : null}
         </div>
       ) : null}
-    </section>
+    </div>
   );
 }
 
 function GoalStep({
   draft,
   patch,
+  continueStep,
 }: {
   draft: Draft;
   patch: (next: Partial<Draft>) => void;
+  continueStep: () => void;
 }) {
   return (
-    <section className="mt-6 rounded-[20px] bg-white p-5 shadow-card hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
-      <p className="text-[11px] font-semibold tracking-[0.12em] text-slate uppercase">
-        Question 05
-      </p>
-      <h2 className="mt-1 text-lg font-semibold text-ink">
-        What would you like your money to do?
-      </h2>
-      <div className="mt-4 flex flex-col gap-2">
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2">
         {GOALS.map((goal) => (
           <button
             key={goal.id}
@@ -436,11 +490,12 @@ function GoalStep({
             onClick={() => patch({ goalId: goal.id })}
             className={`btn min-h-12 rounded-2xl border px-4 py-3 text-left text-sm font-semibold ${
               draft.goalId === goal.id
-                ? "border-teal bg-mint text-ink"
-                : "border-line bg-white text-ink"
+                ? "border-teal bg-teal text-on-primary"
+                : "border-line bg-paper text-ink"
             }`}
           >
             {goal.label}
+            {draft.goalId === goal.id ? <span aria-hidden="true">✓</span> : null}
           </button>
         ))}
       </div>
@@ -453,40 +508,31 @@ function GoalStep({
           onChange={(event) => patch({ goalNotes: event.target.value })}
         />
       </label>
-    </section>
+      {draft.goalId ? <ContinueButton onClick={continueStep} /> : null}
+    </div>
   );
 }
 
 function WantsChamaStep({
   draft,
-  patch,
+  choose,
 }: {
   draft: Draft;
-  patch: (next: Partial<Draft>) => void;
+  choose: (next: Partial<Draft>) => void;
 }) {
   return (
-    <section className="mt-6 rounded-[20px] bg-white p-5 shadow-card hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
-      <p className="text-[11px] font-semibold tracking-[0.12em] text-slate uppercase">
-        Question 03
-      </p>
-      <h2 className="mt-1 text-lg font-semibold text-ink">Do you want a Chama?</h2>
-      <p className="mt-1 text-sm leading-6 text-slate">
-        We can show you a Chama tab to track group savings.
-      </p>
-      <YesNo
-        value={draft.wantsChama}
-        onChange={(wantsChama) => patch({ wantsChama })}
-      />
-    </section>
+    <YesNo value={draft.wantsChama} onChange={(wantsChama) => choose({ wantsChama })} />
   );
 }
 
 function BitcoinExperienceStep({
   draft,
   patch,
+  continueStep,
 }: {
   draft: Draft;
   patch: (next: Partial<Draft>) => void;
+  continueStep: () => void;
 }) {
   function toggleReason(id: BitcoinReasonId) {
     const current = draft.bitcoinReasons;
@@ -497,13 +543,7 @@ function BitcoinExperienceStep({
   }
 
   return (
-    <section className="mt-6 rounded-[20px] bg-white p-5 shadow-card hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
-      <p className="text-[11px] font-semibold tracking-[0.12em] text-slate uppercase">
-        Question 04
-      </p>
-      <h2 className="mt-1 text-lg font-semibold text-ink">
-        Have you been investing in Bitcoin?
-      </h2>
+    <div className="flex flex-col gap-4">
       <YesNo
         value={draft.hasInvestedBitcoin}
         onChange={(hasInvestedBitcoin) =>
@@ -512,7 +552,7 @@ function BitcoinExperienceStep({
       />
 
       {draft.hasInvestedBitcoin === true && (
-        <label className="mt-4 block text-sm text-ink">
+        <label className="block text-sm text-ink">
           Where do you currently invest?
           <input
             className="field mt-1"
@@ -520,11 +560,12 @@ function BitcoinExperienceStep({
             value={draft.bitcoinWhere}
             onChange={(e) => patch({ bitcoinWhere: e.target.value })}
           />
+          {draft.bitcoinWhere.trim() ? <ContinueButton onClick={continueStep} /> : null}
         </label>
       )}
 
       {draft.hasInvestedBitcoin === false && (
-        <div className="mt-4 flex flex-col gap-2">
+        <div className="flex flex-col gap-2">
           {BITCOIN_REASONS.map((reason) => {
             const selected = draft.bitcoinReasons.includes(reason.id);
             return (
@@ -534,7 +575,7 @@ function BitcoinExperienceStep({
                 aria-pressed={selected}
                 onClick={() => toggleReason(reason.id)}
                 className={`btn flex min-h-12 w-full items-center justify-between rounded-2xl border px-4 py-3 text-left text-sm font-semibold ${
-                  selected ? "border-teal bg-mint text-ink" : "border-line bg-white text-ink"
+                  selected ? "border-teal bg-teal text-on-primary" : "border-line bg-paper text-ink"
                 }`}
               >
                 {reason.label}
@@ -548,7 +589,7 @@ function BitcoinExperienceStep({
             );
           })}
           {draft.bitcoinReasons.includes("other") && (
-            <label className="mt-1 block text-sm text-ink">
+            <label className="block text-sm text-ink">
               Please describe
               <input
                 className="field mt-1"
@@ -558,8 +599,9 @@ function BitcoinExperienceStep({
               />
             </label>
           )}
+          {draft.bitcoinReasons.length > 0 ? <ContinueButton onClick={continueStep} /> : null}
         </div>
       )}
-    </section>
+    </div>
   );
 }
