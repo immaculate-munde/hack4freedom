@@ -133,14 +133,13 @@ function detectIncome(transactions: readonly Transaction[]): IncomeSummary {
     (a, b) => b.value.monthlyKes.typical - a.value.monthlyKes.typical,
   );
 
-   // The income range reflects the primary recurring source — the one with
-  // the most observations. One-off transfers (gifts, M-Shwari top-ups) and
-  // secondary gigs do not define the monthly floor. This keeps the range
-  // honest about the variability a person actually experiences.
-  const primary = sources.find((s) => s.observations >= 2);
-  const combined = primary
-    ? primary.value.monthlyKes
-    : { floor: 0, typical: 0, ceiling: 0 };
+  // Combined monthly income: sum of per-month totals from all credits
+  const monthlyTotals = new Map<string, number>();
+  for (const t of credits) {
+    const key = monthKey(t.date);
+    monthlyTotals.set(key, (monthlyTotals.get(key) ?? 0) + t.amountKes);
+  }
+  const combined = kesRange([...monthlyTotals.values()]);
 
   return { sources, monthlyKes: combined };
 }
@@ -487,7 +486,24 @@ export function buildProfile(input: BuildProfileInput): FinancialProfile {
 
   // Now compute real resilience using the floor, and recompute surplus.
   const resilience = detectResilience(sorted, firstPass.monthlyKes.floor);
-  const surplus = computeSurplus({ income: netIncome, spending, resilience })
+  const surplus = computeSurplus({ income: netIncome, spending, resilience });
+
+  // TEMP DEBUG — remove after fixing
+  if (process.env.DEBUG_PROFILE === "1") {
+    console.log("\n=== DEBUG buildProfile === - profile.ts:493");
+    console.log("window.monthsCovered: - profile.ts:494", window.monthsCovered);
+    console.log("income: - profile.ts:495", JSON.stringify(income, null, 2));
+    console.log("commitments: - profile.ts:496", JSON.stringify(commitments, null, 2));
+    console.log("monthlyCommitmentsTotal: - profile.ts:497", monthlyCommitmentsTotal);
+    console.log("netIncome: - profile.ts:498", JSON.stringify(netIncome.monthlyKes));
+    console.log(
+      "spending.flexibleMonthlyKes:",
+      JSON.stringify(spending.flexibleMonthlyKes),
+    );
+    console.log("resilience: - profile.ts:503", JSON.stringify(resilience, null, 2));
+    console.log("surplus: - profile.ts:504", JSON.stringify(surplus, null, 2));
+    console.log("=== END DEBUG ===\n - profile.ts:505");
+  }
 
   return {
     version: 1,
