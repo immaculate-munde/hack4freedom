@@ -3,19 +3,18 @@
 import { Suspense } from "react";
 
 import Link from "next/link";
-import { PAST_PERFORMANCE_DISCLAIMER, demoProfiles } from "@pesasense/core";
+import { PAST_PERFORMANCE_DISCLAIMER } from "@pesasense/core";
+import { ProfileRequired } from "../../components/profile-required";
 import { formatKes, habitPercentOfFloor } from "../../lib/format";
-import { useProfile } from "../../contexts/profile-context";
-import { useSearchParams } from "next/navigation";
+import { useActiveProfile } from "../../lib/use-active-profile";
 
 function HabitContent() {
-  const searchParams = useSearchParams();
-  const profileQuery = searchParams?.get("profile");
-  const { profile: contextProfile, isDemo: contextIsDemo } = useProfile();
+  const active = useActiveProfile();
+  if (!active.ready) {
+    return <ProfileRequired />;
+  }
 
-  const demoId = profileQuery === "brian" ? "brian" : "amina";
-  const profile = contextProfile || demoProfiles[demoId];
-  const isDemo = contextProfile ? false : contextIsDemo;
+  const { profile, isDemo } = active;
 
   const floor = profile.surplus.monthlyKes.floor;
   const habit = Math.round(floor * 0.75);

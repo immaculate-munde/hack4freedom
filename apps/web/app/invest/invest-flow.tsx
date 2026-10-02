@@ -2,11 +2,11 @@
 
 import {
   walletEventFromPurchase,
+  type FinancialProfile,
   type RecordedPurchaseStatus,
   type WalletEvent,
 } from "@pesasense/core";
 import {
-  maskPhone,
   parseDestination,
   toBitcoinCoKeLightningAddress,
   type OnRampPurchase,
@@ -68,11 +68,13 @@ function statusMessage(
 
 export function InvestFlow({
   profileId,
+  profile,
   surplusFloorKes,
   defaultAmountKes,
   sandbox,
 }: {
-  profileId: "amina" | "brian";
+  profileId: string;
+  profile?: FinancialProfile;
   surplusFloorKes: number;
   defaultAmountKes: number;
   sandbox: boolean;
@@ -290,6 +292,7 @@ export function InvestFlow({
         approvedByUser: true,
         idempotencyKey,
         profileId,
+        ...(profile ? { profile } : {}),
       });
       if (!result.purchaseId) {
         throw new Error("Bitika did not return a transaction code. Try again.");
@@ -315,7 +318,7 @@ export function InvestFlow({
       setStep("confirm");
       setBusy(false);
     }
-  }, [address, amountKes, phone, profileId, followPurchase, recordProgress]);
+  }, [address, amountKes, phone, profile, profileId, followPurchase, recordProgress]);
 
   const withdrawAddress = useMemo(() => {
     try {

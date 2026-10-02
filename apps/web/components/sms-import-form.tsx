@@ -1,8 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { parseSmsBatch, buildProfile } from "@pesasense/core";
-import type { FinancialProfile, OnboardingAnswers } from "@pesasense/core";
+import { parseSmsBatch } from "@pesasense/core";
+import type { FinancialProfile } from "@pesasense/core";
+import {
+  buildProfileFromTransactions,
+  clearOnboardingDraft,
+} from "../lib/profile-from-import";
 
 export function SmsImportForm({
   onProfileReady,
@@ -29,34 +33,8 @@ export function SmsImportForm({
           .filter((item) => item.length > 0);
         
         const parsed = parseSmsBatch(batch);
-        
-        let onboardingData: OnboardingAnswers = { 
-          debts: [], 
-          chamaMemberships: [], 
-          goal: { kind: "other" } 
-        };
-        
-        try {
-          const raw = sessionStorage.getItem("pesasense.onboarding");
-          if (raw) {
-            const parsedStorage = JSON.parse(raw);
-            if (parsedStorage && parsedStorage.answers) {
-              onboardingData = parsedStorage.answers;
-            }
-          }
-        } catch (e) {
-        }
-
-        const profile = buildProfile({
-          transactions: parsed,
-          onboarding: onboardingData,
-        });
-        
-        try {
-          sessionStorage.removeItem("pesasense.onboarding");
-        } catch (e) {
-        }
-
+        const profile = buildProfileFromTransactions(parsed);
+        clearOnboardingDraft();
         onProfileReady(profile);
         setLoading(false);
       } catch (err: unknown) {

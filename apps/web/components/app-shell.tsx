@@ -1,16 +1,15 @@
 /**
  * App shell.
  *
- * Header matches Serene Shilling: mark, wordmark, on-phone line, EN / SW, profile.
- * The designed tabs are Overview, Surplus, Habit, and Learn.
- * Invest, Wallet, and Chama stay in the side column so those flows remain reachable.
- * Welcome, questions, and import hide the tabs.
+ * Every destination sits in one sidebar list: Overview, Surplus, Habit,
+ * Learn, Invest, Wallet, and Chama. Welcome, questions, and the landing
+ * page hide that nav.
  */
 "use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { LogoMark } from "./brand/LogoMark";
 
 type Language = "en" | "sw";
@@ -47,26 +46,21 @@ const copy = {
   },
 } as const;
 
-const TABS = [
-  {
-    href: "/overview",
-    key: "overview",
-    match: (p: string) => p.startsWith("/overview"),
-  },
+const NAV = [
+  { href: "/overview", key: "overview", match: (p: string) => p.startsWith("/overview") },
   { href: "/surplus", key: "surplus", match: (p: string) => p.startsWith("/surplus") },
   { href: "/habit", key: "habit", match: (p: string) => p.startsWith("/habit") },
   { href: "/learn", key: "learn", match: (p: string) => p.startsWith("/learn") },
-] as const;
-
-const SIDE_BASE = [
   { href: "/invest", key: "invest", match: (p: string) => p.startsWith("/invest") },
   { href: "/wallet", key: "wallet", match: (p: string) => p.startsWith("/wallet") },
+  { href: "/chama", key: "chama", match: (p: string) => p.startsWith("/chama") },
 ] as const;
 
-const CHAMA_ITEM = { href: "/chama", key: "chama", match: (p: string) => p.startsWith("/chama") } as const;
+type NavKey = (typeof NAV)[number]["key"];
 
 function hidesNav(pathname: string): boolean {
   return (
+    pathname === "/" ||
     pathname === "/welcome" ||
     pathname.startsWith("/onboarding") ||
     pathname.startsWith("/onboard")
@@ -77,60 +71,60 @@ function hidesNav(pathname: string): boolean {
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname() ?? "/";
   const quiet = hidesNav(pathname);
+  const landing = pathname === "/";
   const [language, setLanguage] = useState<Language>("en");
-  const [wantsChama, setWantsChama] = useState(false);
   const t = copy[language];
 
-  useEffect(() => {
-    try {
-      const raw = sessionStorage.getItem("pesasense.onboarding");
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as Record<string, unknown>;
-      setWantsChama(parsed.wantsChama === true);
-    } catch {
-    }
-  }, []);
-
-  const sideNav = wantsChama ? [...SIDE_BASE, CHAMA_ITEM] : SIDE_BASE;
+  if (landing) {
+    return <>{children}</>;
+  }
 
   return (
     <div className="app-shell">
       {quiet ? null : (
         <aside className="app-sidebar hidden lg:flex" aria-label={t.nav}>
-          <div className="flex h-full flex-col gap-6 p-6">
+          <div className="flex h-full flex-col p-5">
             <Brand t={t} />
-            <nav className="flex flex-col gap-1">
-              {TABS.map((tab) => (
-                <Link
-                  key={tab.href}
-                  href={tab.href}
-                  aria-current={tab.match(pathname) ? "page" : undefined}
-                  className={`rounded-control px-3 py-2 text-sm font-semibold ${tab.match(pathname) ? "bg-mint text-teal" : "text-slate"
+            <nav className="mt-8 flex flex-col gap-1">
+              {NAV.map((tab) => {
+                const active = tab.match(pathname);
+                return (
+                  <Link
+                    key={tab.href}
+                    href={tab.href}
+                    aria-current={active ? "page" : undefined}
+                    className={`flex h-11 items-center gap-3 rounded-2xl px-3 text-sm font-semibold ${
+                      active ? "bg-mint text-teal" : "text-slate hover:bg-pearl hover:text-ink"
                     }`}
-                >
-                  {t[tab.key]}
-                </Link>
-              ))}
+                  >
+                    <span
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
+                        active ? "bg-white text-teal" : "bg-pearl text-slate"
+                      }`}
+                    >
+                      <NavIcon name={tab.key} />
+                    </span>
+                    {t[tab.key]}
+                  </Link>
+                );
+              })}
             </nav>
-            <div className="mt-auto flex flex-col gap-1 border-t border-line pt-4">
-              {sideNav.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  aria-current={item.match(pathname) ? "page" : undefined}
-                  className={`rounded-control px-3 py-2 text-sm font-semibold ${item.match(pathname) ? "bg-mint text-teal" : "text-slate"
-                    }`}
-                >
-                  {t[item.key]}
-                </Link>
-              ))}
+            <div className="mt-auto flex items-center justify-between gap-2 border-t border-line pt-4">
+              <LanguageSwitch language={language} label={t.language} onChange={setLanguage} />
+              <button
+                type="button"
+                aria-label={t.profile}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-teal text-on-primary"
+              >
+                <PersonIcon />
+              </button>
             </div>
           </div>
         </aside>
       )}
 
       <div className="app-main-column">
-        <header className="app-mobile-header">
+        <header className="app-mobile-header lg:hidden">
           <div className="flex items-center justify-between gap-2">
             <Brand t={t} compact />
             <div className="flex shrink-0 items-center gap-2">
@@ -168,19 +162,21 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         {quiet ? null : (
           <nav className="app-mobile-nav safe-bottom lg:hidden" aria-label={t.nav}>
-            {TABS.map((tab) => {
+            {NAV.map((tab) => {
               const active = tab.match(pathname);
               return (
                 <Link
                   key={tab.href}
                   href={tab.href}
                   aria-current={active ? "page" : undefined}
-                  className={`flex min-h-nav flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-semibold ${active ? "text-teal" : "text-slate"
-                    }`}
+                  className={`flex min-h-nav w-[4.5rem] shrink-0 flex-col items-center justify-center gap-0.5 text-[11px] font-semibold ${
+                    active ? "text-teal" : "text-slate"
+                  }`}
                 >
                   <span
-                    className={`flex h-7 w-12 items-center justify-center rounded-full ${active ? "bg-mint" : ""
-                      }`}
+                    className={`flex h-7 w-12 items-center justify-center rounded-full ${
+                      active ? "bg-mint" : ""
+                    }`}
                   >
                     <NavIcon name={tab.key} />
                   </span>
@@ -203,6 +199,26 @@ function Brand({ t, compact = false }: { t: ShellCopy; compact?: boolean }) {
         <p className="text-base font-semibold whitespace-nowrap text-ink">{t.brand}</p>
         <p className="text-xs font-semibold text-slate">{t.stays}</p>
       </div>
+    </div>
+  );
+}
+
+function LanguageSwitch({
+  language,
+  label,
+  onChange,
+}: {
+  language: Language;
+  label: string;
+  onChange: (language: Language) => void;
+}) {
+  return (
+    <div role="group" aria-label={label} className="flex h-10 items-center rounded-full bg-pearl px-1">
+      <LangButton label="EN" pressed={language === "en"} onClick={() => onChange("en")} />
+      <span className="px-0.5 text-xs text-line" aria-hidden="true">
+        |
+      </span>
+      <LangButton label="SW" pressed={language === "sw"} onClick={() => onChange("sw")} />
     </div>
   );
 }
@@ -243,8 +259,8 @@ function PersonIcon() {
   );
 }
 
-function NavIcon({ name }: { name: "overview" | "surplus" | "habit" | "learn" }) {
-  const common = "h-5 w-5 fill-none stroke-current";
+function NavIcon({ name }: { name: NavKey }) {
+  const common = "h-4 w-4 fill-none stroke-current";
   if (name === "overview") {
     return (
       <svg viewBox="0 0 24 24" aria-hidden="true" className={common} strokeWidth="1.75">
@@ -266,6 +282,33 @@ function NavIcon({ name }: { name: "overview" | "surplus" | "habit" | "learn" })
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v3M8 5.5c-2.5 1.6-4 4.2-4 7.2A8 8 0 0 0 16.5 19" />
         <path strokeLinecap="round" d="M14 14.5 12 13V9" />
         <circle cx="17.5" cy="17.5" r="3.2" />
+      </svg>
+    );
+  }
+  if (name === "invest") {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true" className={common} strokeWidth="1.75">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 20V10" />
+        <path strokeLinecap="round" d="M12 13c0-4 3.2-6 6.5-6-1 4-3.2 6-6.5 6Z" />
+        <path strokeLinecap="round" d="M12 15c0-3.2-2.6-5-5.4-5 1 3.2 2.6 5 5.4 5Z" />
+      </svg>
+    );
+  }
+  if (name === "wallet") {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true" className={common} strokeWidth="1.75">
+        <rect x="3" y="6" width="18" height="13" rx="2" />
+        <path strokeLinecap="round" d="M3 10h18" />
+        <circle cx="16.5" cy="14.5" r="1" className="fill-current stroke-none" />
+      </svg>
+    );
+  }
+  if (name === "chama") {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true" className={common} strokeWidth="1.75">
+        <circle cx="8" cy="9" r="2.2" />
+        <circle cx="16" cy="9" r="2.2" />
+        <path strokeLinecap="round" d="M4.5 18.5c.7-2.4 2.2-3.5 3.5-3.5s2.8 1.1 3.5 3.5M12.5 18.5c.7-2.4 2.2-3.5 3.5-3.5s2.8 1.1 3.5 3.5" />
       </svg>
     );
   }
