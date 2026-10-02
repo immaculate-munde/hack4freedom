@@ -487,7 +487,24 @@ export function buildProfile(input: BuildProfileInput): FinancialProfile {
 
   // Now compute real resilience using the floor, and recompute surplus.
   const resilience = detectResilience(sorted, firstPass.monthlyKes.floor);
-  const surplus = computeSurplus({ income: netIncome, spending, resilience })
+  const surplus = computeSurplus({ income: netIncome, spending, resilience });
+
+  // TEMP DEBUG — remove after fixing
+  if (process.env.DEBUG_PROFILE === "1") {
+    console.log("\n=== DEBUG buildProfile === - profile.ts:494");
+    console.log("window.monthsCovered: - profile.ts:495", window.monthsCovered);
+    console.log("income: - profile.ts:496", JSON.stringify(income, null, 2));
+    console.log("commitments: - profile.ts:497", JSON.stringify(commitments, null, 2));
+    console.log("monthlyCommitmentsTotal: - profile.ts:498", monthlyCommitmentsTotal);
+    console.log("netIncome: - profile.ts:499", JSON.stringify(netIncome.monthlyKes));
+    console.log(
+      "spending.flexibleMonthlyKes:",
+      JSON.stringify(spending.flexibleMonthlyKes),
+    );
+    console.log("resilience: - profile.ts:504", JSON.stringify(resilience, null, 2));
+    console.log("surplus: - profile.ts:505", JSON.stringify(surplus, null, 2));
+    console.log("=== END DEBUG ===\n - profile.ts:506");
+  }
 
   return {
     version: 1,

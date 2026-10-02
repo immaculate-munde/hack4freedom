@@ -103,8 +103,8 @@ function detectIncome(transactions: readonly Transaction[]): IncomeSummary {
     byCounterparty.set(key, entry);
   }
 
-  // Build sources: keep counterparties that appear in >=2 distinct months,
-  // OR appear in >=1 month and are not obviously irregular.
+  // Build sources: keep counterparties that appear in ≥2 distinct months,
+  // OR appear in ≥1 month and are not obviously irregular.
   const sources: Array<Detected<IncomeSource>> = [];
   for (const [label, entry] of byCounterparty) {
     const isIrregular = IRREGULAR_INCOME_LABELS.test(label);
@@ -112,9 +112,10 @@ function detectIncome(transactions: readonly Transaction[]): IncomeSummary {
     if (observations < 2 && isIrregular) continue;
     if (observations < 1) continue;
 
-    const range = kesRange(entry.amounts);
+    const monthlyAmounts = entry.amounts; // one per transaction
+    const range = kesRange(monthlyAmounts);
     const regularity: IncomeSource["regularity"] =
-      observations >= 2 ? "monthly" : "irregular";
+      observations >= 4 ? "monthly" : observations >= 2 ? "monthly" : "irregular";
 
     sources.push({
       value: {
@@ -133,14 +134,13 @@ function detectIncome(transactions: readonly Transaction[]): IncomeSummary {
     (a, b) => b.value.monthlyKes.typical - a.value.monthlyKes.typical,
   );
 
-   // The income range reflects the primary recurring source — the one with
-  // the most observations. One-off transfers (gifts, M-Shwari top-ups) and
-  // secondary gigs do not define the monthly floor. This keeps the range
-  // honest about the variability a person actually experiences.
-  const primary = sources.find((s) => s.observations >= 2);
-  const combined = primary
-    ? primary.value.monthlyKes
-    : { floor: 0, typical: 0, ceiling: 0 };
+  // Combined monthly income: sum of per-month totals from all credits
+  const monthlyTotals = new Map<string, number>();
+  for (const t of credits) {
+    const key = monthKey(t.date);
+    monthlyTotals.set(key, (monthlyTotals.get(key) ?? 0) + t.amountKes);
+  }
+  const combined = kesRange([...monthlyTotals.values()]);
 
   return { sources, monthlyKes: combined };
 }
@@ -177,12 +177,11 @@ const COMMITMENT_PATTERNS: CommitmentPattern[] = [
     label: (t) => t.counterparty ?? "Chama",
   },
   {
-    // Loan category is for actual loans (STUDY LOAN, M-SHWARI).
-    // Fuliza is a separate signal tracked in resilience, not a commitment.
     category: "loan",
     match: (t) =>
-      /study loan|m-shwari|loan desk/i.test(t.raw) ||
-      /loan/i.test(t.counterparty ?? ""),
+      /loan|fuliza|m-shwari/i.test(t.counterparty ?? "") ||
+      t.kind === "fuliza" ||
+      /STUDY LOAN|M-SHWARI/i.test(t.raw),
     label: (t) => t.counterparty ?? "Loan",
   },
   {
@@ -211,12 +210,12 @@ function detectCommitments(transactions: readonly Transaction[]): Commitment[] {
     );
 
     // Cadence:
-    // - monthly: appears 3+ times OR in 4+ distinct months
-    // - termly: appears 2 times
+    // - monthly: appears in ≥4 months
+    // - termly: appears 2–3 times, spaced months apart
     // - irregular: everything else
     let cadence: Cadence;
-    if (observations >= 3 || distinctMonths.size >= 4) cadence = "monthly";
-    else if (observations >= 2) cadence = "termly";
+    if (distinctMonths.size >= 4) cadence = "monthly";
+    else if (distinctMonths.size >= 2) cadence = "termly";
     else cadence = "irregular";
 
     const confidence: Confidence = confidenceFrom(distinctMonths.size);
@@ -268,25 +267,6 @@ const SPENDING_CATEGORY_PATTERNS: Array<{
   },
 ];
 
-/**
- * Real households spend cash that M-Pesa does not see: kiosks, matatus,
- * market stalls. The fixture assumes this baseline.
- *
- * Sum of fixture's byCategory:
- *   groceries  6000/7000/9000
- *   transport  2000/2500/4000
- *   airtime     800/1000/1500
- *   eating out 1200/1500/2000
- * Total floor 10000, typical 12000, ceiling 16500.
- * The fixture's flexibleMonthlyKes says floor 11000 (slightly higher).
- * We use the fixture's stated range directly.
- */
-const FLEX_BASELINE: KesRange = {
-  floor: 11000,
-  typical: 12000,
-  ceiling: 16500,
-};
-
 function detectSpending(
   transactions: readonly Transaction[],
   commitments: readonly Commitment[],
@@ -294,13 +274,10 @@ function detectSpending(
   // A transaction is "committed" if it matches one of the commitment categories
   // with a similar amount to the commitment's average. Otherwise it's flexible.
   const commitmentAmounts = new Set(commitments.map((c) => c.amountKes));
-  const committedIds = new Set<string>();
-  for (const t of transactions) {
-    if (t.direction !== "out") continue;
-    if (commitmentAmounts.has(t.amountKes)) {
-      committedIds.add(t.id);
-    }
-  }
+  const committedTransactions = transactions.filter(
+    (t) => t.direction === "out" && commitmentAmounts.has(t.amountKes),
+  );
+  const committedIds = new Set(committedTransactions.map((t) => t.id));
 
   const flexible = transactions.filter(
     (t) => t.direction === "out" && !committedIds.has(t.id),
@@ -312,9 +289,9 @@ function detectSpending(
     const key = monthKey(t.date);
     monthlyTotals.set(key, (monthlyTotals.get(key) ?? 0) + t.amountKes);
   }
-  const detectedFlexible = kesRange([...monthlyTotals.values()]);
+  const flexibleMonthlyKes = kesRange([...monthlyTotals.values()]);
 
-  // Category breakdown (from detected data, before blending)
+  // Category breakdown
   const byCategory: SpendingCategorySummary[] = [];
   for (const pattern of SPENDING_CATEGORY_PATTERNS) {
     const matches = flexible.filter(pattern.match);
@@ -341,15 +318,7 @@ function detectSpending(
     });
   }
 
-  // Blend detected flexible with the household baseline.
-  // The baseline accounts for cash spending M-Pesa cannot see.
-  const blendedFlexible: KesRange = {
-    floor: Math.max(detectedFlexible.floor, FLEX_BASELINE.floor),
-    typical: Math.max(detectedFlexible.typical, FLEX_BASELINE.typical),
-    ceiling: Math.max(detectedFlexible.ceiling, FLEX_BASELINE.ceiling),
-  };
-
-  return { byCategory, flexibleMonthlyKes: blendedFlexible };
+  return { byCategory, flexibleMonthlyKes };
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -369,7 +338,8 @@ function detectResilience(
   const monthsOfExpensesCovered =
     surplusFloor <= 0 ? 0.2 : Math.min(3, Math.max(0.5, months / 3));
 
-  const bufferFirst = surplusFloor <= 0 || borrowingReliance === "frequent";
+  const bufferFirst =
+    surplusFloor <= 0 || borrowingReliance === "frequent";
 
   return {
     monthsOfExpensesCovered: Number(monthsOfExpensesCovered.toFixed(1)),
@@ -383,7 +353,6 @@ function detectResilience(
 // Surplus
 // ─────────────────────────────────────────────────────────────
 
-/** The slices of a profile that the surplus calculation reads. */
 export interface SurplusInput {
   income: IncomeSummary;
   spending: SpendingSummary;
@@ -394,28 +363,24 @@ export interface SurplusInput {
  * Compute a safe surplus range from the user's own history.
  * The floor is the worst typical month. Do not apply a fixed 50/30/20 split.
  * Set `bufferFirst` when resilience is thin.
- *
- * `income` is expected to be already net of fixed commitments
- * (see buildProfile — it subtracts monthly commitments before calling).
  */
 export function computeSurplus(input: SurplusInput): Surplus {
   const { income, spending, resilience } = input;
 
+  const incomeFloor = income.monthlyKes.floor;
+  const incomeTypical = income.monthlyKes.typical;
+  const incomeCeiling = income.monthlyKes.ceiling;
+
+  const flexFloor = spending.flexibleMonthlyKes.floor;
+  const flexTypical = spending.flexibleMonthlyKes.typical;
+  const flexCeiling = spending.flexibleMonthlyKes.ceiling;
+
   // Worst typical month: lowest income, highest flexible spending
-  const floor = Math.max(
-    0,
-    income.monthlyKes.floor - spending.flexibleMonthlyKes.ceiling,
-  );
+  const floor = Math.max(0, incomeFloor - flexCeiling);
   // Typical month: typical income, typical flexible spending
-  const typical = Math.max(
-    0,
-    income.monthlyKes.typical - spending.flexibleMonthlyKes.typical,
-  );
+  const typical = Math.max(0, incomeTypical - flexTypical);
   // Best typical month: highest income, lowest flexible spending
-  const ceiling = Math.max(
-    0,
-    income.monthlyKes.ceiling - spending.flexibleMonthlyKes.floor,
-  );
+  const ceiling = Math.max(0, incomeCeiling - flexFloor);
 
   const bufferFirst = resilience.bufferFirst || floor <= 0;
 
@@ -456,22 +421,6 @@ export function buildProfile(input: BuildProfileInput): FinancialProfile {
   const commitments = detectCommitments(sorted);
   const spending = detectSpending(sorted, commitments);
 
-  // Fixed commitments reduce the income the surplus formula sees.
-  // Include every detected commitment: monthly and termly both count,
-  // because termly fees (school fees) are still obligations across the year.
-  const monthlyCommitmentsTotal = commitments
-    .filter((c) => c.observations >= 1)
-    .reduce((sum, c) => sum + c.amountKes, 0);
-
-  const netIncome: IncomeSummary = {
-    sources: income.sources,
-    monthlyKes: {
-      floor: Math.max(0, income.monthlyKes.floor - monthlyCommitmentsTotal),
-      typical: Math.max(0, income.monthlyKes.typical - monthlyCommitmentsTotal),
-      ceiling: Math.max(0, income.monthlyKes.ceiling - monthlyCommitmentsTotal),
-    },
-  };
-
   // First pass with placeholder resilience, so we can compute the floor.
   const placeholder: Resilience = {
     monthsOfExpensesCovered: 0,
@@ -479,15 +428,11 @@ export function buildProfile(input: BuildProfileInput): FinancialProfile {
     fulizaObservations: 0,
     bufferFirst: false,
   };
-  const firstPass = computeSurplus({
-    income: netIncome,
-    spending,
-    resilience: placeholder,
-  });
+  const firstPass = computeSurplus({ income, spending, resilience: placeholder });
 
   // Now compute real resilience using the floor, and recompute surplus.
   const resilience = detectResilience(sorted, firstPass.monthlyKes.floor);
-  const surplus = computeSurplus({ income: netIncome, spending, resilience })
+  const surplus = computeSurplus({ income, spending, resilience });
 
   return {
     version: 1,

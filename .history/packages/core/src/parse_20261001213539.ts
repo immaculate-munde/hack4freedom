@@ -18,37 +18,25 @@ export interface ParseStatementInput {
 // Helpers — pure functions, no side effects
 // ─────────────────────────────────────────────────────────────
 
-/**
- * Safe access to a regex capture group.
- * `noUncheckedIndexedAccess` makes `match[1]` possibly undefined.
- * This narrows it once so every caller does not have to.
- */
-function group(match: RegExpMatchArray, index: number): string | undefined {
-  const value = match[index];
-  return typeof value === "string" ? value : undefined;
-}
-
 /** Extract a Ksh amount. Handles "Ksh15,000.00", "KSh8,000.00", "Ksh100.00". */
 function extractAmount(text: string): number | null {
   const match = text.match(/K[Ss]h([\d,]+(?:\.\d{2})?)/);
   if (!match) return null;
-  const raw = group(match, 1);
+  const [, raw] = match;
   if (raw === undefined) return null;
   const value = Number(raw.replace(/,/g, ""));
   if (!Number.isFinite(value)) return null;
-  return Math.round(value); // whole KES
+  return Math.round(value);
 }
-
 /** Extract ISO date from "on 2/4/26 at 8:12 AM" or "on 14/6/26 at 10:02 AM". */
 function extractDate(text: string): string | null {
   const match = text.match(/on\s+(\d{1,2})\/(\d{1,2})\/(\d{2,4})/i);
   if (!match) return null;
-  const day = group(match, 1);
-  const month = group(match, 2);
-  const yearRaw = group(match, 3);
-  if (day === undefined || month === undefined || yearRaw === undefined) return null;
-  const year = Number(yearRaw) < 100 ? 2000 + Number(yearRaw) : Number(yearRaw);
-  return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  const yearRaw = Number(match[3]);
+  const year = yearRaw < 100 ? 2000 + yearRaw : yearRaw;
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
 /** Extract running balance if present. */
@@ -56,12 +44,9 @@ function extractBalance(text: string): number | undefined {
   const match = text.match(
     /(?:New M-PESA balance is|M-PESA balance is|New M-PESAbalance is)\s*K[Ss]h([\d,]+(?:\.\d{2})?)/i,
   );
-  if (!match) return undefined;
-  const raw = group(match, 1);
-  if (raw === undefined) return undefined;
-  return Math.round(Number(raw.replace(/,/g, "")));
+  if (!match || match[1] === undefined) return undefined;
+  return Math.round(Number(match[1].replace(/,/g, "")));
 }
-
 /** Extract counterparty label from common M-Pesa phrasings. */
 function extractCounterparty(text: string): string | undefined {
   const patterns = [
@@ -74,19 +59,14 @@ function extractCounterparty(text: string): string | undefined {
   ];
   for (const pattern of patterns) {
     const match = text.match(pattern);
-    if (!match) continue;
-    const captured = group(match, 1);
-    if (captured !== undefined) return captured.trim();
+    if (match && match[1] !== undefined) return match[1].trim();
+
   }
   return undefined;
 }
 
 /** One SMS → one Transaction, or null if the message is not a transaction. */
-function parseOneMessage(
-  message: string,
-  index: number,
-  previousDate?: string,
-): Transaction | null {
+function parseOneMessage(message: string, index: number): Transaction | null {
   const trimmed = message.trim();
 
   // Skip failed transactions — no money moved.
@@ -98,14 +78,7 @@ function parseOneMessage(
   // Skip reversal-in-progress notices.
   if (/reversal request has been received/i.test(trimmed)) return null;
 
-  // Fuliza follow-ups have no date in the message. Use the previous
-  // transaction's date, since Fuliza fires on the same day as the purchase.
-  const isFuliza = /Fuliza M-PESA amount of/i.test(trimmed);
-  const isFulizaRepayment = /clear your outstanding Fuliza/i.test(trimmed);
-
-  const date =
-    extractDate(trimmed) ??
-    (isFuliza || isFulizaRepayment ? previousDate : undefined);
+  const date = extractDate(trimmed);
   if (!date) return null;
 
   const balance = extractBalance(trimmed);
@@ -113,7 +86,7 @@ function parseOneMessage(
   const id = `txn-${date}-${String(index).padStart(3, "0")}`;
 
   // ── Fuliza (loan usage — money out) ─────────────────────────
-  if (isFuliza) {
+  if (/Fuliza M-PESA amount of/i.test(trimmed)) {
     const amount = extractAmount(trimmed);
     if (amount === null) return null;
     return {
@@ -129,7 +102,7 @@ function parseOneMessage(
   }
 
   // ── Fuliza repayment (money out) ────────────────────────────
-  if (isFulizaRepayment) {
+  if (/clear your outstanding Fuliza/i.test(trimmed)) {
     const amount = extractAmount(trimmed);
     if (amount === null) return null;
     return {
@@ -270,15 +243,11 @@ function parseOneMessage(
  */
 export function parseSmsBatch(messages: readonly string[]): Transaction[] {
   const transactions: Transaction[] = [];
-  let previousDate: string | undefined;
 
   for (const [index, message] of messages.entries()) {
     if (message.trim().length === 0) continue;
-    const txn = parseOneMessage(message, index, previousDate);
-    if (txn) {
-      transactions.push(txn);
-      previousDate = txn.date;
-    }
+    const txn = parseOneMessage(message, index);
+    if (txn) transactions.push(txn);
   }
 
   // Sort by date ascending so downstream code sees history in order.

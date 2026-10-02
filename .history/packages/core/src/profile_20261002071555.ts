@@ -133,14 +133,13 @@ function detectIncome(transactions: readonly Transaction[]): IncomeSummary {
     (a, b) => b.value.monthlyKes.typical - a.value.monthlyKes.typical,
   );
 
-   // The income range reflects the primary recurring source — the one with
-  // the most observations. One-off transfers (gifts, M-Shwari top-ups) and
-  // secondary gigs do not define the monthly floor. This keeps the range
-  // honest about the variability a person actually experiences.
-  const primary = sources.find((s) => s.observations >= 2);
-  const combined = primary
-    ? primary.value.monthlyKes
-    : { floor: 0, typical: 0, ceiling: 0 };
+  // Combined monthly income: sum of per-month totals from all credits
+  const monthlyTotals = new Map<string, number>();
+  for (const t of credits) {
+    const key = monthKey(t.date);
+    monthlyTotals.set(key, (monthlyTotals.get(key) ?? 0) + t.amountKes);
+  }
+  const combined = kesRange([...monthlyTotals.values()]);
 
   return { sources, monthlyKes: combined };
 }
@@ -177,12 +176,11 @@ const COMMITMENT_PATTERNS: CommitmentPattern[] = [
     label: (t) => t.counterparty ?? "Chama",
   },
   {
-    // Loan category is for actual loans (STUDY LOAN, M-SHWARI).
-    // Fuliza is a separate signal tracked in resilience, not a commitment.
     category: "loan",
     match: (t) =>
-      /study loan|m-shwari|loan desk/i.test(t.raw) ||
-      /loan/i.test(t.counterparty ?? ""),
+      /loan|fuliza|m-shwari/i.test(t.counterparty ?? "") ||
+      t.kind === "fuliza" ||
+      /STUDY LOAN|M-SHWARI/i.test(t.raw),
     label: (t) => t.counterparty ?? "Loan",
   },
   {
@@ -211,12 +209,12 @@ function detectCommitments(transactions: readonly Transaction[]): Commitment[] {
     );
 
     // Cadence:
-    // - monthly: appears 3+ times OR in 4+ distinct months
-    // - termly: appears 2 times
+    // - monthly: appears in >=4 months
+    // - termly: appears 2-3 times, spaced months apart
     // - irregular: everything else
     let cadence: Cadence;
-    if (observations >= 3 || distinctMonths.size >= 4) cadence = "monthly";
-    else if (observations >= 2) cadence = "termly";
+    if (distinctMonths.size >= 4) cadence = "monthly";
+    else if (distinctMonths.size >= 2) cadence = "termly";
     else cadence = "irregular";
 
     const confidence: Confidence = confidenceFrom(distinctMonths.size);
@@ -268,25 +266,6 @@ const SPENDING_CATEGORY_PATTERNS: Array<{
   },
 ];
 
-/**
- * Real households spend cash that M-Pesa does not see: kiosks, matatus,
- * market stalls. The fixture assumes this baseline.
- *
- * Sum of fixture's byCategory:
- *   groceries  6000/7000/9000
- *   transport  2000/2500/4000
- *   airtime     800/1000/1500
- *   eating out 1200/1500/2000
- * Total floor 10000, typical 12000, ceiling 16500.
- * The fixture's flexibleMonthlyKes says floor 11000 (slightly higher).
- * We use the fixture's stated range directly.
- */
-const FLEX_BASELINE: KesRange = {
-  floor: 11000,
-  typical: 12000,
-  ceiling: 16500,
-};
-
 function detectSpending(
   transactions: readonly Transaction[],
   commitments: readonly Commitment[],
@@ -312,9 +291,9 @@ function detectSpending(
     const key = monthKey(t.date);
     monthlyTotals.set(key, (monthlyTotals.get(key) ?? 0) + t.amountKes);
   }
-  const detectedFlexible = kesRange([...monthlyTotals.values()]);
+  const flexibleMonthlyKes = kesRange([...monthlyTotals.values()]);
 
-  // Category breakdown (from detected data, before blending)
+  // Category breakdown
   const byCategory: SpendingCategorySummary[] = [];
   for (const pattern of SPENDING_CATEGORY_PATTERNS) {
     const matches = flexible.filter(pattern.match);
@@ -341,15 +320,7 @@ function detectSpending(
     });
   }
 
-  // Blend detected flexible with the household baseline.
-  // The baseline accounts for cash spending M-Pesa cannot see.
-  const blendedFlexible: KesRange = {
-    floor: Math.max(detectedFlexible.floor, FLEX_BASELINE.floor),
-    typical: Math.max(detectedFlexible.typical, FLEX_BASELINE.typical),
-    ceiling: Math.max(detectedFlexible.ceiling, FLEX_BASELINE.ceiling),
-  };
-
-  return { byCategory, flexibleMonthlyKes: blendedFlexible };
+  return { byCategory, flexibleMonthlyKes };
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -456,11 +427,10 @@ export function buildProfile(input: BuildProfileInput): FinancialProfile {
   const commitments = detectCommitments(sorted);
   const spending = detectSpending(sorted, commitments);
 
-  // Fixed commitments reduce the income the surplus formula sees.
-  // Include every detected commitment: monthly and termly both count,
-  // because termly fees (school fees) are still obligations across the year.
+  // Fixed monthly commitments reduce the income the surplus formula sees.
+  // Only `monthly` cadence is treated as fixed; termly/yearly averages out.
   const monthlyCommitmentsTotal = commitments
-    .filter((c) => c.observations >= 1)
+    .filter((c) => c.cadence === "monthly")
     .reduce((sum, c) => sum + c.amountKes, 0);
 
   const netIncome: IncomeSummary = {
@@ -487,7 +457,7 @@ export function buildProfile(input: BuildProfileInput): FinancialProfile {
 
   // Now compute real resilience using the floor, and recompute surplus.
   const resilience = detectResilience(sorted, firstPass.monthlyKes.floor);
-  const surplus = computeSurplus({ income: netIncome, spending, resilience })
+  const surplus = computeSurplus({ income: netIncome, spending, resilience });
 
   return {
     version: 1,
