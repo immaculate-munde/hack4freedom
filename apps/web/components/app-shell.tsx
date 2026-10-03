@@ -26,6 +26,9 @@ const copy = {
     invest: "Invest",
     wallet: "Wallet",
     chama: "Chama",
+    more: "More",
+    moreMenu: "More screens",
+    closeMore: "Close more",
     nav: "Primary",
     encrypted: "Encrypted on your device.",
     phoneLine: "Your statements never leave your phone.",
@@ -50,6 +53,9 @@ const copy = {
     invest: "Wekeza",
     wallet: "Mkoba",
     chama: "Chama",
+    more: "Zaidi",
+    moreMenu: "Skrini zaidi",
+    closeMore: "Funga zaidi",
     nav: "Kuu",
     encrypted: "Imesimbwa kwenye kifaa chako.",
     phoneLine: "Taarifa zako hazitoki kwenye simu.",
@@ -62,25 +68,20 @@ const copy = {
   },
 } as const;
 
-const TABS = [
+const PRIMARY = [
   { href: "/overview", key: "overview", match: (p: string) => p.startsWith("/overview") },
   { href: "/surplus", key: "surplus", match: (p: string) => p.startsWith("/surplus") },
   { href: "/habit", key: "habit", match: (p: string) => p.startsWith("/habit") },
   { href: "/learn", key: "learn", match: (p: string) => p.startsWith("/learn") },
+] as const;
+
+const MORE = [
   { href: "/invest", key: "invest", match: (p: string) => p.startsWith("/invest") },
-] as const;
-
-const SIDE_BASE = [
   { href: "/wallet", key: "wallet", match: (p: string) => p.startsWith("/wallet") },
+  { href: "/chama", key: "chama", match: (p: string) => p.startsWith("/chama") },
 ] as const;
 
-const CHAMA_ITEM = {
-  href: "/chama",
-  key: "chama",
-  match: (p: string) => p.startsWith("/chama"),
-} as const;
-
-const NAV = [...TABS, ...SIDE_BASE, CHAMA_ITEM] as const;
+const NAV = [...PRIMARY, ...MORE] as const;
 
 type NavKey = (typeof NAV)[number]["key"];
 
@@ -96,11 +97,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname() ?? "/";
   const quiet = hidesNav(pathname);
   const [language, setLanguage] = useState<Language>("en");
-  const [wantsChama, setWantsChama] = useState(false);
   const [isSensiOpen, setIsSensiOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [navCollapsed, setNavCollapsed] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const t = copy[language];
+  const moreActive = MORE.some((item) => item.match(pathname));
 
   useEffect(() => {
     try {
@@ -123,23 +125,17 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    try {
-      const raw = sessionStorage.getItem("pesasense.onboarding");
-      if (!raw) {
-        setWantsChama(false);
-        return;
-      }
-      const parsed = JSON.parse(raw) as {
-        wantsChama?: unknown;
-        draft?: { wantsChama?: unknown };
-      };
-      setWantsChama(parsed.wantsChama === true || parsed.draft?.wantsChama === true);
-    } catch {
-      setWantsChama(false);
-    }
+    setMoreOpen(false);
   }, [pathname]);
 
-  const sideNav = wantsChama ? [...TABS, ...SIDE_BASE, CHAMA_ITEM] : [...TABS, ...SIDE_BASE];
+  useEffect(() => {
+    if (!moreOpen) return;
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setMoreOpen(false);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [moreOpen]);
 
   return (
     <div className="app-shell">
@@ -148,8 +144,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           className={`app-sidebar hidden lg:flex ${navCollapsed ? "app-sidebar-collapsed" : ""}`}
           aria-label={t.nav}
         >
-          <div className={`flex h-full flex-col py-6 ${navCollapsed ? "px-2" : "px-4"}`}>
-            <div className={`mb-8 flex items-center gap-3 ${navCollapsed ? "justify-center px-0" : "px-2"}`}>
+          <div className={`flex h-full min-h-0 w-full flex-col py-6 ${navCollapsed ? "px-2" : "px-4"}`}>
+            <div className={`mb-6 flex shrink-0 items-center gap-3 ${navCollapsed ? "justify-center px-0" : "px-2"}`}>
               <button
                 type="button"
                 aria-label="Open Sensi guide"
@@ -166,8 +162,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </div>
               )}
             </div>
-            <nav className="flex min-h-0 flex-1 flex-col gap-2">
-              {sideNav.map((tab) => {
+            <nav className="app-sidebar-nav flex min-h-0 flex-1 flex-col gap-1">
+              {NAV.map((tab) => {
                 const active = tab.match(pathname);
                 return (
                   <Link
@@ -175,7 +171,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                     href={tab.href}
                     aria-current={active ? "page" : undefined}
                     aria-label={t[tab.key]}
-                    className={`flex min-h-12 w-full flex-1 items-center rounded-2xl text-sm font-semibold ${
+                    className={`flex h-11 w-full shrink-0 items-center rounded-2xl text-sm font-semibold ${
                       navCollapsed ? "justify-center px-0" : "gap-3 px-4"
                     } ${
                       active
@@ -189,7 +185,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 );
               })}
             </nav>
-            <div className="mt-auto flex flex-col items-center gap-2 pt-4">
+            <div className="mt-auto flex shrink-0 flex-col items-center gap-2 pt-4">
               {navCollapsed ? null : (
                 <p className="px-3 pb-1 text-xs leading-5 text-[#f6f1e4]/75">{t.encrypted}</p>
               )}
@@ -289,30 +285,84 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className={quiet ? "app-content app-content-landing" : "app-content"}>{children}</div>
 
         {quiet ? null : (
-          <nav className="app-mobile-nav safe-bottom lg:hidden" aria-label={t.nav}>
-            {sideNav.map((tab) => {
-              const active = tab.match(pathname);
-              return (
-                <Link
-                  key={tab.href}
-                  href={tab.href}
-                  aria-current={active ? "page" : undefined}
-                  className={`flex min-h-nav flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-semibold ${
-                    active ? "text-pine" : "text-slate"
-                  }`}
-                >
-                  <span
-                    className={`flex h-7 w-12 items-center justify-center rounded-full ${
-                      active ? "bg-moss/20" : ""
+          <>
+            {moreOpen ? (
+              <div className="more-sheet-root lg:hidden">
+                <button
+                  type="button"
+                  className="more-sheet-backdrop"
+                  aria-label={t.closeMore}
+                  onClick={() => setMoreOpen(false)}
+                />
+                <div id="more-sheet" className="more-sheet" role="dialog" aria-label={t.moreMenu}>
+                  <p className="px-1 pb-2 text-[11px] font-semibold tracking-[0.12em] text-slate uppercase">
+                    {t.moreMenu}
+                  </p>
+                  <div className="flex flex-col gap-1">
+                    {MORE.map((item) => {
+                      const active = item.match(pathname);
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          aria-current={active ? "page" : undefined}
+                          className={`flex min-h-12 items-center gap-3 rounded-2xl px-3 text-sm font-semibold ${
+                            active ? "bg-mint text-pine" : "text-ink hover:bg-pearl"
+                          }`}
+                        >
+                          <NavIcon name={item.key} />
+                          {t[item.key]}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+            <nav className="app-mobile-nav safe-bottom lg:hidden" aria-label={t.nav}>
+              {PRIMARY.map((tab) => {
+                const active = tab.match(pathname);
+                return (
+                  <Link
+                    key={tab.href}
+                    href={tab.href}
+                    aria-current={active ? "page" : undefined}
+                    onClick={() => setMoreOpen(false)}
+                    className={`flex min-h-nav flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-semibold ${
+                      active ? "text-pine" : "text-slate"
                     }`}
                   >
-                    <NavIcon name={tab.key} />
-                  </span>
-                  {t[tab.key]}
-                </Link>
-              );
-            })}
-          </nav>
+                    <span
+                      className={`flex h-7 w-12 items-center justify-center rounded-full ${
+                        active ? "bg-moss/20" : ""
+                      }`}
+                    >
+                      <NavIcon name={tab.key} />
+                    </span>
+                    {t[tab.key]}
+                  </Link>
+                );
+              })}
+              <button
+                type="button"
+                aria-expanded={moreOpen}
+                aria-controls="more-sheet"
+                onClick={() => setMoreOpen((current) => !current)}
+                className={`flex min-h-nav flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-semibold ${
+                  moreOpen || moreActive ? "text-pine" : "text-slate"
+                }`}
+              >
+                <span
+                  className={`flex h-7 w-12 items-center justify-center rounded-full ${
+                    moreOpen || moreActive ? "bg-moss/20" : ""
+                  }`}
+                >
+                  <MoreIcon />
+                </span>
+                {t.more}
+              </button>
+            </nav>
+          </>
         )}
       </div>
 
@@ -365,7 +415,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             aria-label="Open Sensi guide"
             aria-expanded={isSensiOpen}
             onClick={() => setIsSensiOpen((current) => !current)}
-            className="btn fixed right-4 bottom-20 z-40 flex h-14 w-14 items-center justify-center rounded-full border-2 border-paper bg-[#f3efe4] shadow-[0_8px_24px_rgb(30_58_50/0.18)] lg:hidden"
+            className={`btn fixed right-4 bottom-20 z-40 flex h-14 w-14 items-center justify-center rounded-full border-2 border-paper bg-[#f3efe4] shadow-[0_8px_24px_rgb(30_58_50/0.18)] lg:hidden ${
+              moreOpen ? "pointer-events-none invisible" : ""
+            }`}
           >
             <SensiAvatar size="sm" mood={isSensiOpen ? "happy" : "neutral"} />
           </button>
@@ -477,6 +529,16 @@ function PersonIcon() {
         strokeWidth="1.75"
         strokeLinecap="round"
       />
+    </svg>
+  );
+}
+
+function MoreIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 fill-current">
+      <circle cx="6" cy="12" r="1.6" />
+      <circle cx="12" cy="12" r="1.6" />
+      <circle cx="18" cy="12" r="1.6" />
     </svg>
   );
 }
