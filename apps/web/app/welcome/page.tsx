@@ -57,13 +57,13 @@ export default function WelcomePage() {
   }
 
   return (
-    <main className="bg-canvas text-ink">
-      <header className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-5 py-5 sm:px-8">
-        <div className="flex items-center gap-2">
+    <main className="bg-canvas pb-24 text-ink md:pb-0">
+      <header className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-5 sm:px-8">
+        <div className="flex min-w-0 items-center gap-2">
           <LogoMark className="h-8 w-8" />
-          <span className="text-lg font-bold tracking-tight text-pine">PesaSense</span>
+          <span className="truncate text-lg font-bold tracking-tight text-pine">PesaSense</span>
         </div>
-        <nav className="hidden items-center gap-7 text-sm font-semibold text-slate md:flex">
+        <nav className="order-3 flex basis-full flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs font-semibold text-slate md:order-none md:basis-auto md:gap-7 md:text-sm">
           <a href="#how" className="hover:text-pine">
             How it works
           </a>
@@ -77,9 +77,9 @@ export default function WelcomePage() {
             Notice
           </Link>
         </nav>
-        <div className="flex items-center gap-2">
+        <div className="ml-auto flex shrink-0 items-center gap-2">
           <ThemeToggle />
-          <button type="button" onClick={getStarted} className="btn btn-accent rounded-full px-5">
+          <button type="button" onClick={getStarted} className="btn btn-accent rounded-full px-4 sm:px-5">
             Get started
           </button>
         </div>
@@ -95,14 +95,14 @@ export default function WelcomePage() {
         </h1>
 
         <div className="relative mt-2 grid items-end gap-6 lg:mt-0 lg:grid-cols-[15rem_minmax(0,1fr)_16rem] lg:gap-4">
-          <div className="relative z-10 order-2 flex flex-col gap-3 lg:order-1 lg:pb-20">
-            <article className="rounded-2xl border border-sand bg-paper p-4 shadow-card">
+          <div className="relative z-10 order-2 flex flex-col gap-4 lg:order-1 lg:gap-3 lg:pb-20">
+            <article className="rounded-2xl border border-sand bg-paper p-5 shadow-card lg:p-4">
               <p className="text-2xl font-bold text-pine">On this phone</p>
               <p className="mt-1 text-sm leading-5 text-slate">
                 Your statements are read here. They do not leave the phone.
               </p>
             </article>
-            <article className="rounded-2xl border border-sand bg-paper p-4 shadow-card">
+            <article className="rounded-2xl border border-sand bg-paper p-5 shadow-card lg:p-4">
               <p className="text-2xl font-bold text-pine">You approve</p>
               <p className="mt-1 text-sm leading-5 text-slate">
                 We remind you. You approve each purchase.

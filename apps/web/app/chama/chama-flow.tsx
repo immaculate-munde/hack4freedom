@@ -273,7 +273,7 @@ export function ChamaFlow() {
       aside={aside}
     >
       {onboardingChama ? (
-        <section className="card mb-4">
+        <section className="card mb-6 md:mb-4">
           <p className="text-xs font-semibold tracking-wide text-moss uppercase">Your chama</p>
           <h2 className="mt-1 font-serif text-2xl text-pine">{onboardingChama.name}</h2>
           <p className="mt-2 text-sm leading-6 text-ink/75">
@@ -393,7 +393,7 @@ export function ChamaFlow() {
         {error ? <p className="mt-3 text-sm text-brass">{error}</p> : null}
       </section>
 
-      <section className="card mt-4">
+      <section className="card mt-6 md:mt-4">
         <h2 className="font-serif text-xl text-pine">Your receive address</h2>
         <p className="mt-2 text-sm leading-6 text-ink/75">
           When it is your turn, others pay this address. You can replace only your own.
@@ -401,7 +401,7 @@ export function ChamaFlow() {
         <p className="mt-3 break-all text-sm font-medium text-pine">
           {actor?.lightningAddress}
         </p>
-        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+        <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:gap-2">
           <input
             className="field"
             value={addressDraft}
@@ -431,7 +431,7 @@ export function ChamaFlow() {
         ) : null}
       </section>
 
-      <section className="card mt-4">
+      <section className="card mt-6 md:mt-4">
         <h2 className="font-serif text-xl text-pine">Reliability note</h2>
         <p className="mt-2 text-sm leading-6 text-ink/75">
           After a round finishes, this phone can keep an opt-in note. It is not published.
@@ -454,7 +454,7 @@ export function ChamaFlow() {
 
       <button
         type="button"
-        className="btn btn-ghost mt-4"
+        className="btn btn-ghost mt-6 md:mt-4"
         disabled={busy}
         onClick={() => {
           const fresh = createDemoChamaSisters();

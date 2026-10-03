@@ -77,13 +77,13 @@ export function ScenarioChart() {
             Illustrative
           </span>
         </div>
-        <p className="mt-2 text-xs leading-5 text-ink/60">
+        <p className="mt-2 text-sm leading-6 text-ink/60 md:text-xs md:leading-5">
           Bitcoin's value goes up and down. Not a guarantee of future results. Based on
           a hypothetical KES 1,000 held for 1 year.
         </p>
       </div>
 
-      <div className="h-64 w-full">
+      <div className="h-[220px] w-full md:h-64">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={ILLUSTRATIVE_SCENARIO}
@@ -116,7 +116,7 @@ export function ScenarioChart() {
       </div>
 
       <div className="mt-6 rounded-xl bg-sand/30 p-3">
-        <p className="text-[10px] leading-4 text-ink/50">
+        <p className="text-sm leading-6 text-ink/50 md:text-[10px] md:leading-4">
           {PAST_PERFORMANCE_DISCLAIMER}
         </p>
       </div>
