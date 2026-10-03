@@ -134,6 +134,19 @@ export default async function OverviewPage({
         </section>
       )}
 
+      <section className="rounded-[20px] bg-white p-5 shadow-card">
+        <p className="text-[11px] font-semibold tracking-[0.12em] text-slate uppercase">
+          Chama
+        </p>
+        <p className="mt-2 text-sm leading-6 text-ink">
+          The circle records who pays whom this round. Each person pays from a
+          wallet they control. PesaSense never holds the group&apos;s sats.
+        </p>
+        <Link href={`/chama${query}`} className="btn btn-secondary mt-4 inline-flex">
+          Open chama
+        </Link>
+      </section>
+
       <section className="grid grid-cols-3 gap-1 rounded-[20px] bg-pearl px-2 py-4 text-center">
         <TrustChip label="Never hold keys" icon="key" />
         <TrustChip label="Never push trading" icon="chart" />
