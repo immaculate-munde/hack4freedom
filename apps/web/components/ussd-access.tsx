@@ -184,8 +184,9 @@ export function UssdAccess({ profileId }: { profileId: ProfileId }) {
       <p className="text-xs font-semibold tracking-wide text-slate uppercase">USSD</p>
       <h2 className="mt-1 text-lg font-semibold text-ink">Use this on a handset</h2>
       <p className="mt-2 text-sm leading-6 text-slate">
-        Dial from the M-Pesa line you link to {label}. Surplus, habit, and buys use the
-        same rules as this screen. Statements stay on this phone. You confirm every buy.
+        The handset menu uses the linked demo persona ({label}). It does not read a
+        statement imported on this phone. Statements stay on this phone. You confirm
+        every buy.
       </p>
       <p className="mt-3 text-sm font-semibold text-ink">
         Dial {serviceCode}

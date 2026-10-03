@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
-import { LogoMark } from "./brand/LogoMark";
+import { Suspense, useEffect, useState, type ReactNode } from "react";
+import { CustomerRail } from "./customer-rail";
 import { SensiAvatar } from "./sensi-avatar";
 import { SensiBubble } from "./sensi-bubble";
+import { ThemeToggle } from "./theme-toggle";
 
 type Language = "en" | "sw";
 type ShellCopy = (typeof copy)[Language];
@@ -14,7 +15,9 @@ const copy = {
   en: {
     brand: "PesaSense",
     stays: "Stays on your phone",
+    customer: "Customer profile",
     profile: "Profile",
+    closeProfile: "Close profile",
     language: "Language",
     overview: "Overview",
     surplus: "Surplus",
@@ -24,11 +27,21 @@ const copy = {
     wallet: "Wallet",
     chama: "Chama",
     nav: "Primary",
+    encrypted: "Encrypted on your device.",
+    phoneLine: "Your statements never leave your phone.",
+    reminder: "We'll remind you on the 1st.",
+    approve: "You approve each purchase.",
+    review: "Review the habit",
+    monthly: "Monthly",
+    collapseNav: "Collapse the menu",
+    expandNav: "Expand the menu",
   },
   sw: {
     brand: "PesaSense",
     stays: "Inabaki kwenye simu yako",
+    customer: "Wasifu wa mteja",
     profile: "Wasifu",
+    closeProfile: "Funga wasifu",
     language: "Lugha",
     overview: "Muhtasari",
     surplus: "Ziada",
@@ -38,6 +51,14 @@ const copy = {
     wallet: "Mkoba",
     chama: "Chama",
     nav: "Kuu",
+    encrypted: "Imesimbwa kwenye kifaa chako.",
+    phoneLine: "Taarifa zako hazitoki kwenye simu.",
+    reminder: "Tutakukumbusha tarehe ya 1.",
+    approve: "Unakubali kila ununuzi.",
+    review: "Tazama tabia",
+    monthly: "Kila mwezi",
+    collapseNav: "Funga menyu",
+    expandNav: "Fungua menyu",
   },
 } as const;
 
@@ -64,16 +85,11 @@ const NAV = [...TABS, ...SIDE_BASE, CHAMA_ITEM] as const;
 type NavKey = (typeof NAV)[number]["key"];
 
 function hidesNav(pathname: string): boolean {
-  return (
-    pathname === "/" ||
-    pathname === "/welcome" ||
-    pathname.startsWith("/onboarding") ||
-    pathname.startsWith("/onboard")
-  );
+  return pathname === "/welcome" || pathname === "/onboarding" || pathname === "/onboard";
 }
 
 function hidesSensi(pathname: string): boolean {
-  return pathname === "/welcome" || pathname.startsWith("/onboarding");
+  return pathname === "/welcome" || pathname === "/onboarding" || pathname === "/onboard";
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -82,112 +98,199 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [language, setLanguage] = useState<Language>("en");
   const [wantsChama, setWantsChama] = useState(false);
   const [isSensiOpen, setIsSensiOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [navCollapsed, setNavCollapsed] = useState(false);
   const t = copy[language];
 
   useEffect(() => {
     try {
-      const raw = sessionStorage.getItem("pesasense.onboarding");
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as Record<string, unknown>;
-      setWantsChama(parsed.wantsChama === true);
+      setNavCollapsed(localStorage.getItem("pesasense.nav-collapsed") === "true");
     } catch {
-      // Ignore invalid or stale onboarding data.
+      setNavCollapsed(false);
     }
   }, []);
 
-  const sideNav = wantsChama ? [...SIDE_BASE, CHAMA_ITEM] : SIDE_BASE;
+  function toggleNav() {
+    setNavCollapsed((current) => {
+      const next = !current;
+      try {
+        localStorage.setItem("pesasense.nav-collapsed", next ? "true" : "false");
+      } catch {
+        // The menu still toggles for this visit.
+      }
+      return next;
+    });
+  }
+
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("pesasense.onboarding");
+      if (!raw) {
+        setWantsChama(false);
+        return;
+      }
+      const parsed = JSON.parse(raw) as {
+        wantsChama?: unknown;
+        draft?: { wantsChama?: unknown };
+      };
+      setWantsChama(parsed.wantsChama === true || parsed.draft?.wantsChama === true);
+    } catch {
+      setWantsChama(false);
+    }
+  }, [pathname]);
+
+  const sideNav = wantsChama ? [...TABS, ...SIDE_BASE, CHAMA_ITEM] : [...TABS, ...SIDE_BASE];
 
   return (
     <div className="app-shell">
       {quiet ? null : (
-        <aside className="app-sidebar hidden lg:flex" aria-label={t.nav}>
-          <div className="flex h-full flex-col p-5">
-            <Brand t={t} />
-            <nav className="flex flex-col gap-1">
-              {TABS.map((tab) => {
+        <aside
+          className={`app-sidebar hidden lg:flex ${navCollapsed ? "app-sidebar-collapsed" : ""}`}
+          aria-label={t.nav}
+        >
+          <div className={`flex h-full flex-col py-6 ${navCollapsed ? "px-2" : "px-4"}`}>
+            <div className={`mb-8 flex items-center gap-3 ${navCollapsed ? "justify-center px-0" : "px-2"}`}>
+              <button
+                type="button"
+                aria-label="Open Sensi guide"
+                aria-expanded={isSensiOpen}
+                onClick={() => setIsSensiOpen((current) => !current)}
+                className="btn flex h-12 w-12 items-center justify-center rounded-full bg-[#f3efe4]"
+              >
+                <SensiAvatar size="sm" mood={isSensiOpen ? "happy" : "neutral"} />
+              </button>
+              {navCollapsed ? null : (
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-bold text-[#f6f1e4]">{t.brand}</p>
+                  <p className="text-xs text-[#e3b23c]">{t.stays}</p>
+                </div>
+              )}
+            </div>
+            <nav className="flex min-h-0 flex-1 flex-col gap-2">
+              {sideNav.map((tab) => {
                 const active = tab.match(pathname);
                 return (
                   <Link
                     key={tab.href}
                     href={tab.href}
                     aria-current={active ? "page" : undefined}
-                    className={`rounded-control px-3 py-2 text-sm font-semibold ${
-                      active ? "bg-moss/20 text-pine" : "text-slate"
+                    aria-label={t[tab.key]}
+                    className={`flex min-h-12 w-full flex-1 items-center rounded-2xl text-sm font-semibold ${
+                      navCollapsed ? "justify-center px-0" : "gap-3 px-4"
+                    } ${
+                      active
+                        ? "bg-[#f3efe4] text-pine"
+                        : "text-[#f6f1e4]/85 hover:bg-white/10"
                     }`}
                   >
-                    <span
-                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
-                        active ? "bg-white text-teal" : "bg-pearl text-slate"
-                      }`}
-                    >
-                      <NavIcon name={tab.key} />
-                    </span>
-                    {t[tab.key]}
+                    <NavIcon name={tab.key} />
+                    {navCollapsed ? <span className="sr-only">{t[tab.key]}</span> : t[tab.key]}
                   </Link>
                 );
               })}
             </nav>
-            <div className="mt-auto flex flex-col gap-1 border-t border-line pt-4">
-              {sideNav.map((item) => {
-                const active = item.match(pathname);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    aria-current={active ? "page" : undefined}
-                    className={`rounded-control px-3 py-2 text-sm font-semibold ${
-                      active ? "bg-moss/20 text-pine" : "text-slate"
-                    }`}
-                  >
-                    {t[item.key]}
-                  </Link>
-                );
-              })}
+            <div className="mt-auto flex flex-col items-center gap-2 pt-4">
+              {navCollapsed ? null : (
+                <p className="px-3 pb-1 text-xs leading-5 text-[#f6f1e4]/75">{t.encrypted}</p>
+              )}
+              <button
+                type="button"
+                aria-pressed={navCollapsed}
+                aria-label={navCollapsed ? t.expandNav : t.collapseNav}
+                onClick={toggleNav}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#f6f1e4] hover:bg-white/10"
+              >
+                <NavChevron collapsed={navCollapsed} />
+              </button>
             </div>
           </div>
         </aside>
       )}
 
       <div className="app-main-column">
+        {quiet ? null : (
         <header className="app-mobile-header lg:hidden">
-          <div className="flex items-center justify-between gap-2">
-            <Brand t={t} compact />
-            <div className="flex shrink-0 items-center gap-2">
+          <Brand t={t} />
+          <div className="mobile-header-tools">
+            <div
+              role="group"
+              aria-label={t.language}
+              className="flex h-10 items-center rounded-full bg-pearl px-1"
+            >
+              <LangButton
+                label="EN"
+                pressed={language === "en"}
+                onClick={() => setLanguage("en")}
+              />
+              <span className="px-1 text-xs text-line" aria-hidden="true">
+                |
+              </span>
+              <LangButton
+                label="SW"
+                pressed={language === "sw"}
+                onClick={() => setLanguage("sw")}
+              />
+            </div>
+            <ThemeToggle />
+            <ProfileMenu
+              language={language}
+              label={t.profile}
+              open={profileOpen}
+              onToggle={() => setProfileOpen((current) => !current)}
+              onClose={() => setProfileOpen(false)}
+            />
+          </div>
+        </header>
+        )}
+
+        {quiet ? null : (
+          <div className="desk-top hidden lg:flex">
+            <p className="rounded-full bg-paper px-4 py-2 text-xs font-semibold text-pine">
+              {t.phoneLine}
+            </p>
+            <p className="rounded-full bg-paper px-4 py-2 text-xs font-semibold text-slate">
+              {t.monthly}
+            </p>
+            <p className="hidden rounded-full bg-paper px-4 py-2 text-xs font-semibold text-slate xl:block">
+              {t.approve}
+            </p>
+            <div className="ml-auto flex items-center gap-2">
+              <ThemeToggle />
               <div
                 role="group"
                 aria-label={t.language}
-                className="flex h-10 items-center rounded-full bg-pearl px-1"
+                className="flex h-10 items-center rounded-full bg-paper px-1"
               >
                 <LangButton
                   label="EN"
                   pressed={language === "en"}
                   onClick={() => setLanguage("en")}
                 />
-                <span className="px-0.5 text-xs text-line" aria-hidden="true">
-                  |
-                </span>
                 <LangButton
                   label="SW"
                   pressed={language === "sw"}
                   onClick={() => setLanguage("sw")}
                 />
               </div>
-              <button
-                type="button"
-                aria-label={t.profile}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-pine text-paper"
-              >
-                <PersonIcon />
-              </button>
+              <ProfileMenu
+                language={language}
+                label={t.profile}
+                open={profileOpen}
+                onToggle={() => setProfileOpen((current) => !current)}
+                onClose={() => setProfileOpen(false)}
+              />
+              <Link href="/habit" className="btn btn-accent rounded-full px-5 py-2">
+                {t.review}
+              </Link>
             </div>
           </div>
-        </header>
+        )}
 
-        <div className="app-content">{children}</div>
+        <div className={quiet ? "app-content app-content-landing" : "app-content"}>{children}</div>
 
         {quiet ? null : (
           <nav className="app-mobile-nav safe-bottom lg:hidden" aria-label={t.nav}>
-            {NAV.map((tab) => {
+            {sideNav.map((tab) => {
               const active = tab.match(pathname);
               return (
                 <Link
@@ -219,7 +322,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div
               role="dialog"
               aria-label="Sensi guide"
-              className="fixed right-4 bottom-24 z-40 w-[min(22rem,calc(100vw-2rem))] rounded-3xl border border-sand bg-paper p-4 shadow-2xl lg:right-6 lg:bottom-6"
+              className="fixed right-4 bottom-24 z-40 w-[min(22rem,calc(100vw-2rem))] rounded-3xl border border-sand bg-paper p-4 shadow-2xl lg:bottom-6 lg:right-6"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-2">
@@ -262,7 +365,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             aria-label="Open Sensi guide"
             aria-expanded={isSensiOpen}
             onClick={() => setIsSensiOpen((current) => !current)}
-            className="btn fixed right-4 bottom-20 z-40 flex h-14 w-14 items-center justify-center rounded-full border-2 border-paper bg-mint shadow-[0_8px_24px_rgb(13_122_115/0.2)] transition-all duration-200 hover:-translate-y-0.5 lg:right-6 lg:bottom-6"
+            className="btn fixed right-4 bottom-20 z-40 flex h-14 w-14 items-center justify-center rounded-full border-2 border-paper bg-[#f3efe4] shadow-[0_8px_24px_rgb(30_58_50/0.18)] lg:hidden"
           >
             <SensiAvatar size="sm" mood={isSensiOpen ? "happy" : "neutral"} />
           </button>
@@ -272,13 +375,58 @@ export function AppShell({ children }: { children: ReactNode }) {
   );
 }
 
-function Brand({ t, compact = false }: { t: ShellCopy; compact?: boolean }) {
+function ProfileMenu({
+  language,
+  label,
+  open,
+  onToggle,
+  onClose,
+}: {
+  language: Language;
+  label: string;
+  open: boolean;
+  onToggle: () => void;
+  onClose: () => void;
+}) {
+  const closeLabel = copy[language].closeProfile;
   return (
-    <div className={`flex items-center gap-2 ${compact ? "" : "px-1"}`}>
-      <LogoMark className="h-8 w-8 shrink-0" />
+    <div className="relative">
+      <button
+        type="button"
+        aria-label={label}
+        aria-expanded={open}
+        onClick={onToggle}
+        className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-pine text-paper"
+      >
+        <PersonIcon />
+      </button>
+      {open ? (
+        <div className="absolute top-full right-0 z-30 mt-2 w-[min(18rem,calc(100vw-2rem))]">
+          <div className="mb-1 flex justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn rounded-full bg-paper px-3 py-1 text-xs font-semibold text-slate shadow-card"
+            >
+              {closeLabel}
+            </button>
+          </div>
+          <Suspense fallback={null}>
+            <CustomerRail language={language} />
+          </Suspense>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function Brand({ t }: { t: ShellCopy }) {
+  return (
+    <div className="mobile-brand">
+      <img src="/icon.svg" alt="" width={36} height={36} className="mobile-brand-mark" />
       <div>
-        <p className="text-base font-semibold whitespace-nowrap text-ink">{t.brand}</p>
-        <p className="text-xs font-semibold text-slate">{t.stays}</p>
+        <p className="mobile-brand-name">{t.brand}</p>
+        <p className="mobile-brand-stays">{t.stays}</p>
       </div>
     </div>
   );
@@ -304,6 +452,18 @@ function LangButton({
     >
       {label}
     </button>
+  );
+}
+
+function NavChevron({ collapsed }: { collapsed: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5 fill-none stroke-current">
+      {collapsed ? (
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M9 6l6 6-6 6" />
+      ) : (
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M15 6l-6 6 6 6" />
+      )}
+    </svg>
   );
 }
 

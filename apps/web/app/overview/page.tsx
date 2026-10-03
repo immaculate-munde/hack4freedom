@@ -1,18 +1,18 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 
-import Link from "next/link";
-import { PAST_PERFORMANCE_DISCLAIMER } from "@pesasense/core";
+import { PAST_PERFORMANCE_DISCLAIMER, type FinancialProfile } from "@pesasense/core";
+import { DemoProfileSwitch } from "../../components/demo-profile-switch";
 import { ProfileRequired } from "../../components/profile-required";
 import { ProfileSync } from "../../components/profile-sync";
 import { SensiAvatar } from "../../components/sensi-avatar";
 import { UssdAccess } from "../../components/ussd-access";
 import { WalletActivity } from "../../components/wallet-activity";
-import { formatKes, habitPercentOfFloor } from "../../lib/format";
 import { ImportTrigger } from "../../components/import-trigger";
-import { AnimatedNumber } from "../../components/animated-number";
 import { showBufferFirstUx } from "../../lib/buffer-gate";
+import { LifeMarkers } from "../../components/life-markers";
+import { buildMoneyStops, MoneyMap } from "../../components/money-map";
 import { useActiveProfile } from "../../lib/use-active-profile";
 
 const TRUST_ICONS: Record<string, string> = {
@@ -20,6 +20,8 @@ const TRUST_ICONS: Record<string, string> = {
   chart: "📊",
   phone: "📱",
 };
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 function TrustChip({ label, icon }: { label: string; icon: string }) {
   return (
@@ -34,8 +36,29 @@ function TrustChip({ label, icon }: { label: string; icon: string }) {
   );
 }
 
+/** Calendar date from a profile window. Returns null when the field is not a real date. */
+function formatWindowDate(iso: string): string | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const monthName = MONTHS[month - 1];
+  if (!monthName || day < 1 || day > 31) return null;
+  return `${day} ${monthName} ${year}`;
+}
+
+function statementPeriod(profile: FinancialProfile, isDemo: boolean): string {
+  const from = formatWindowDate(profile.window.from);
+  const to = formatWindowDate(profile.window.to);
+  if (from && to) return `${from} – ${to}`;
+  if (isDemo) return "Demo statement";
+  return "From the statement on this phone";
+}
+
 function OverviewContent() {
   const active = useActiveProfile();
+  const [pathFocus, setPathFocus] = useState<{ id: string; token: number } | null>(null);
   if (!active.ready) {
     return <ProfileRequired />;
   }
@@ -43,24 +66,33 @@ function OverviewContent() {
   const { profile, profileId, isDemo, displayName: name } = active;
   const persona = isDemo ? `${name} (invented demo)` : "Your profile on this phone";
 
-  const { floor, typical, ceiling } = profile.surplus.monthlyKes;
-
-  const habit = Math.round(floor * 0.75);
-  const share = habitPercentOfFloor(habit, floor);
-
-  const span = Math.max(ceiling - floor, 1);
-  const typicalPercent = Math.round(((typical - floor) / span) * 100);
+  const floor = profile.surplus.monthlyKes.floor;
   const query = isDemo && profileId === "brian" ? "?profile=brian" : "";
-  const cushionMonths = profile.resilience.monthsOfExpensesCovered;
-  const cushionPercent = Math.max(
-    0,
-    Math.min(100, Math.round((cushionMonths / 3) * 100)),
-  );
-  const bufferFirst = showBufferFirstUx(profile);
+  const bufferFirst = showBufferFirstUx(profile) || floor <= 0;
+  const period = statementPeriod(profile, isDemo);
+
+  function openPromisedOnPath() {
+    const stop = buildMoneyStops(profile).find((item) => item.id.startsWith("commitment-"));
+    if (!stop) return;
+    setPathFocus({ id: stop.id, token: Date.now() });
+    document.getElementById("month-path")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-4">
-      <section className="flex items-center gap-3 rounded-[20px] border border-mint/40 bg-mint/35 px-4 py-3 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+    <main className="flex w-full flex-col gap-4">
+      <header>
+        <p className="text-[11px] font-semibold tracking-[0.14em] text-slate uppercase">
+          Statement period
+        </p>
+        <p className="mt-1 text-sm font-semibold text-ink">{period}</p>
+        {isDemo ? (
+          <p className="mt-2">
+            <DemoTag />
+          </p>
+        ) : null}
+      </header>
+
+      <section className="flex items-center gap-3 rounded-[20px] border border-mint/40 bg-mint/35 px-4 py-3 shadow-card">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-mint">
           <SensiAvatar size="sm" mood="happy" />
         </span>
@@ -68,83 +100,18 @@ function OverviewContent() {
           <span className="font-semibold">Habari {name} 👋</span>{" "}
           {bufferFirst
             ? "The buffer comes first. This history is not ready for a Bitcoin habit yet."
-            : "Everything essential is covered this month."}
+            : "Here is the picture from this statement, then what a habit would mean."}
         </p>
       </section>
 
-      <section className="rounded-[20px] bg-gradient-to-br from-pine to-moss p-5 text-paper shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-[11px] font-semibold tracking-[0.12em] text-brass uppercase">
-            Safe monthly surplus
-          </p>
-          {isDemo ? <DemoTag dark /> : null}
-        </div>
-        <p className="mt-3 text-[32px] leading-10 font-bold tracking-tight text-paper tabular-nums">
-          <AnimatedNumber value={floor} /> – <AnimatedNumber value={ceiling} />
-        </p>
-        <p className="mt-1 text-sm text-paper/80">
-          Calm surplus after bills, chamas, and daily life.
-        </p>
-        <div className="mt-5" aria-hidden="true">
-          <div className="relative h-1.5 rounded-full bg-paper/25">
-            <div className="absolute inset-y-0 right-0 left-[8%] rounded-full bg-brass" />
-            <div
-              className="absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-brass ring-4 ring-moss"
-              style={{ left: `${typicalPercent}%` }}
-            />
-          </div>
-          <div className="mt-3 flex items-center justify-between gap-2 text-[11px] font-semibold text-paper/75">
-            <span>Conservative</span>
-            <span className="rounded-full bg-brass px-2 py-1 text-paper">
-              Typical {formatKes(typical)}
-            </span>
-            <span>Relaxed</span>
-          </div>
-        </div>
-        <p className="sr-only">
-          Floor {formatKes(floor)}, typical {formatKes(typical)}, high{" "}
-          {formatKes(ceiling)}.
-        </p>
-      </section>
+      <MoneyMap profile={profile} isDemo={isDemo} focusRequest={pathFocus} />
 
-      {bufferFirst ? (
-        <section className="rounded-[20px] border border-mint/60 bg-mint/20 p-5 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-          <p className="text-[11px] font-semibold tracking-[0.12em] text-moss uppercase">
-            Safety cushion
-          </p>
-          <p className="mt-2 text-sm leading-6 text-ink">
-            {cushionMonths} months of expenses covered. The aim is 3 months.
-          </p>
-          <div className="mt-3 h-2 rounded-full bg-pearl" aria-hidden="true">
-            <div
-              className="h-2 rounded-full bg-teal"
-              style={{ width: `${cushionPercent}%` }}
-            />
-          </div>
-          <Link href={`/habit${query}`} className="btn btn-accent mt-4 inline-flex">
-            Here&apos;s how
-          </Link>
-        </section>
-      ) : (
-        <section className="rounded-[20px] border border-brass/40 bg-brass/15 p-5 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-          <p className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.12em] text-teal uppercase">
-            <span className="h-1.5 w-1.5 rounded-full bg-teal" aria-hidden="true" />
-            Your habit
-          </p>
-          <div className="mt-2 flex items-end justify-between gap-3">
-            <p className="text-[28px] leading-9 font-bold text-ink tabular-nums">
-              <AnimatedNumber value={habit} />{" "}
-              <span className="text-base font-semibold text-slate">/ month</span>
-            </p>
-            <Link href={`/habit${query}`} className="btn btn-accent px-4 py-2">
-              Adjust
-            </Link>
-          </div>
-          <p className="mt-2 text-sm text-slate">
-            Sats appear when there is a quote. {share}% of the safe floor.
-          </p>
-        </section>
-      )}
+      <LifeMarkers
+        profile={profile}
+        isDemo={isDemo}
+        habitHref={`/habit${query}`}
+        onOpenPromisedStop={openPromisedOnPath}
+      />
 
       <section className="grid grid-cols-3 gap-1 rounded-[20px] bg-pearl px-2 py-4 text-center">
         <TrustChip label="Never hold keys" icon="key" />
@@ -168,11 +135,7 @@ function OverviewContent() {
           </p>
           <ImportTrigger />
           <div className="flex gap-3 pt-1 text-sm">
-            {profileId === "brian" ? (
-              <Link href="/overview" className="text-teal underline underline-offset-2">View Amina</Link>
-            ) : (
-              <Link href="/overview?profile=brian" className="text-teal underline underline-offset-2">View the thin profile</Link>
-            )}
+            <DemoProfileSwitch profileId={profileId} />
           </div>
         </section>
       ) : null}

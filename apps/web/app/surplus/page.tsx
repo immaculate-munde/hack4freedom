@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { PAST_PERFORMANCE_DISCLAIMER } from "@pesasense/core";
 import { AnimatedNumber } from "../../components/animated-number";
+import { DemoProfileSwitch } from "../../components/demo-profile-switch";
 import { ProfileRequired } from "../../components/profile-required";
 import { formatKes } from "../../lib/format";
 import { SensiAvatar } from "../../components/sensi-avatar";
@@ -98,12 +99,19 @@ function SurplusContent() {
           </dl>
           {habit ? (
             <p className="mt-4 text-sm text-paper/90">
-              Recommended habit {formatKes(habit.amountKes)} / {habit.cadence}, within the
-              safe floor.
+              Habit {formatKes(habit.amountKes)} / {habit.cadence}, within the safe floor.
             </p>
-          ) : (
+          ) : profile.surplus.bufferFirst || floor <= 0 ? (
             <p className="mt-4 text-sm text-paper/90">No habit yet. The buffer comes first.</p>
+          ) : (
+            <p className="mt-4 text-sm text-paper/90">No habit yet. Set one from this floor.</p>
           )}
+          <Link
+            href={`/habit${query}`}
+            className="btn btn-accent mt-4 inline-flex justify-center"
+          >
+            {habit ? "Review the habit" : "Set the habit from this floor"}
+          </Link>
         </section>
 
         <section className="w-full">
@@ -150,13 +158,7 @@ function SurplusContent() {
       </Link>
       {isDemo ? (
         <p className="text-sm">
-          {profileId === "brian" ? (
-            <Link href="/surplus">View Amina</Link>
-          ) : (
-            <Link href={`/surplus${query === "" ? "?profile=brian" : query}`}>
-              View the thin profile
-            </Link>
-          )}
+          <DemoProfileSwitch profileId={profileId} />
         </p>
       ) : null}
       <p className="text-xs leading-5 text-slate">{PAST_PERFORMANCE_DISCLAIMER}</p>

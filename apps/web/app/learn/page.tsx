@@ -4,7 +4,9 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ProfileRequired } from "../../components/profile-required";
+import { useProfile } from "../../contexts/profile-context";
 import { appInvestAllowance, isBufferGateEnabled } from "../../lib/buffer-gate";
+import { parseWholeKes, planWithAmount } from "../../lib/habit-plan";
 import { useActiveProfile } from "../../lib/use-active-profile";
 import { SavingsLadder } from "../../components/savings-ladder";
 import { ScenarioChart } from "../../components/scenario-chart";
@@ -36,6 +38,30 @@ type Answer = "drop" | "years" | "rent";
 function LearnPageContent() {
   const router = useRouter();
   const active = useActiveProfile();
+  const { setProfile } = useProfile();
+  const [open, setOpen] = useState<number | null>(0);
+  const [answer, setAnswer] = useState<Answer | null>(null);
+  const [amount, setAmount] = useState("");
+  const [cadence, setCadence] = useState<"weekly" | "monthly">("monthly");
+  const [error, setError] = useState<string | null>(null);
+  const activeRef = useRef(active);
+  activeRef.current = active;
+  const planKey = active.ready
+    ? `${active.profileId}:${active.profile.investmentPlan?.amountKes ?? ""}:${active.profile.investmentPlan?.cadence ?? ""}`
+    : "";
+
+  useEffect(() => {
+    const current = activeRef.current;
+    if (!current.ready) return;
+    const plan = current.profile.investmentPlan;
+    const nextAllowance = appInvestAllowance(current.profile);
+    const max = nextAllowance.ok ? nextAllowance.maxKes : 0;
+    const saved = plan?.amountKes ?? 0;
+    const recommended = nextAllowance.ok && saved > 0 ? Math.min(saved, max) : 0;
+    setAmount(recommended > 0 ? String(recommended) : "");
+    setCadence(plan?.cadence === "weekly" ? "weekly" : "monthly");
+  }, [planKey]);
+
   if (!active.ready) {
     return <ProfileRequired />;
   }
@@ -45,20 +71,12 @@ function LearnPageContent() {
   const bufferGateOn = isBufferGateEnabled();
   const surplusFloor = activeProfile.surplus.monthlyKes.floor;
   const maxSaveKes = allowance.ok ? allowance.maxKes : 0;
-  const recommendedHabit = allowance.ok
-    ? Math.max(10, Math.min(Math.round(surplusFloor * 0.75), maxSaveKes))
-    : 0;
+  const savedHabit = activeProfile.investmentPlan?.amountKes ?? 0;
+  const recommendedHabit =
+    allowance.ok && savedHabit > 0 ? Math.min(savedHabit, maxSaveKes) : 0;
 
   const bufferMonths = activeProfile.resilience.monthsOfExpensesCovered;
   const currentStep = bufferMonths >= 3 ? 2 : 1;
-
-  const [open, setOpen] = useState<number | null>(0);
-  const [answer, setAnswer] = useState<Answer | null>(null);
-  const [amount, setAmount] = useState<string>(
-    recommendedHabit > 0 ? recommendedHabit.toString() : "",
-  );
-  const [cadence, setCadence] = useState<"weekly" | "monthly">("monthly");
-  const [error, setError] = useState<string | null>(null);
 
   const handleStartSaving = (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,13 +84,19 @@ function LearnPageContent() {
       setError(allowance.reason);
       return;
     }
-    const num = Number(amount);
-    if (isNaN(num) || num <= 0) {
-      setError("Please enter a valid amount.");
+    const num = parseWholeKes(amount);
+    if (num === null) {
+      setError("Enter a whole number of shillings.");
       return;
     }
     if (num > maxSaveKes) {
       setError(`Amount cannot exceed your safe surplus of KES ${maxSaveKes.toLocaleString()}.`);
+      return;
+    }
+    try {
+      setProfile(planWithAmount(activeProfile, num, cadence));
+    } catch {
+      setError("Could not save this habit on this phone.");
       return;
     }
     setError(null);
@@ -80,7 +104,7 @@ function LearnPageContent() {
   };
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+    <main className="flex w-full flex-col gap-6">
       <header>
         <p className="text-[11px] font-semibold tracking-[0.14em] text-brass uppercase">
           Knowledge and safety

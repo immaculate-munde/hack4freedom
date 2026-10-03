@@ -1,10 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { OnboardingAnswers, UserGoal } from "@pesasense/core";
-import { SensiAvatar, type SensiMood } from "../../components/sensi-avatar";
-import { SensiBubble } from "../../components/sensi-bubble";
+import type { SensiMood } from "../../components/sensi-avatar";
+import { ThemeToggle } from "../../components/theme-toggle";
 
 const DRAFT_KEY = "pesasense.onboarding";
 
@@ -60,12 +60,12 @@ const GOALS: { id: GoalId; label: string }[] = [
 ];
 
 const BITCOIN_REASONS: { id: BitcoinReasonId; label: string }[] = [
-  { id: "scam_risk", label: "Scam Risk" },
-  { id: "no_understanding", label: "I do not understand how it works" },
-  { id: "capital", label: "It requires too much capital" },
-  { id: "regulation", label: "There are no regulations surrounding bitcoin in Kenya" },
-  { id: "returns", label: "I prefer investments with quicker returns" },
-  { id: "other", label: "Other" },
+  { id: "scam_risk", label: "I'm worried about scams" },
+  { id: "no_understanding", label: "I don't understand how it works" },
+  { id: "capital", label: "It feels like it needs too much money" },
+  { id: "regulation", label: "I'm not sure about the rules in Kenya" },
+  { id: "returns", label: "I want something that pays back sooner" },
+  { id: "other", label: "Something else" },
 ];
 
 const TOTAL_STEPS = 5;
@@ -147,6 +147,9 @@ export default function OnboardingPage() {
   const [mood, setMood] = useState<SensiMood>("neutral");
   const [acknowledgment, setAcknowledgment] = useState<string | null>(null);
   const [isAdvancing, setIsAdvancing] = useState(false);
+  const [finale, setFinale] = useState<Draft | null>(null);
+  const [beat, setBeat] = useState(0);
+  const finaleRef = useRef<Draft | null>(null);
 
   useEffect(() => {
     setMood("neutral");
@@ -189,17 +192,35 @@ export default function OnboardingPage() {
         setIsAdvancing(false);
         return;
       }
-      setMood("celebrating");
-      setIsCelebrating(true);
-      window.setTimeout(() => {
-        complete(nextDraft);
-      }, 900);
+      startFinale(nextDraft);
     }, 600);
   }
 
+  useEffect(() => {
+    if (!isCelebrating || !finale) return;
+    const total = summaryLines(finale).length;
+    const wait = beat < total ? 680 : 1100;
+    const timer = window.setTimeout(() => {
+      if (beat < total) {
+        setBeat((current) => current + 1);
+        return;
+      }
+      const saved = finaleRef.current;
+      if (saved) complete(saved);
+    }, wait);
+    return () => window.clearTimeout(timer);
+  }, [isCelebrating, finale, beat]);
+
   function patch(next: Partial<Draft>) {
     saveDraft({ ...draft, ...next });
-    setMood("happy");
+  }
+
+  function startFinale(nextDraft: Draft) {
+    finaleRef.current = nextDraft;
+    setFinale(nextDraft);
+    setBeat(0);
+    setMood("celebrating");
+    setIsCelebrating(true);
   }
 
   function choose(next: Partial<Draft>) {
@@ -227,18 +248,58 @@ export default function OnboardingPage() {
     advance({ ...draft, ...(blanks[step] ?? {}) });
   }
 
-  if (isCelebrating) {
+  const pose = poseFor(step, mood, isCelebrating);
+
+  if (isCelebrating && finale) {
+    const lines = summaryLines(finale);
+    const shown = Math.min(beat, lines.length);
+    const done = shown >= lines.length;
     return (
-      <main className="mx-auto flex w-full max-w-2xl flex-col items-center justify-center gap-4 py-16 px-4 text-center">
-        <SensiAvatar size="xl" mood="celebrating" />
-        <h2 className="text-2xl font-bold tracking-tight text-pine">You&apos;re all set</h2>
-        <p className="text-sm text-slate">Saving your answers…</p>
+      <main className="mx-auto flex min-h-dvh w-full max-w-5xl flex-col items-center justify-center gap-4 px-5 py-8 sm:px-8 lg:flex-row lg:items-center">
+        <img
+          src={done ? "/sensi-yes.png" : "/sensi-think.png"}
+          alt="Sensi"
+          className="pointer-events-none h-72 w-auto object-contain sm:h-96 lg:h-[min(68vh,560px)]"
+        />
+        <Thought
+          title="On this phone"
+          ask={done ? "That's the picture I have." : "Let me read that back."}
+          why={done ? "Nothing here leaves the phone. Next is your history." : "One line at a time, from what you just said."}
+        >
+          <div className="h-1.5 overflow-hidden rounded-full bg-sand" aria-hidden="true">
+            <div
+              className="h-full rounded-full bg-brass transition-all duration-500"
+              style={{ width: `${lines.length === 0 ? 0 : (shown / lines.length) * 100}%` }}
+            />
+          </div>
+          <ul className="mt-4 flex flex-col gap-2" aria-live="polite">
+            {lines.map((line, index) => {
+              const ready = index < shown;
+              return (
+                <li
+                  key={line}
+                  className={`flex items-start gap-2 text-sm leading-6 ${ready ? "text-ink" : "text-slate/35"}`}
+                >
+                  <span
+                    className={`mt-1 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] ${
+                      ready ? "bg-pine text-paper" : "border border-sand"
+                    }`}
+                    aria-hidden="true"
+                  >
+                    {ready ? "✓" : ""}
+                  </span>
+                  {line}
+                </li>
+              );
+            })}
+          </ul>
+        </Thought>
       </main>
     );
   }
 
   return (
-    <main className="mx-auto flex max-w-2xl flex-col gap-6 py-10 px-4">
+    <main className="mx-auto flex min-h-dvh w-full max-w-5xl flex-col px-5 py-5 sm:px-8">
       <header className="flex items-center justify-between">
         <button
           type="button"
@@ -248,23 +309,40 @@ export default function OnboardingPage() {
         >
           &lt;
         </button>
-        <p className="text-[11px] font-semibold tracking-[0.14em] text-teal uppercase">
-          Step {step + 1} of {TOTAL_STEPS}
-        </p>
-        <button type="button" onClick={skip} className="btn text-sm font-semibold text-slate">
-          Skip
-        </button>
+        <div className="flex flex-col items-center gap-2">
+          <p className="text-[11px] font-semibold tracking-[0.14em] text-slate uppercase">
+            Step {step + 1} of {TOTAL_STEPS}
+          </p>
+          <div className="flex items-center gap-1.5" aria-hidden="true">
+            {Array.from({ length: TOTAL_STEPS }, (_, index) => (
+              <span
+                key={index}
+                className={`h-1.5 w-7 rounded-full ${index <= step ? "bg-pine" : "bg-sand"}`}
+              />
+            ))}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <button type="button" onClick={skip} className="btn text-sm font-semibold text-slate">
+            Skip
+          </button>
+        </div>
       </header>
 
-      <div className="flex flex-col items-center gap-5 text-center">
-        <SensiAvatar size="xl" mood={mood} />
-        <SensiBubble tailPosition="top">
-          <p className="text-xl leading-8 font-semibold text-pine">{questionForStep(step)}</p>
-        </SensiBubble>
-        {acknowledgment ? <p className="text-sm font-semibold text-teal">{acknowledgment}</p> : null}
-      </div>
-
-      <div className="flex flex-col gap-3">
+      <div className="mt-2 grid flex-1 items-center gap-1 lg:grid-cols-[minmax(16rem,22rem)_minmax(0,1fr)] lg:gap-4">
+        <div className="flex flex-col items-center">
+          <img
+            src={pose}
+            alt="Sensi"
+            className="pointer-events-none h-64 w-auto object-contain sm:h-80 lg:h-[min(68vh,560px)]"
+          />
+          <p className="mt-1 text-[11px] font-semibold tracking-[0.16em] text-slate uppercase">Sensi</p>
+        </div>
+        <div>
+          <Thought {...promptFor(step, draft)}>
+            {acknowledgment ? <p className="text-sm font-semibold text-pine">{acknowledgment}</p> : null}
+            <div className="flex flex-col gap-3">
         {step === 0 ? (
           <DebtStep draft={draft} patch={patch} choose={choose} continueStep={() => advance(draft)} />
         ) : null}
@@ -279,23 +357,155 @@ export default function OnboardingPage() {
         {step === 4 ? (
           <GoalStep draft={draft} patch={patch} continueStep={() => advance(draft)} />
         ) : null}
+            </div>
+          </Thought>
+        </div>
       </div>
-
     </main>
+  );
+}
+
+function poseFor(step: number, mood: SensiMood, celebrating: boolean): string {
+  if (celebrating || mood === "celebrating" || mood === "happy") return "/sensi-yes.png";
+  if (step === 1 || step === 3) return "/sensi-think.png";
+  if (step === 2 || step === 4) return "/sensi-ask.png";
+  return "/sensi.png";
+}
+
+function Thought({
+  title,
+  ask,
+  why,
+  children,
+}: {
+  title: string;
+  ask: string;
+  why: string;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="relative">
+      <span className="absolute -top-3 left-12 h-3.5 w-3.5 rounded-full bg-paper shadow-card lg:top-auto lg:-left-8 lg:bottom-24 lg:h-4 lg:w-4" />
+      <span className="absolute -top-7 left-[4.5rem] h-2 w-2 rounded-full bg-paper shadow-card lg:top-auto lg:-left-14 lg:bottom-16" />
+      <div className="rounded-[32px] border border-sand bg-paper px-5 py-5 shadow-card sm:px-7 sm:py-6">
+        <p className="text-[11px] font-semibold tracking-[0.14em] text-brass uppercase">{title}</p>
+        <p className="mt-2 text-xl leading-8 font-semibold text-pine">{ask}</p>
+        <p className="mt-2 text-sm leading-6 text-slate">{why}</p>
+        {children ? <div className="mt-4">{children}</div> : null}
+      </div>
+    </div>
   );
 }
 
 const ACKNOWLEDGMENTS = ["Got it.", "Nice.", "Noted.", "Okay!"];
 
-function questionForStep(step: number): string {
-  const questions = [
-    "Habari! Let's get to know your money. Do you have any debts you pay monthly?",
-    "What monthly commitments should we keep in view, like a loan or a chama contribution?",
-    "Chamas are a big part of saving in Kenya. Would you like to join one?",
-    "Have you tried investing in Bitcoin before?",
-    "What would you like your money to help you feel ready for?",
-  ];
-  return questions[step] ?? questions[0] ?? "";
+type Prompt = { title: string; ask: string; why: string };
+
+function promptFor(step: number, draft: Draft): Prompt {
+  if (step === 0) {
+    return {
+      title: "Debts",
+      ask: "Do you repay any debt every month?",
+      why: "A loan or a balance you pay back. I'll leave room for it. Rent can wait for your statement.",
+    };
+  }
+  if (step === 1) {
+    return {
+      title: "Chama",
+      ask: "Are you in a chama right now?",
+      why: "If you contribute, tell me the name and the amount so I don't treat that money as spare.",
+    };
+  }
+  if (step === 2) {
+    return {
+      title: "A new chama",
+      ask: "Would you like to join a chama?",
+      why: "Say yes only if you want one. I'll show it in the app. Saying no changes nothing else.",
+    };
+  }
+  if (step === 3 && draft.hasInvestedBitcoin === false) {
+    return {
+      title: "Bitcoin",
+      ask: "Why haven't you bought Bitcoin?",
+      why: "Pick any that fit. I'm asking so I know how much to explain. Nothing is bought on this step.",
+    };
+  }
+  if (step === 3 && draft.hasInvestedBitcoin === true) {
+    return {
+      title: "Bitcoin",
+      ask: "Where do you buy or hold it?",
+      why: "A name is enough. You don't have to share an amount. Nothing is bought on this step.",
+    };
+  }
+  if (step === 3) {
+    return {
+      title: "Bitcoin",
+      ask: "Have you bought Bitcoin before?",
+      why: "So I know how much to explain. This step does not buy anything.",
+    };
+  }
+  return {
+    title: "Ready for",
+    ask: "What do you want this money to help you feel ready for?",
+    why: "Pick one. A small habit comes later, and you still approve each purchase.",
+  };
+}
+
+function summaryLines(draft: Draft): string[] {
+  const lines: string[] = [];
+  if (draft.hasDebt === true) {
+    const name = draft.debtNotes.trim();
+    const amount = wholeKes(draft.debtBalance);
+    if (name && amount !== null) {
+      lines.push(`${name}, balance about KES ${amount.toLocaleString("en-KE")}.`);
+    } else if (name) {
+      lines.push(`A monthly debt: ${name}.`);
+    } else {
+      lines.push("You repay something every month.");
+    }
+  } else if (draft.hasDebt === false) {
+    lines.push("No monthly debt to set aside.");
+  } else {
+    lines.push("Monthly debt: skipped for now.");
+  }
+
+  if (draft.inChama === true) {
+    const name = draft.chamaName.trim();
+    const amount = wholeKes(draft.chamaAmount);
+    const cadence = draft.chamaCadence === "weekly" ? "a week" : "a month";
+    if (name && amount !== null) {
+      lines.push(`${name}: KES ${amount.toLocaleString("en-KE")} ${cadence}.`);
+    } else if (name) {
+      lines.push(`You're in ${name}.`);
+    } else {
+      lines.push("You're in a chama.");
+    }
+  } else if (draft.inChama === false) {
+    lines.push("No chama contribution right now.");
+  } else {
+    lines.push("Chama contribution: skipped for now.");
+  }
+
+  if (draft.wantsChama === true) lines.push("You'd like to join a chama.");
+  else if (draft.wantsChama === false) lines.push("You don't want a chama just yet.");
+  else lines.push("Joining a chama: skipped for now.");
+
+  if (draft.hasInvestedBitcoin === true) {
+    const where = draft.bitcoinWhere.trim();
+    lines.push(where ? `You've bought Bitcoin, through ${where}.` : "You've bought Bitcoin before.");
+  } else if (draft.hasInvestedBitcoin === false) {
+    const reason = BITCOIN_REASONS.find((item) => item.id === draft.bitcoinReasons[0]);
+    lines.push(reason ? `Bitcoin: ${reason.label}.` : "You haven't bought Bitcoin before.");
+  } else {
+    lines.push("Bitcoin: skipped for now.");
+  }
+
+  const goal = GOALS.find((item) => item.id === draft.goalId);
+  if (goal) lines.push(`Ready for: ${goal.label}.`);
+  else lines.push("What you're saving toward: skipped for now.");
+
+  lines.push("Next I'll ask for your history, on this phone.");
+  return lines;
 }
 
 function YesNo({
@@ -312,9 +522,7 @@ function YesNo({
         aria-pressed={value === true}
         onClick={() => onChange(true)}
         className={`btn flex min-h-12 items-center justify-between rounded-2xl border px-4 py-3 text-sm font-semibold ${
-          value === true
-            ? "border-teal bg-teal text-on-primary"
-            : "border-line bg-paper text-ink hover:-translate-y-0.5"
+          value === true ? "choice-picked" : "choice-idle"
         }`}
       >
         Yes
@@ -325,9 +533,7 @@ function YesNo({
         aria-pressed={value === false}
         onClick={() => onChange(false)}
         className={`btn flex min-h-12 items-center justify-between rounded-2xl border px-4 py-3 text-sm font-semibold ${
-          value === false
-            ? "border-teal bg-teal text-on-primary"
-            : "border-line bg-paper text-ink hover:-translate-y-0.5"
+          value === false ? "choice-picked" : "choice-idle"
         }`}
       >
         No
@@ -442,9 +648,7 @@ function ChamaStep({
               aria-pressed={draft.chamaCadence === "monthly"}
               onClick={() => patch({ chamaCadence: "monthly" })}
               className={`btn min-h-12 rounded-2xl border text-sm font-semibold ${
-                draft.chamaCadence === "monthly"
-                  ? "border-teal bg-teal text-on-primary"
-                  : "border-line bg-white text-ink"
+                draft.chamaCadence === "monthly" ? "choice-picked" : "choice-idle"
               }`}
             >
               Monthly
@@ -454,9 +658,7 @@ function ChamaStep({
               aria-pressed={draft.chamaCadence === "weekly"}
               onClick={() => patch({ chamaCadence: "weekly" })}
               className={`btn min-h-12 rounded-2xl border text-sm font-semibold ${
-                draft.chamaCadence === "weekly"
-                  ? "border-teal bg-teal text-on-primary"
-                  : "border-line bg-white text-ink"
+                draft.chamaCadence === "weekly" ? "choice-picked" : "choice-idle"
               }`}
             >
               Weekly
@@ -489,10 +691,8 @@ function GoalStep({
             type="button"
             aria-pressed={draft.goalId === goal.id}
             onClick={() => patch({ goalId: goal.id })}
-            className={`btn min-h-12 rounded-2xl border px-4 py-3 text-left text-sm font-semibold ${
-              draft.goalId === goal.id
-                ? "border-teal bg-teal text-on-primary"
-                : "border-line bg-paper text-ink"
+            className={`btn flex min-h-12 items-center justify-between rounded-2xl border px-4 py-3 text-left text-sm font-semibold ${
+              draft.goalId === goal.id ? "choice-picked" : "choice-idle"
             }`}
           >
             {goal.label}
@@ -545,16 +745,18 @@ function BitcoinExperienceStep({
 
   return (
     <div className="flex flex-col gap-4">
-      <YesNo
-        value={draft.hasInvestedBitcoin}
-        onChange={(hasInvestedBitcoin) =>
-          patch({ hasInvestedBitcoin, bitcoinWhere: "", bitcoinReasons: [], bitcoinOtherReason: "" })
-        }
-      />
+      {draft.hasInvestedBitcoin !== false ? (
+        <YesNo
+          value={draft.hasInvestedBitcoin}
+          onChange={(hasInvestedBitcoin) =>
+            patch({ hasInvestedBitcoin, bitcoinWhere: "", bitcoinReasons: [], bitcoinOtherReason: "" })
+          }
+        />
+      ) : null}
 
       {draft.hasInvestedBitcoin === true && (
         <label className="block text-sm text-ink">
-          Where do you currently invest?
+          The place
           <input
             className="field mt-1"
             placeholder="e.g. Coinbase, Paxful, Binance…"
@@ -576,16 +778,11 @@ function BitcoinExperienceStep({
                 aria-pressed={selected}
                 onClick={() => toggleReason(reason.id)}
                 className={`btn flex min-h-12 w-full items-center justify-between rounded-2xl border px-4 py-3 text-left text-sm font-semibold ${
-                  selected ? "border-teal bg-teal text-on-primary" : "border-line bg-paper text-ink"
+                  selected ? "choice-picked" : "choice-idle"
                 }`}
               >
                 {reason.label}
-                <span
-                  aria-hidden="true"
-                  className={`h-4 w-4 rounded-full border ${
-                    selected ? "border-teal bg-teal" : "border-line"
-                  }`}
-                />
+                <span aria-hidden="true" className="choice-mark h-4 w-4 shrink-0 rounded-full border" />
               </button>
             );
           })}
