@@ -26,7 +26,7 @@ A first visit opens [http://localhost:3000/welcome](http://localhost:3000/welcom
 
 **Running in this repo:** the screens above, Bitika collect with an explicit yes, device purchase history, a signed webhook kept in memory for this server process, NIP-44 encrypt-to-self with a NIP-78 event and one anonymous NIP-90 surplus job, and the chama rules.
 
-**Specified, not running:** SMS and PDF parsing, `buildProfile()`, and historical scenarios. Those functions throw `Not implemented`. `PROFILE_SOURCE=parsed` shows that no profile has been built. The reliability note stays on the device. eCash is out of scope. The acceptance test in `packages/core/src/profile.spec.ts` is skipped until the parser and `buildProfile()` return data.
+**Specified:** SMS and PDF parsing, `buildProfile()`, and historical scenarios. Those functions throw `Not implemented`. `PROFILE_SOURCE=parsed` shows that no profile has been built. The reliability note stays on the device. eCash is out of scope. The acceptance test in `packages/core/src/profile.spec.ts` is skipped until the parser and `buildProfile()` return data.
 
 ## Freedom tech in this build
 
