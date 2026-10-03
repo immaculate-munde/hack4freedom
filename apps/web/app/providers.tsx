@@ -3,9 +3,17 @@
 import type { ReactNode } from "react";
 import { useEffect } from "react";
 import { BreezWalletProvider } from "../contexts/breez-wallet-context";
+import { LanguageProvider } from "../contexts/language-context";
 import { ProfileProvider } from "../contexts/profile-context";
+import type { Locale } from "../lib/i18n";
 
-export function Providers({ children }: { children: ReactNode }) {
+export function Providers({
+  children,
+  locale,
+}: {
+  children: ReactNode;
+  locale: Locale;
+}) {
   useEffect(() => {
     try {
       document.documentElement.classList.toggle(
@@ -18,8 +26,10 @@ export function Providers({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <ProfileProvider>
-      <BreezWalletProvider>{children}</BreezWalletProvider>
-    </ProfileProvider>
+    <LanguageProvider initialLocale={locale}>
+      <ProfileProvider>
+        <BreezWalletProvider>{children}</BreezWalletProvider>
+      </ProfileProvider>
+    </LanguageProvider>
   );
 }

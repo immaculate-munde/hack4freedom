@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useI18n } from "../contexts/language-context";
 
 function CheckIcon({ className }: { className?: string }) {
   return (
@@ -47,7 +48,9 @@ export interface SavingsLadderProps {
 }
 
 export function SavingsLadder({ currentStep, bufferMonths }: SavingsLadderProps) {
-  const isStep1Complete = bufferMonths >= 3 || currentStep > 1;
+  const { t } = useI18n();
+  const bufferTarget = 3;
+  const isStep1Complete = bufferMonths >= bufferTarget || currentStep > 1;
   const isStep2Complete = currentStep > 2;
 
   // Derive statuses
@@ -60,7 +63,7 @@ export function SavingsLadder({ currentStep, bufferMonths }: SavingsLadderProps)
   const step3Status = isStep2Complete ? "active" : "locked";
 
   return (
-    <div className="relative pl-10" aria-label="Savings progression steps">
+    <div className="relative pl-10" aria-label={t("learn.ladder.label")}>
       {/* Vertical connecting line */}
       <div
         className="absolute bottom-6 left-[1.125rem] top-4 w-px bg-sand"
@@ -83,10 +86,10 @@ export function SavingsLadder({ currentStep, bufferMonths }: SavingsLadderProps)
               step1Status === "active" ? "text-moss" : "text-ink"
             }`}
           >
-            Emergency Buffer
+            {t("learn.ladder.bufferTitle")}
           </h3>
           <p className="mt-1 text-sm leading-6 text-ink/75">
-            Aim for 3 months of basic expenses safely set aside for peace of mind.
+            {t("learn.ladder.bufferBody", { months: bufferTarget })}
           </p>
           {step1Status === "active" && (
             <div className="mt-4 flex items-center gap-3">
@@ -94,12 +97,12 @@ export function SavingsLadder({ currentStep, bufferMonths }: SavingsLadderProps)
                 <div
                   className="h-full bg-moss transition-all duration-500 ease-out"
                   style={{
-                    width: `${Math.min(100, (Math.max(0, bufferMonths) / 3) * 100)}%`,
+                    width: `${Math.min(100, (Math.max(0, bufferMonths) / bufferTarget) * 100)}%`,
                   }}
                 />
               </div>
               <span className="text-xs font-semibold text-moss">
-                {bufferMonths} / 3 mo
+                {t("learn.ladder.progress", { done: bufferMonths, target: bufferTarget })}
               </span>
             </div>
           )}
@@ -126,12 +129,11 @@ export function SavingsLadder({ currentStep, bufferMonths }: SavingsLadderProps)
                 step2Status === "active" ? "text-moss" : "text-ink"
               }`}
             >
-              Everyday Saving
+              {t("learn.ladder.everydayTitle")}
             </h3>
           </div>
           <p className="mt-1 text-sm leading-6 text-ink/75">
-            Keep funds for upcoming purchases or school fees in M-Shwari, Ziidi, or your
-            standard savings account.
+            {t("learn.ladder.everydayBody")}
           </p>
         </div>
       </div>
@@ -154,12 +156,11 @@ export function SavingsLadder({ currentStep, bufferMonths }: SavingsLadderProps)
                 step3Status === "active" ? "text-pine" : "text-ink"
               }`}
             >
-              Long-Term Bitcoin
+              {t("learn.ladder.bitcoinTitle")}
             </h3>
           </div>
           <p className="mt-1 text-sm leading-6 text-ink/75">
-            Bitcoin is one option for money you can leave alone for years. The value
-            goes up and down, and you can lose money.
+            {t("learn.ladder.bitcoinBody")}
           </p>
 
           {step3Status === "active" && (
@@ -168,7 +169,7 @@ export function SavingsLadder({ currentStep, bufferMonths }: SavingsLadderProps)
                 href="/invest"
                 className="btn btn-primary inline-flex items-center justify-center text-sm"
               >
-                Learn &amp; Invest
+                {t("learn.ladder.invest")}
               </Link>
             </div>
           )}

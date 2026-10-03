@@ -16,8 +16,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BreezWalletSetup } from "../../components/breez-wallet-setup";
 import { WithdrawModal } from "../../components/withdraw-modal";
 import { BitikaPurchaseModal } from "../../components/bitika-purchase-modal";
+import { useFormat, useI18n } from "../../contexts/language-context";
 import { useBreezWallet } from "../../contexts/breez-wallet-context";
+import { messageFromApi, type ApiErrorBody } from "../../lib/api-message";
 import { HttpOnRamp } from "../../lib/http-onramp";
+import type { Locale, TranslateVars } from "../../lib/i18n";
 import {
   latestSubmittedPurchase,
   loadWalletEvents,
@@ -26,44 +29,101 @@ import {
 } from "../../lib/wallet-events";
 
 type Step = "choose" | "address" | "amount" | "confirm" | "status" | "pending" | "done";
+type TFn = (key: string, vars?: TranslateVars) => string;
 
 const TERMINAL: OnRampStatus[] = ["filled", "failed", "paid_not_delivered", "cannot_fill"];
 
 const ramp = new HttpOnRamp();
 
-function kesForDisplay(purchase: OnRampPurchase, committedKes: number): number {
-  return purchase.amountKes > 0 ? purchase.amountKes : committedKes;
+const INVEST_ERRORS: Record<string, string> = {
+  "Could not read the payment.": "invest.statusReadFailed",
+  "Could not verify address.": "invest.verifyFailed",
+  "Could not load a quote.": "invest.quoteFailed",
+  "Could not fetch a quote.": "invest.fetchQuoteFailed",
+  "Bitika did not return a transaction code. Try again.": "invest.noTxCode",
+  "Purchase failed.": "invest.purchaseFailed",
+  "Could not start the purchase.": "invest.startPurchaseFailed",
+  "Could not read purchase status.": "invest.statusFailed",
+  "Enter a Lightning address.": "invest.enterAddress",
+  "Enter a Lightning address or invoice.": "invest.enterAddressOrInvoice",
+  "This does not look like a Lightning address (name@wallet.com) or an invoice.": "invest.badDestination",
+  "We could not find this wallet. Check the Lightning address and try again.": "invest.walletNotFound",
+  "Destination format looks valid.": "invest.destinationValid",
+  "Purchase must be approved by the user.": "invest.purchaseNotApproved",
+  "Purchase must be explicitly approved by the user.": "invest.explicitApproval",
+  "amountKes must be a whole number.": "invest.wholeNumber",
+  "Demo profiles are disabled. Import M-Pesa messages and try again.": "invest.demoDisabled",
+  "Missing profile. Import your M-Pesa history on this phone.": "invest.missingProfile",
+  "This amount is not allowed.": "invest.amountNotAllowed",
+  "Missing purchase fields.": "invest.missingFields",
+  "Missing transaction code.": "invest.missingTxCode",
+  "Missing transaction code for status check.": "invest.missingTxForStatus",
+  "Bitika returned an invalid transaction payload.": "invest.invalidPayload",
+  "Bitika did not return a transaction code.": "invest.noTxCodeShort",
+  "Phone number must be a Kenyan M-Pesa number.": "invest.phoneKenyan",
+  "Phone number does not look valid.": "invest.phoneInvalid",
+  "Live Bitika key is blocked in this environment. Use bk_test_ locally or set BITIKA_ALLOW_LIVE=true only in production.":
+    "invest.liveKeyBlocked",
+  "Bitika is short of Bitcoin right now. Nothing was charged. Try again in a few minutes.":
+    "invest.bitikaShort",
+  "Bitika refused this key (403). Live keys need Bitika approval, active status, and no IP allowlist blocking your server.":
+    "invest.bitika403",
+  "Bitika refused the M-Pesa collect (400). On live keys, confirm approval in the Bitika dashboard, use a real Safaricom number, and a valid Lightning address. Quotes can still work when collect does not.":
+    "invest.bitika400",
+  "Bitika rejected the API key (401). Check BITIKA_API_KEY in apps/web/.env.local and restart the dev server.":
+    "invest.bitika401",
+  "Bitika rate limit (429). Wait a moment and try again.": "invest.bitika429",
+  "Build a buffer before buying Bitcoin.": "invest.bufferFirst",
+  "The surplus floor is too small for a buy.": "invest.floorTooSmall",
+  "Enter a positive sats amount.": "walletSetup.positiveSats",
+  "Unlock your PesaSense wallet first.": "walletSetup.unlockFirst",
+  "Could not open wallet.": "walletSetup.openFailed",
+  "Withdraw failed.": "invest.withdrawFailed",
+  "No sats amount to withdraw.": "invest.noSats",
+  "NEXT_PUBLIC_BREEZ_API_KEY is missing. Request a free key at breez.technology and add it to apps/web/.env.local.":
+    "walletSetup.missingKeyDetail",
+};
+
+function mapInvestMessage(t: TFn, message: string): string | null {
+  const trimmed = message.trim();
+  if (!trimmed) return null;
+  if (!/\s/.test(trimmed)) {
+    const translated = t(trimmed);
+    if (translated !== trimmed) return translated;
+  }
+  const key = INVEST_ERRORS[trimmed];
+  if (key) return t(key);
+  const between = trimmed.match(/^Amount must be between (\d+) and (\d+) KES\.$/);
+  if (between?.[1] && between[2]) {
+    return t("invest.amountBetween", { min: between[1], max: between[2] });
+  }
+  const satsAt = trimmed.match(/^Sats will go to a wallet at (.+)\.$/);
+  if (satsAt?.[1]) return t("invest.satsGoTo", { domain: satsAt[1] });
+  return null;
 }
 
-function statusMessage(
-  status: OnRampStatus,
-  purchase: OnRampPurchase,
-  sandbox: boolean,
-  committedKes: number,
-): string {
-  const kes = kesForDisplay(purchase, committedKes);
-  switch (status) {
-    case "awaiting_mpesa":
-      return sandbox
-        ? "Sandbox: no M-Pesa prompt on your phone. Payment is simulated in a few seconds."
-        : "Check your phone and enter your M-Pesa PIN.";
-    case "sending_sats":
-      return "M-Pesa paid. Sending your sats.";
-    case "filled":
-      return purchase.amountSats
-        ? `You invested KES ${kes}. You got ${purchase.amountSats} sats.`
-        : `You invested KES ${kes}.`;
-    case "failed":
-      return "The M-Pesa payment did not go through. No money left your account.";
-    case "paid_not_delivered":
-      return purchase.mpesaReceipt
-        ? `M-Pesa took KES ${kes} but the sats did not arrive. Your receipt is ${purchase.mpesaReceipt}. Contact Bitika with it.`
-        : `M-Pesa took KES ${kes} but the sats did not arrive. Contact Bitika with your M-Pesa receipt.`;
-    case "cannot_fill":
-      return purchase.reason ?? "Bitika cannot fill this right now. Try again later.";
-    default:
-      return "Working on your payment.";
+function explainCaught(t: TFn, error: unknown, fallbackKey: string): string {
+  if (error instanceof Error) {
+    const mapped = mapInvestMessage(t, error.message);
+    if (mapped) return mapped;
   }
+  return t(fallbackKey);
+}
+
+function explainApi(locale: Locale, t: TFn, body: ApiErrorBody | null | undefined, fallbackKey: string): string {
+  if (body?.code) {
+    const translated = messageFromApi(locale, body, fallbackKey);
+    if (translated !== body.code) return translated;
+  }
+  if (typeof body?.error === "string") {
+    const mapped = mapInvestMessage(t, body.error);
+    if (mapped) return mapped;
+  }
+  return t(fallbackKey);
+}
+
+function kesForDisplay(purchase: OnRampPurchase, committedKes: number): number {
+  return purchase.amountKes > 0 ? purchase.amountKes : committedKes;
 }
 
 export function InvestFlow({
@@ -79,6 +139,8 @@ export function InvestFlow({
   defaultAmountKes: number;
   sandbox: boolean;
 }) {
+  const { t, locale } = useI18n();
+  const { kes, number } = useFormat();
   const [step, setStep] = useState<Step>("choose");
   const [hasWallet, setHasWallet] = useState<boolean | null>(null);
   const [address, setAddress] = useState("");
@@ -100,6 +162,38 @@ export function InvestFlow({
   const satsBoughtTotal = events.reduce(
     (sum, event) => (event.status === "filled" ? sum + (event.amountSats ?? 0) : sum),
     0,
+  );
+
+  const describeStatus = useCallback(
+    (status: OnRampStatus, current: OnRampPurchase, committedKes: number): string => {
+      const amount = kes(kesForDisplay(current, committedKes));
+      switch (status) {
+        case "awaiting_mpesa":
+          return sandbox ? t("invest.sandboxAwaiting") : t("invest.checkPhone");
+        case "sending_sats":
+          return t("invest.sendingSats");
+        case "filled":
+          return current.amountSats
+            ? t("invest.investedWithSats", { kes: amount, sats: number(current.amountSats) })
+            : t("invest.invested", { kes: amount });
+        case "failed":
+          return t("invest.mpesaFailed");
+        case "paid_not_delivered":
+          return current.mpesaReceipt
+            ? t("invest.paidNotDeliveredReceipt", { kes: amount, receipt: current.mpesaReceipt })
+            : t("invest.paidNotDelivered", { kes: amount });
+        case "cannot_fill": {
+          if (current.reason) {
+            const mapped = mapInvestMessage(t, current.reason);
+            if (mapped) return mapped;
+          }
+          return t("invest.cannotFill");
+        }
+        default:
+          return t("invest.working");
+      }
+    },
+    [kes, number, sandbox, t],
   );
 
   const recordProgress = useCallback(
@@ -170,14 +264,14 @@ export function InvestFlow({
         }
         setStep(TERMINAL.includes(current.status) ? "done" : "pending");
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Could not read the payment.");
+        setError(explainCaught(t, e, "invest.statusReadFailed"));
         setStep("pending");
       } finally {
         following.current = false;
         setBusy(false);
       }
     },
-    [recordProgress],
+    [recordProgress, t],
   );
 
   useEffect(() => {
@@ -212,11 +306,11 @@ export function InvestFlow({
       breezWallet.lightningAddress
     ) {
       setAddress(breezWallet.lightningAddress);
-      setAddressHint("Using your PesaSense wallet (Breez).");
+      setAddressHint(t("invest.usingBreez"));
       setHasWallet(true);
       setStep("amount");
     }
-  }, [hasWallet, step, breezWallet.status, breezWallet.lightningAddress]);
+  }, [hasWallet, step, breezWallet.status, breezWallet.lightningAddress, t]);
 
   useEffect(() => {
     if (step === "done" && breezWallet.status === "ready") {
@@ -239,23 +333,26 @@ export function InvestFlow({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ address }),
       });
-      const data = await res.json();
+      const data = (await res.json()) as ApiErrorBody & { message?: string };
       if (!res.ok) {
-        throw new Error(data.error ?? "Could not verify address.");
+        setError(explainApi(locale, t, data, "invest.verifyFailed"));
+        return;
       }
-      setAddressHint(data.message as string);
+      const hint =
+        typeof data.message === "string" ? mapInvestMessage(t, data.message) : null;
+      setAddressHint(hint ?? t("invest.destinationValid"));
       setStep("amount");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not verify address.");
+      setError(explainCaught(t, e, "invest.verifyFailed"));
     } finally {
       setBusy(false);
     }
-  }, [address]);
+  }, [address, locale, t]);
 
   const loadQuote = useCallback(async () => {
     setError(null);
     if (amountKes < 10 || amountKes > maxKes) {
-      setError(`Enter an amount between 10 and ${maxKes} KES.`);
+      setError(t("invest.amountRange", { min: number(10), max: number(maxKes) }));
       return;
     }
     setBusy(true);
@@ -272,11 +369,11 @@ export function InvestFlow({
       });
       setStep("confirm");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not load a quote.");
+      setError(explainCaught(t, e, "invest.quoteFailed"));
     } finally {
       setBusy(false);
     }
-  }, [address, amountKes, maxKes, recordProgress]);
+  }, [address, amountKes, maxKes, number, recordProgress, t]);
 
   const startPurchase = useCallback(async () => {
     if (following.current) return;
@@ -295,7 +392,7 @@ export function InvestFlow({
         ...(profile ? { profile } : {}),
       });
       if (!result.purchaseId) {
-        throw new Error("Bitika did not return a transaction code. Try again.");
+        throw new Error("invest.noTxCode");
       }
       const quoteId = quoteEventId.current;
       quoteEventId.current = null;
@@ -314,11 +411,11 @@ export function InvestFlow({
       }
       await followPurchase(result, amountKes, address.trim());
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Purchase failed.");
+      setError(explainCaught(t, e, "invest.purchaseFailed"));
       setStep("confirm");
       setBusy(false);
     }
-  }, [address, amountKes, phone, profile, profileId, followPurchase, recordProgress]);
+  }, [address, amountKes, followPurchase, phone, profile, profileId, recordProgress, t]);
 
   const withdrawAddress = useMemo(() => {
     try {
@@ -330,22 +427,18 @@ export function InvestFlow({
 
   const openWithdrawHelp = useCallback(() => {
     if (!withdrawAddress) {
-      setError("Enter your M-Pesa phone number on the amount step, then try again.");
+      setError(t("invest.needPhone"));
       return;
     }
     setError(null);
     setWithdrawHelpOpen(true);
-  }, [withdrawAddress]);
-
+  }, [t, withdrawAddress]);
 
   if (hasWallet === false) {
     return (
       <section className="card">
-        <h2 className="font-serif text-2xl text-pine">We&apos;ve got you</h2>
-        <p className="mt-3 text-sm leading-6 text-ink/80">
-          Create a wallet here (non-custodial, powered by Breez). Your Bitika buys and
-          M-Pesa withdraws use this wallet end to end.
-        </p>
+        <h2 className="font-serif text-2xl text-pine">{t("invest.gotYou")}</h2>
+        <p className="mt-3 text-sm leading-6 text-ink/80">{t("invest.createWalletBody")}</p>
         <div className="mt-4">
           <BreezWalletSetup compact />
         </div>
@@ -357,7 +450,7 @@ export function InvestFlow({
             setStep("address");
           }}
         >
-          I use another wallet — paste Lightning address
+          {t("invest.pasteOther")}
         </button>
       </section>
     );
@@ -367,16 +460,14 @@ export function InvestFlow({
     <div className="space-y-4">
       {sandbox ? (
         <p className="inline-flex rounded-full bg-brass/15 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-brass uppercase">
-          Sandbox payments
+          {t("invest.sandboxPayments")}
         </p>
       ) : null}
 
       {step === "choose" && (
         <section className="card">
-          <h2 className="font-serif text-2xl text-pine">Invest in Bitcoin</h2>
-          <p className="mt-2 text-sm text-ink/70">
-            You could start from KES 10. Sats go to a wallet you control.
-          </p>
+          <h2 className="font-serif text-2xl text-pine">{t("invest.investBitcoin")}</h2>
+          <p className="mt-2 text-sm text-ink/70">{t("invest.startFrom")}</p>
           <div className="mt-6 flex flex-col gap-3">
             <button
               type="button"
@@ -386,14 +477,14 @@ export function InvestFlow({
                 setStep("address");
               }}
             >
-              Yes, I have a wallet
+              {t("invest.haveWallet")}
             </button>
             <button
               type="button"
               className="btn btn-secondary w-full"
               onClick={() => setHasWallet(false)}
             >
-              No, I&apos;m new to Bitcoin
+              {t("invest.newToBitcoin")}
             </button>
           </div>
         </section>
@@ -401,37 +492,34 @@ export function InvestFlow({
 
       {step === "address" && (
         <section className="card">
-          <h2 className="font-serif text-xl text-pine">Your Lightning address</h2>
-          <p className="mt-2 text-sm text-ink/70">
-            Paste the address from Blink, Wallet of Satoshi, or another wallet.
-          </p>
+          <h2 className="font-serif text-xl text-pine">{t("invest.yourAddress")}</h2>
+          <p className="mt-2 text-sm text-ink/70">{t("invest.pasteAddress")}</p>
           <input
             className="field mt-4"
-            placeholder="name@blink.sv"
+            placeholder={t("invest.addressPlaceholder")}
+            aria-label={t("invest.yourAddress")}
             value={address}
             onChange={(e) => setAddress(e.target.value)}
           />
-          {addressHint ? (
-            <p className="mt-2 text-xs text-moss">{addressHint}</p>
-          ) : null}
+          {addressHint ? <p className="mt-2 text-xs text-moss">{addressHint}</p> : null}
           <button
             type="button"
             className="btn btn-primary mt-4 w-full"
             disabled={busy}
             onClick={() => void verifyAddress()}
           >
-            {busy ? "Checking…" : "Continue"}
+            {busy ? t("invest.checking") : t("common.continue")}
           </button>
         </section>
       )}
 
       {step === "amount" && (
         <section className="card">
-          <h2 className="font-serif text-xl text-pine">How much?</h2>
+          <h2 className="font-serif text-xl text-pine">{t("invest.howMuch")}</h2>
           <p className="mt-2 text-sm text-ink/70">
-            Stay at or below your surplus floor ({surplusFloorKes} KES).
+            {t("invest.stayBelow", { amount: kes(surplusFloorKes) })}
           </p>
-          <label className="mt-4 block text-xs text-moss uppercase">Amount (KES)</label>
+          <label className="mt-4 block text-xs text-moss uppercase">{t("invest.amountLabel")}</label>
           <input
             type="number"
             min={10}
@@ -440,10 +528,11 @@ export function InvestFlow({
             value={amountKes}
             onChange={(e) => setAmountKes(Number(e.target.value))}
           />
-          <label className="mt-4 block text-xs text-moss uppercase">M-Pesa phone</label>
+          <label className="mt-4 block text-xs text-moss uppercase">{t("invest.phoneLabel")}</label>
           <input
             className="field mt-1"
-            placeholder="07XX XXX XXX"
+            placeholder={t("invest.phonePlaceholder")}
+            aria-label={t("invest.phoneLabel")}
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
           />
@@ -453,7 +542,7 @@ export function InvestFlow({
             disabled={busy}
             onClick={() => void loadQuote()}
           >
-            {busy ? "Loading quote…" : "Review"}
+            {busy ? t("invest.loadingQuote") : t("invest.review")}
           </button>
         </section>
       )}
@@ -469,29 +558,31 @@ export function InvestFlow({
           step === "status"
             ? purchase?.status === "filled"
               ? "success"
-              : purchase?.status === "failed" || purchase?.status === "cannot_fill" || purchase?.status === "paid_not_delivered"
+              : purchase?.status === "failed" ||
+                  purchase?.status === "cannot_fill" ||
+                  purchase?.status === "paid_not_delivered"
                 ? "error"
                 : "polling"
             : "confirm"
         }
-        errorMessage={purchase ? statusMessage(purchase.status, purchase, sandbox, amountKes) : null}
+        errorMessage={purchase ? describeStatus(purchase.status, purchase, amountKes) : null}
         onApprove={() => void startPurchase()}
         busy={busy}
       />
 
       {step === "pending" && purchase && (
         <section className="card">
-          <p className="text-sm text-ink/80">
-            Bitika has not finished this payment. Nothing here counts it as filled.
+          <p className="text-sm text-ink/80">{t("invest.pendingBody")}</p>
+          <p className="mt-2 text-xs text-ink/60">
+            {t("invest.reference", { id: purchase.purchaseId })}
           </p>
-          <p className="mt-2 text-xs text-ink/60">Reference {purchase.purchaseId}</p>
           <button
             type="button"
             className="btn btn-primary mt-4 w-full"
             disabled={busy}
             onClick={() => void followPurchase(purchase, amountKes, address.trim())}
           >
-            {busy ? "Checking…" : "Check again"}
+            {busy ? t("invest.checking") : t("invest.checkAgain")}
           </button>
         </section>
       )}
@@ -499,12 +590,11 @@ export function InvestFlow({
       {step === "done" && purchase && (
         <section className="card">
           <p className="text-sm font-medium text-pine">
-            {statusMessage(purchase.status, purchase, sandbox, amountKes)}
+            {describeStatus(purchase.status, purchase, amountKes)}
           </p>
           {satsBoughtTotal > 0 ? (
             <p className="mt-3 text-sm text-ink/70">
-              Sats bought through PesaSense: {satsBoughtTotal} (not your full wallet
-              balance).
+              {t("invest.satsBought", { sats: number(satsBoughtTotal) })}
             </p>
           ) : null}
           {breezWallet.status === "ready" && withdrawAddress ? (
@@ -515,12 +605,15 @@ export function InvestFlow({
               onClick={() => {
                 const sats = purchase.amountSats ?? satsBoughtTotal;
                 if (!sats || sats <= 0) {
-                  setError("No sats amount to withdraw.");
+                  setError(t("invest.noSats"));
                   return;
                 }
                 if (breezWallet.balanceSats < sats) {
                   setError(
-                    `Wallet balance is ${breezWallet.balanceSats} sats. Sandbox buys may not fund a real wallet — send sats to ${breezWallet.lightningAddress} or use a live Bitika buy.`,
+                    t("invest.balanceShort", {
+                      balance: number(breezWallet.balanceSats),
+                      address: breezWallet.lightningAddress ?? "",
+                    }),
                   );
                   return;
                 }
@@ -533,16 +626,16 @@ export function InvestFlow({
                     setWithdrawHelpOpen(true);
                   })
                   .catch((e: unknown) => {
-                    setError(e instanceof Error ? e.message : "Withdraw failed.");
+                    setError(explainCaught(t, e, "invest.withdrawFailed"));
                   })
                   .finally(() => setWithdrawBusy(false));
               }}
             >
               {withdrawBusy
-                ? "Sending to bitcoin.co.ke…"
+                ? t("invest.sendingBitcoinCo")
                 : withdrawDone
-                  ? "Withdraw sent"
-                  : "Withdraw to M-Pesa (in app)"}
+                  ? t("invest.withdrawSent")
+                  : t("invest.withdrawInApp")}
             </button>
           ) : null}
 
@@ -551,9 +644,7 @@ export function InvestFlow({
             className={`btn btn-secondary mt-4 w-full ${breezWallet.status === "ready" ? "" : ""}`}
             onClick={openWithdrawHelp}
           >
-            {breezWallet.status === "ready"
-              ? "Withdraw help / external wallet"
-              : "Withdraw to M-Pesa"}
+            {breezWallet.status === "ready" ? t("invest.withdrawHelp") : t("invest.withdrawMpesa")}
           </button>
 
           <WithdrawModal

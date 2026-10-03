@@ -1,0 +1,97 @@
+{
+  "step": "Step {current} of {total}",
+  "previousStep": "Go to previous step",
+  "sensiAlt": "Sensi",
+  "sensiName": "Sensi",
+  "ack": {
+    "gotIt": "Got it.",
+    "nice": "Nice.",
+    "noted": "Noted.",
+    "okay": "Okay!"
+  },
+  "debt": {
+    "title": "Debts",
+    "ask": "Do you repay any debt every month?",
+    "why": "A loan or a balance you pay back. I'll leave room for it. Rent can wait for your statement.",
+    "notesPlaceholder": "What the debt is for",
+    "balanceLabel": "Balance, if you know it"
+  },
+  "chama": {
+    "title": "Chama",
+    "ask": "Are you in a chama right now?",
+    "why": "If you contribute, tell me the name and the amount so I don't treat that money as spare.",
+    "namePlaceholder": "Chama name",
+    "contribution": "Contribution"
+  },
+  "newChama": {
+    "title": "A new chama",
+    "ask": "Would you like to join a chama?",
+    "why": "Say yes only if you want one. I'll show it in the app. Saying no changes nothing else."
+  },
+  "bitcoin": {
+    "title": "Bitcoin",
+    "askWhyNot": "Why haven't you bought Bitcoin?",
+    "whyReasons": "Pick any that fit. I'm asking so I know how much to explain. Nothing is bought on this step.",
+    "askWhere": "Where do you buy or hold it?",
+    "whyWhere": "A name is enough. You don't have to share an amount. Nothing is bought on this step.",
+    "askEver": "Have you bought Bitcoin before?",
+    "whyEver": "So I know how much to explain. This step does not buy anything.",
+    "placeLabel": "The place",
+    "placePlaceholder": "e.g. Coinbase, Paxful, Binance…",
+    "describe": "Please describe",
+    "reasonPlaceholder": "Your reason"
+  },
+  "goal": {
+    "title": "Ready for",
+    "ask": "What do you want this money to help you feel ready for?",
+    "why": "Pick one. A small habit comes later, and you still approve each purchase.",
+    "anythingElse": "Anything else",
+    "notesPlaceholder": "In your own words"
+  },
+  "goals": {
+    "emergency_buffer": "Build emergency buffer",
+    "long_horizon": "Long-term patient savings",
+    "school_fees": "School fees peace of mind",
+    "inflation": "Protect against inflation"
+  },
+  "reasons": {
+    "scam_risk": "I'm worried about scams",
+    "no_understanding": "I don't understand how it works",
+    "capital": "It feels like it needs too much money",
+    "regulation": "I'm not sure about the rules in Kenya",
+    "returns": "I want something that pays back sooner",
+    "other": "Something else"
+  },
+  "summary": {
+    "debtWithBalance": "{name}, balance about {amount}.",
+    "debtNamed": "A monthly debt: {name}.",
+    "debtYes": "You repay something every month.",
+    "debtNo": "No monthly debt to set aside.",
+    "debtSkipped": "Monthly debt: skipped for now.",
+    "chamaWithAmount": "{name}: {amount} {cadence}.",
+    "perWeek": "a week",
+    "perMonth": "a month",
+    "chamaNamed": "You're in {name}.",
+    "chamaYes": "You're in a chama.",
+    "chamaNo": "No chama contribution right now.",
+    "chamaSkipped": "Chama contribution: skipped for now.",
+    "wantsChama": "You'd like to join a chama.",
+    "wantsChamaNo": "You don't want a chama just yet.",
+    "wantsChamaSkipped": "Joining a chama: skipped for now.",
+    "bitcoinWhere": "You've bought Bitcoin, through {where}.",
+    "bitcoinYes": "You've bought Bitcoin before.",
+    "bitcoinReason": "Bitcoin: {reason}.",
+    "bitcoinNo": "You haven't bought Bitcoin before.",
+    "bitcoinSkipped": "Bitcoin: skipped for now.",
+    "goal": "Ready for: {goal}.",
+    "goalSkipped": "What you're saving toward: skipped for now.",
+    "next": "Next I'll ask for your history, on this phone."
+  },
+  "finale": {
+    "title": "On this phone",
+    "askDone": "That's the picture I have.",
+    "askReading": "Let me read that back.",
+    "whyDone": "Nothing here leaves the phone. Next is your history.",
+    "whyReading": "One line at a time, from what you just said."
+  }
+}

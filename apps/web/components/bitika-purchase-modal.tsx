@@ -1,6 +1,7 @@
 "use client";
 
 import { maskPhone } from "@pesasense/wallet";
+import { useFormat, useI18n } from "../contexts/language-context";
 
 export type BitikaPurchaseStatus = "confirm" | "polling" | "success" | "error";
 
@@ -29,13 +30,15 @@ export function BitikaPurchaseModal({
   onApprove,
   busy = false,
 }: BitikaPurchaseModalProps) {
+  const { t } = useI18n();
+  const { kes, number } = useFormat();
   if (!isOpen) return null;
 
   return (
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Confirm Bitika purchase"
+      aria-label={t("invest.purchase.aria")}
       className="fixed inset-0 z-[50]"
     >
       <div
@@ -54,13 +57,13 @@ export function BitikaPurchaseModal({
             </span>
             <div>
               <p className="text-sm font-semibold text-ink">Bitika</p>
-              <p className="text-[11px] text-slate">M-Pesa → Bitcoin</p>
+              <p className="text-[11px] text-slate">{t("invest.purchase.rail")}</p>
             </div>
           </div>
           {status === "confirm" && (
             <button
               type="button"
-              aria-label="Close"
+              aria-label={t("common.close")}
               onClick={onClose}
               className="btn flex h-8 w-8 items-center justify-center rounded-full bg-pearl text-slate"
             >
@@ -72,18 +75,24 @@ export function BitikaPurchaseModal({
         {status === "confirm" && (
           <>
             <div className="mt-6 space-y-3">
-              <Row label="M-Pesa debit" value={`KES ${kesAmount.toLocaleString("en-KE")}`} bold />
+              <Row label={t("invest.purchase.debit")} value={kes(kesAmount)} bold />
               <Row
-                label="You receive (est.)"
-                value={estimatedSats !== null ? `${estimatedSats.toLocaleString()} sats` : "…"}
+                label={t("invest.purchase.receive")}
+                value={
+                  estimatedSats !== null
+                    ? `${number(estimatedSats)} sats`
+                    : "…"
+                }
               />
-              <Row label="To wallet" value={address} truncate />
-              <Row label="From phone" value={phone ? maskPhone(phone) : "…"} />
+              <Row label={t("invest.purchase.toWallet")} value={address} truncate />
+              <Row
+                label={t("invest.purchase.fromPhone")}
+                value={phone ? maskPhone(phone) : "…"}
+              />
             </div>
 
             <p className="mt-4 rounded-xl bg-pearl px-3 py-2.5 text-[11px] leading-5 text-slate">
-              M-Pesa will prompt your phone. Enter your PIN to complete. Sats shown are an
-              estimate — live mode adds ~3% on Bitika.
+              {t("invest.purchase.prompt")}
             </p>
 
             <button
@@ -92,11 +101,11 @@ export function BitikaPurchaseModal({
               disabled={busy}
               onClick={onApprove}
             >
-              {busy ? "Starting payment…" : "Approve & Pay"}
+              {busy ? t("invest.purchase.starting") : t("invest.purchase.approve")}
             </button>
 
             <p className="mt-3 text-center text-[10px] leading-4 text-slate">
-              Education only, not financial advice. PesaSense does not hold your funds.
+              {t("invest.purchase.education")}
             </p>
           </>
         )}
@@ -104,8 +113,8 @@ export function BitikaPurchaseModal({
         {status === "polling" && (
           <div className="mt-6 flex flex-col items-center gap-3 py-4">
             <span className="h-8 w-8 animate-spin rounded-full border-2 border-teal border-t-transparent" />
-            <p className="text-sm text-ink">Waiting for M-Pesa confirmation…</p>
-            <p className="text-xs text-slate">Check your phone and enter your PIN.</p>
+            <p className="text-sm text-ink">{t("invest.purchase.waiting")}</p>
+            <p className="text-xs text-slate">{t("invest.checkPhone")}</p>
           </div>
         )}
 
@@ -114,13 +123,15 @@ export function BitikaPurchaseModal({
             <span className="flex h-12 w-12 items-center justify-center rounded-full bg-mint text-teal animate-[bounce_1s_ease-in-out]">
               <CheckIcon />
             </span>
-            <p className="text-base font-semibold text-ink">Payment sent</p>
+            <p className="text-base font-semibold text-ink">{t("invest.purchase.sent")}</p>
             <p className="text-sm text-slate">
-              KES {kesAmount.toLocaleString("en-KE")} debited.
-              {estimatedSats ? ` ~${estimatedSats.toLocaleString()} sats incoming.` : ""}
+              {t("invest.purchase.debited", { amount: kes(kesAmount) })}
+              {estimatedSats
+                ? t("invest.purchase.satsIncoming", { sats: number(estimatedSats) })
+                : ""}
             </p>
             <button type="button" className="btn btn-secondary mt-2 w-full" onClick={onClose}>
-              Done
+              {t("invest.purchase.done")}
             </button>
           </div>
         )}
@@ -128,10 +139,10 @@ export function BitikaPurchaseModal({
         {status === "error" && (
           <div className="mt-6 flex flex-col gap-3">
             <p className="rounded-xl border border-coral/35 bg-coral/10 px-3 py-2.5 text-sm text-coral">
-              {errorMessage ?? "The payment did not go through. No money left your account."}
+              {errorMessage ?? t("invest.purchase.failed")}
             </p>
             <button type="button" className="btn btn-secondary w-full" onClick={onClose}>
-              Close
+              {t("common.close")}
             </button>
           </div>
         )}

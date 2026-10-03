@@ -6,6 +6,8 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
+import { useFormat, useI18n } from "../contexts/language-context";
+import { messageFromApi, type ApiErrorBody } from "../lib/api-message";
 
 type ProfileId = "amina" | "brian";
 
@@ -29,24 +31,33 @@ interface Activity {
 
 const STORAGE_KEY = "pesasense.ussd-phone.v1";
 
-function statusLabel(status: string): string {
-  switch (status) {
-    case "awaiting_mpesa":
-      return "Waiting for M-Pesa PIN";
-    case "sending_sats":
-      return "Sending sats";
-    case "filled":
-      return "Filled";
-    case "failed":
-      return "Did not finish";
-    case "paid_not_delivered":
-      return "Paid, sats not sent yet";
-    case "cannot_fill":
-      return "Could not fill";
-    default:
-      return "In progress";
-  }
-}
+const STATUS_KEYS: Record<string, string> = {
+  awaiting_mpesa: "wallet.ussd.status.awaiting_mpesa",
+  sending_sats: "wallet.ussd.status.sending_sats",
+  filled: "wallet.ussd.status.filled",
+  failed: "wallet.ussd.status.failed",
+  paid_not_delivered: "wallet.ussd.status.paid_not_delivered",
+  cannot_fill: "wallet.ussd.status.cannot_fill",
+};
+
+const USSD_ERRORS: Record<string, string> = {
+  "This request was refused.": "wallet.ussd.errors.refused",
+  "Could not read this request.": "wallet.ussd.errors.unreadable",
+  "Choose a known demo profile.": "wallet.ussd.errors.unknownProfile",
+  "Enter the M-Pesa number that will dial.": "wallet.ussd.errors.enterDialer",
+  "Enter a Kenyan M-Pesa number.": "wallet.ussd.errors.kenyan",
+  "Phone number must be a Kenyan M-Pesa number.": "invest.phoneKenyan",
+  "Phone number does not look valid.": "invest.phoneInvalid",
+  "Enter a Lightning address like name@wallet.com.": "wallet.ussd.errors.badAddress",
+  "Enter a Lightning address like name@wallet.com. A demo address ending .invalid cannot receive sats.":
+    "wallet.ussd.errors.demoAddress",
+  "Too many link attempts. Wait and try again.": "wallet.ussd.errors.tooManyLinks",
+  "Could not create a code. Try again.": "wallet.ussd.errors.codeRetry",
+  "Could not create a code.": "wallet.ussd.codeFailed",
+  "Could not link this number.": "wallet.ussd.linkFailed",
+  "Could not load USSD activity.": "wallet.ussd.loadFailed",
+  "Too many requests. Wait a minute.": "wallet.ussd.errors.tooManyRequests",
+};
 
 function readSaved(profileId: ProfileId): string {
   try {
@@ -77,6 +88,8 @@ function writeSaved(profileId: ProfileId, phone: string): void {
 }
 
 export function UssdAccess({ profileId }: { profileId: ProfileId }) {
+  const { t, locale } = useI18n();
+  const { kes } = useFormat();
   const label = profileId === "brian" ? "Brian" : "Amina";
   const [phone, setPhone] = useState("");
   const [destination, setDestination] = useState("");
@@ -86,6 +99,34 @@ export function UssdAccess({ profileId }: { profileId: ProfileId }) {
   const [busy, setBusy] = useState(false);
   const [serviceCode, setServiceCode] = useState("*384*40401#");
   const [serviceConfigured, setServiceConfigured] = useState(false);
+
+  const explain = useCallback(
+    (err: unknown, fallbackKey: string): string => {
+      if (!(err instanceof Error)) return t(fallbackKey);
+      const message = err.message.trim();
+      if (!message) return t(fallbackKey);
+      if (!/\s/.test(message)) {
+        const translated = t(message);
+        if (translated !== message) return translated;
+      }
+      const key = USSD_ERRORS[message];
+      if (key) return t(key);
+      return t(fallbackKey);
+    },
+    [t],
+  );
+
+  const resolveBody = useCallback(
+    (body: ApiErrorBody, fallbackKey: string): string => {
+      if (body.code) {
+        const translated = messageFromApi(locale, body, fallbackKey);
+        if (translated !== body.code) return translated;
+      }
+      if (typeof body.error === "string") return explain(new Error(body.error), fallbackKey);
+      return t(fallbackKey);
+    },
+    [explain, locale, t],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -106,8 +147,11 @@ export function UssdAccess({ profileId }: { profileId: ProfileId }) {
     const res = await fetch(
       `/api/ussd/activity?phone=${encodeURIComponent(nextPhone)}`,
     );
-    const body = (await res.json()) as Activity & { error?: string };
-    if (!res.ok) throw new Error(body.error ?? "Could not load USSD activity.");
+    const body = (await res.json()) as Activity & ApiErrorBody;
+    if (!res.ok) {
+      const code = typeof body.code === "string" && !/\s/.test(body.code) ? body.code : "";
+      throw new Error(code || (typeof body.error === "string" ? body.error : "wallet.ussd.loadFailed"));
+    }
     setActivity(body);
     if (body.serviceCode) setServiceCode(body.serviceCode);
     setServiceConfigured(body.serviceCodeConfigured);
@@ -145,12 +189,15 @@ export function UssdAccess({ profileId }: { profileId: ProfileId }) {
           destination: destination.trim() || undefined,
         }),
       });
-      const body = (await res.json()) as { error?: string };
-      if (!res.ok) throw new Error(body.error ?? "Could not link this number.");
+      const body = (await res.json()) as ApiErrorBody;
+      if (!res.ok) {
+        setError(resolveBody(body, "wallet.ussd.linkFailed"));
+        return;
+      }
       writeSaved(profileId, phone.trim());
       await loadActivity(phone);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not link this number.");
+      setError(explain(err, "wallet.ussd.linkFailed"));
     } finally {
       setBusy(false);
     }
@@ -168,51 +215,53 @@ export function UssdAccess({ profileId }: { profileId: ProfileId }) {
           destination: destination.trim() || undefined,
         }),
       });
-      const body = (await res.json()) as { error?: string; code?: string };
-      if (!res.ok || !body.code)
-        throw new Error(body.error ?? "Could not create a code.");
+      const body = (await res.json()) as ApiErrorBody & { code?: string };
+      if (!res.ok || !body.code) {
+        setError(resolveBody(body, "wallet.ussd.codeFailed"));
+        return;
+      }
       setCode(body.code);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not create a code.");
+      setError(explain(err, "wallet.ussd.codeFailed"));
     } finally {
       setBusy(false);
     }
   }
 
+  const linkedName =
+    activity?.profileId === "brian" ? "Brian" : activity?.profileId === "amina" ? "Amina" : "";
+
   return (
     <section className="card">
-      <p className="text-xs font-semibold tracking-wide text-slate uppercase">USSD</p>
-      <h2 className="mt-1 text-lg font-semibold text-ink">Use this on a handset</h2>
-      <p className="mt-2 text-sm leading-6 text-slate">
-        The handset menu uses the linked demo persona ({label}). It does not read a
-        statement imported on this phone. Statements stay on this phone. You confirm
-        every buy.
-      </p>
+      <p className="text-xs font-semibold tracking-wide text-slate uppercase">{t("wallet.ussd.kicker")}</p>
+      <h2 className="mt-1 text-lg font-semibold text-ink">{t("wallet.ussd.title")}</h2>
+      <p className="mt-2 text-sm leading-6 text-slate">{t("wallet.ussd.body", { name: label })}</p>
       <p className="mt-3 text-sm font-semibold text-ink">
-        Dial {serviceCode}
-        {serviceConfigured ? "" : " (example until USSD_SERVICE_CODE is set)"}
+        {t("wallet.ussd.dial", { code: serviceCode })}
+        {serviceConfigured ? "" : t("wallet.ussd.example")}
       </p>
 
       <label className="mt-4 block text-xs text-moss uppercase" htmlFor="ussd-phone">
-        M-Pesa phone
+        {t("wallet.ussd.phoneLabel")}
       </label>
       <input
         id="ussd-phone"
         className="field mt-1"
         inputMode="tel"
         autoComplete="tel"
-        placeholder="07XX XXX XXX"
+        placeholder={t("wallet.ussd.phonePlaceholder")}
         value={phone}
         onChange={(event) => setPhone(event.target.value)}
       />
       <label className="mt-4 block text-xs text-moss uppercase" htmlFor="ussd-address">
-        Lightning address
+        {t("wallet.ussd.addressLabel")}
       </label>
       <input
         id="ussd-address"
         className="field mt-1"
         autoComplete="off"
-        placeholder="name@wallet.com"
+        placeholder={t("wallet.ussd.addressPlaceholder")}
+        aria-label={t("wallet.ussd.addressLabel")}
         value={destination}
         onChange={(event) => setDestination(event.target.value)}
       />
@@ -223,7 +272,7 @@ export function UssdAccess({ profileId }: { profileId: ProfileId }) {
           disabled={busy || phone.trim() === ""}
           onClick={() => void linkPhone()}
         >
-          {busy ? "Saving…" : "Link this number"}
+          {busy ? t("wallet.ussd.saving") : t("wallet.ussd.link")}
         </button>
         <button
           type="button"
@@ -231,27 +280,23 @@ export function UssdAccess({ profileId }: { profileId: ProfileId }) {
           disabled={busy}
           onClick={() => void createCode()}
         >
-          Get a 6-digit code
+          {t("wallet.ussd.getCode")}
         </button>
       </div>
       {code ? (
         <p className="mt-3 text-sm text-ink">
-          On the handset choose <span className="font-semibold">Link with code</span>{" "}
-          and enter <span className="font-semibold tabular-nums">{code}</span>. It lasts
-          15 minutes.
+          {t("wallet.ussd.codeHelpLead")} <span className="font-semibold">{t("wallet.ussd.linkWithCode")}</span>{" "}
+          {t("wallet.ussd.codeHelpMid")} <span className="font-semibold tabular-nums">{code}</span>
+          {t("wallet.ussd.codeHelpEnd")}
         </p>
       ) : null}
       {error ? <p className="mt-3 text-sm text-red-800">{error}</p> : null}
       {activity?.linked ? (
         <p className="mt-3 text-sm text-slate">
-          {activity.phoneMasked} is linked
-          {activity.profileId
-            ? ` to ${activity.profileId === "brian" ? "Brian" : "Amina"}`
-            : ""}
-          .
-          {activity.hasDestination
-            ? " A Lightning address is set."
-            : " Set a Lightning address before a USSD buy."}
+          {t("wallet.ussd.linked", { phone: activity.phoneMasked })}
+          {linkedName ? t("wallet.ussd.linkedTo", { name: linkedName }) : ""}
+          {t("wallet.ussd.period")}
+          {activity.hasDestination ? t("wallet.ussd.hasDestination") : t("wallet.ussd.needsDestination")}
         </p>
       ) : null}
       {activity && activity.purchases.length > 0 ? (
@@ -262,13 +307,13 @@ export function UssdAccess({ profileId }: { profileId: ProfileId }) {
               className="flex items-start justify-between gap-3 py-3"
             >
               <div>
-                <p className="font-semibold text-ink">KES {purchase.amountKes}</p>
+                <p className="font-semibold text-ink">{kes(purchase.amountKes)}</p>
                 <p className="mt-0.5 text-xs text-ink/55">
-                  {purchase.source === "ussd" ? "USSD" : "App"} · {purchase.purchaseId}
+                  {purchase.source === "ussd" ? t("wallet.ussd.kicker") : t("wallet.ussd.app")} · {purchase.purchaseId}
                 </p>
               </div>
               <p className="shrink-0 text-xs font-semibold text-pine">
-                {statusLabel(purchase.status)}
+                {t(STATUS_KEYS[purchase.status] ?? "wallet.ussd.status.in_progress")}
               </p>
             </li>
           ))}

@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { formatKes } from "../lib/format";
+import { useFormat } from "../contexts/language-context";
 
 export function AnimatedNumber({
   value,
 }: {
   value: number;
 }) {
+  const { kes } = useFormat();
   const [display, setDisplay] = useState(0);
 
   useEffect(() => {
@@ -38,5 +39,5 @@ export function AnimatedNumber({
     };
   }, [value]);
 
-  return <>{formatKes(display)}</>;
+  return <>{kes(display)}</>;
 }

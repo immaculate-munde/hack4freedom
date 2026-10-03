@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { parseSmsBatch } from "@pesasense/core";
 import type { FinancialProfile } from "@pesasense/core";
+import { useI18n } from "../contexts/language-context";
 import {
   buildProfileFromTransactions,
   clearOnboardingDraft,
@@ -15,6 +16,7 @@ export function SmsImportForm({
   onProfileReady: (profile: FinancialProfile) => void;
   onDemoFallback: () => void;
 }) {
+  const { t } = useI18n();
   const [smsData, setSmsData] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,13 +42,13 @@ export function SmsImportForm({
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "";
         if (message.includes("Not implemented")) {
-          setError("Reading a real statement is coming soon. Falling back to the demo profile...");
+          setError(t("import.sms.comingSoon"));
           setTimeout(() => {
             onDemoFallback();
             setLoading(false);
           }, 1500);
         } else {
-          setError("We couldn't read that data. Try pasting the full SMS, or use the demo profile.");
+          setError(explainImport(t, message, "import.sms.unreadable"));
           setLoading(false);
         }
       }
@@ -66,7 +68,8 @@ export function SmsImportForm({
       ) : (
         <textarea
           className="field min-h-[160px] text-sm leading-6 w-full"
-          placeholder="Paste your raw M-Pesa transaction messages here..."
+          placeholder={t("import.sms.placeholder")}
+          aria-label={t("import.sms.placeholder")}
           value={smsData}
           onChange={(e) => setSmsData(e.target.value)}
         />
@@ -84,9 +87,49 @@ export function SmsImportForm({
           disabled={!smsData.trim()}
           className="btn btn-primary w-full py-4 text-base"
         >
-          Analyze Data
+          {t("import.sms.analyze")}
         </button>
       )}
     </div>
   );
+}
+
+const IMPORT_ERRORS: Record<string, string> = {
+  "Could not open the PDF. Check the statement password and try again.": "import.pdf.badPassword",
+  "Could not read this PDF. Try exporting a fresh M-Pesa statement.": "import.pdf.freshExport",
+  "This PDF has no readable text. Try the SMS paste option instead.": "import.pdf.noText",
+  "We opened the PDF but could not read transaction rows. Try pasting the same period as M-Pesa SMS messages below, or export a statement with a text table (not a scan).":
+    "import.pdf.noRows",
+  "Choose your M-Pesa statement PDF first.": "import.pdf.chooseFirst",
+  "Enter the password you use to open this PDF.": "import.pdf.enterPassword",
+  "Please upload a PDF file.": "import.pdf.pdfOnly",
+  "We could not read that PDF. Check the password, or paste SMS messages instead.": "import.pdf.unreadable",
+  "We could not see regular money coming in (salary or transfers). This PDF layout may not be supported yet — paste your M-Pesa SMS messages instead.":
+    "import.pdf.noIncome",
+  "We could not see enough spending or bill payments. Paste M-Pesa SMS messages for a fuller picture.":
+    "import.pdf.noSpending",
+  "The numbers do not look like a real six-month picture (income and surplus are near zero). Paste M-Pesa SMS messages instead of this PDF for now.":
+    "import.pdf.nearZero",
+  "We could not build a surplus range from this PDF. Paste M-Pesa SMS messages — that path works today.":
+    "import.pdf.noRange",
+  "The profile looks too thin to trust. Try SMS paste, or export a longer statement period.":
+    "import.pdf.tooThin",
+};
+
+export function explainImport(
+  t: (key: string, vars?: Record<string, string | number>) => string,
+  message: string,
+  fallbackKey: string,
+): string {
+  const trimmed = message.trim();
+  if (!trimmed) return t(fallbackKey);
+  if (!/\s/.test(trimmed)) {
+    const translated = t(trimmed);
+    if (translated !== trimmed) return translated;
+  }
+  const key = IMPORT_ERRORS[trimmed];
+  if (key) return t(key);
+  const few = trimmed.match(/^We only found (\d+) transactions/);
+  if (few?.[1]) return t("import.pdf.fewTransactions", { count: few[1] });
+  return t(fallbackKey);
 }

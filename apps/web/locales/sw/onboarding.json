@@ -1,0 +1,97 @@
+{
+  "step": "Hatua {current} kati ya {total}",
+  "previousStep": "Rudi hatua iliyotangulia",
+  "sensiAlt": "Sensi",
+  "sensiName": "Sensi",
+  "ack": {
+    "gotIt": "Nimeelewa.",
+    "nice": "Poa.",
+    "noted": "Nimeandika.",
+    "okay": "Sawa!"
+  },
+  "debt": {
+    "title": "Madeni",
+    "ask": "Unalipa deni lolote kila mwezi?",
+    "why": "Mkopo, au salio unalolipa. Nitaacha nafasi kwa hilo. Kodi ya nyumba inaweza subiri taarifa yako.",
+    "notesPlaceholder": "Deni hili ni la nini",
+    "balanceLabel": "Salio, ukilijua"
+  },
+  "chama": {
+    "title": "Chama",
+    "ask": "Uko kwenye chama sasa?",
+    "why": "Ukiwa unachanga, niambie jina na kiasi ili nisihesabu pesa hizo kama ziada.",
+    "namePlaceholder": "Jina la chama",
+    "contribution": "Mchango"
+  },
+  "newChama": {
+    "title": "Chama kipya",
+    "ask": "Ungependa kujiunga na chama?",
+    "why": "Sema ndiyo tu ukitaka. Nitaionyesha kwenye programu. Kusema hapana hakubadilishi kitu kingine."
+  },
+  "bitcoin": {
+    "title": "Bitcoin",
+    "askWhyNot": "Kwa nini hujawahi kununua Bitcoin?",
+    "whyReasons": "Chagua zinazokufaa. Ninauliza ili nijue ni kiasi gani cha kueleza. Hakuna kinachonunuliwa hatua hii.",
+    "askWhere": "Unanunua au unakiweka wapi?",
+    "whyWhere": "Jina linatosha. Huna lazima useme kiasi. Hakuna kinachonunuliwa hatua hii.",
+    "askEver": "Umewahi kununua Bitcoin?",
+    "whyEver": "Ili nijue ni kiasi gani cha kueleza. Hatua hii hainunui chochote.",
+    "placeLabel": "Mahali",
+    "placePlaceholder": "mf. Coinbase, Paxful, Binance…",
+    "describe": "Tafadhali eleza",
+    "reasonPlaceholder": "Sababu yako"
+  },
+  "goal": {
+    "title": "Uko tayari kwa",
+    "ask": "Unataka pesa hizi zikusaidie kuhisi uko tayari kwa nini?",
+    "why": "Chagua moja. Tabia ndogo inakuja baadaye, na bado unaidhinisha kila ununuzi.",
+    "anythingElse": "Kingine chochote",
+    "notesPlaceholder": "Kwa maneno yako"
+  },
+  "goals": {
+    "emergency_buffer": "Jenga akiba ya dharura",
+    "long_horizon": "Akiba ya muda mrefu, kwa subira",
+    "school_fees": "Amani ya ada za shule",
+    "inflation": "Jilinde dhidi ya mfumuko wa bei"
+  },
+  "reasons": {
+    "scam_risk": "Nina wasiwasi kuhusu ulaghai",
+    "no_understanding": "Sielewi inavyofanya kazi",
+    "capital": "Inaonekana inahitaji pesa nyingi sana",
+    "regulation": "Sina uhakika kuhusu sheria za Kenya",
+    "returns": "Nataka kitu kinachorudisha pesa mapema",
+    "other": "Kitu kingine"
+  },
+  "summary": {
+    "debtWithBalance": "{name}, salio karibu {amount}.",
+    "debtNamed": "Deni la kila mwezi: {name}.",
+    "debtYes": "Unalipa kitu kila mwezi.",
+    "debtNo": "Hakuna deni la kila mwezi la kuweka kando.",
+    "debtSkipped": "Deni la kila mwezi: umeruka kwa sasa.",
+    "chamaWithAmount": "{name}: {amount} {cadence}.",
+    "perWeek": "kwa wiki",
+    "perMonth": "kwa mwezi",
+    "chamaNamed": "Uko kwenye {name}.",
+    "chamaYes": "Uko kwenye chama.",
+    "chamaNo": "Hakuna mchango wa chama kwa sasa.",
+    "chamaSkipped": "Mchango wa chama: umeruka kwa sasa.",
+    "wantsChama": "Ungependa kujiunga na chama.",
+    "wantsChamaNo": "Hutaki chama kwa sasa.",
+    "wantsChamaSkipped": "Kujiunga na chama: umeruka kwa sasa.",
+    "bitcoinWhere": "Umenunua Bitcoin, kupitia {where}.",
+    "bitcoinYes": "Umewahi kununua Bitcoin.",
+    "bitcoinReason": "Bitcoin: {reason}.",
+    "bitcoinNo": "Hujawahi kununua Bitcoin.",
+    "bitcoinSkipped": "Bitcoin: umeruka kwa sasa.",
+    "goal": "Uko tayari kwa: {goal}.",
+    "goalSkipped": "Unachowekea akiba: umeruka kwa sasa.",
+    "next": "Kisha nitaomba historia yako, kwenye simu hii."
+  },
+  "finale": {
+    "title": "Kwenye simu hii",
+    "askDone": "Hii ndiyo picha niliyo nayo.",
+    "askReading": "Hebu nikusomee.",
+    "whyDone": "Hakuna kinachoondoka kwenye simu. Kinachofuata ni historia yako.",
+    "whyReading": "Mstari mmoja mmoja, kutokana na ulichosema tu."
+  }
+}
