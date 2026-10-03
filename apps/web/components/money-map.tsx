@@ -209,7 +209,7 @@ export function MoneyMap({
           </span>
         ) : null}
       </div>
-      <div ref={boxRef} className="relative" style={{ height: MAP_HEIGHT }}>
+      <div ref={boxRef} className="money-map-track relative" style={{ height: MAP_HEIGHT }}>
         <svg
           className="pointer-events-none absolute inset-0"
           width={width}
@@ -237,7 +237,7 @@ export function MoneyMap({
               aria-pressed={isSelected}
               aria-controls={detailId}
               onClick={() => setSelectedId(stop.id)}
-              className="absolute w-[5.5rem] -translate-x-1/2 rounded-xl text-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e3b23c]"
+              className="absolute w-[3.5rem] -translate-x-1/2 rounded-xl text-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e3b23c] md:w-[5.5rem]"
               style={{ left: point.x, top: onLeft ? 4 : 96 }}
             >
               <span
@@ -252,11 +252,11 @@ export function MoneyMap({
               >
                 {index + 1}
               </span>
-              <span className="mt-1 block truncate text-[10px] font-semibold tracking-[0.08em] text-[#e3b23c] uppercase">
+              <span className="mt-1 block whitespace-normal break-words text-[8px] leading-3 font-semibold text-[#e3b23c] uppercase md:truncate md:text-[10px] md:leading-normal md:tracking-[0.08em]">
                 {stop.category}
               </span>
               <span
-                className="block truncate text-[11px] leading-4 font-bold"
+                className="block whitespace-normal break-words text-[9px] leading-3 font-bold md:truncate md:text-[11px] md:leading-4"
                 style={{ color: isSelected ? "#ffffff" : "#f6f1e4" }}
               >
                 {stop.title}

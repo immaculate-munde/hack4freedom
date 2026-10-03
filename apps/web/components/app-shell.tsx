@@ -289,7 +289,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className={quiet ? "app-content app-content-landing" : "app-content"}>{children}</div>
 
         {quiet ? null : (
-          <nav className="app-mobile-nav safe-bottom lg:hidden" aria-label={t.nav}>
+          <nav className="app-mobile-nav safe-bottom pb-[env(safe-area-inset-bottom)] lg:hidden" aria-label={t.nav}>
             {sideNav.map((tab) => {
               const active = tab.match(pathname);
               return (

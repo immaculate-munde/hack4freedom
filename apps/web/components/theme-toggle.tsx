@@ -32,9 +32,11 @@ export function ThemeToggle() {
       onClick={toggle}
       aria-label={dark ? "Use light mode" : "Use dark mode"}
       aria-pressed={dark}
-      className="btn inline-flex h-10 w-10 items-center justify-center rounded-full border border-sand bg-paper text-ink"
+      className="btn inline-flex h-10 w-10 items-center justify-center rounded-full border border-sand bg-paper text-pine"
     >
-      {dark ? <SunIcon /> : <MoonIcon />}
+      <span className="flex h-5 w-5 items-center justify-center text-pine" aria-hidden="true">
+        {dark ? <SunIcon /> : <MoonIcon />}
+      </span>
     </button>
   );
 }

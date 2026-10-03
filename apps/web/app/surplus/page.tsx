@@ -47,8 +47,8 @@ function SurplusContent() {
   const query = isDemo && profileId === "brian" ? "?profile=brian" : "";
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-col gap-4">
-      <div className="flex items-end justify-between gap-3">
+    <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 pb-24 md:gap-4 md:pb-0">
+      <div className="mb-2 flex items-end justify-between gap-3 md:mb-0">
         <div>
           <p className="text-[11px] font-semibold tracking-[0.14em] text-terracotta uppercase">Your money story</p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-ink">M-Pesa analysis</h1>
@@ -70,7 +70,7 @@ function SurplusContent() {
         Your statements never leave your phone. Backups are encrypted with your key.
       </p>
 
-      <div className="flex flex-col gap-6 w-full max-w-6xl mx-auto">
+      <div className="flex w-full max-w-6xl mx-auto flex-col gap-8 md:gap-6">
         <section className="w-full rounded-[20px] bg-gradient-to-br from-pine to-moss p-5 text-paper shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
           <p className="text-[11px] font-semibold tracking-[0.12em] text-brass uppercase">
             Stress-tested cushion
@@ -122,11 +122,11 @@ function SurplusContent() {
             </h2>
             <p className="text-sm font-bold text-ink tabular-nums">{formatKes(total)}</p>
           </div>
-          <ul className="flex flex-col gap-3">
+          <ul className="flex flex-col gap-4 md:gap-3">
             {rows.map((row) => (
               <li
                 key={`${row.label}-${row.detail}`}
-                className="card w-full flex items-center justify-between gap-3 border-l-[3px] p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                className="card w-full flex items-center justify-between gap-3 border-l-[3px] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
                 style={{ borderLeftColor: getCategoryColor(row.category) }}
               >
                 <div className="flex items-center gap-3 min-w-0">

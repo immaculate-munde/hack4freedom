@@ -104,8 +104,8 @@ function HabitContent() {
   }
 
   return (
-    <main className="flex w-full flex-col gap-5">
-      <header>
+    <main className="flex w-full flex-col gap-8 pb-24 md:gap-5 md:pb-0">
+      <header className="mb-2 md:mb-0">
         <p className="text-[11px] font-semibold tracking-[0.14em] text-teal uppercase">
           Patient habit
         </p>
@@ -238,7 +238,7 @@ function HabitContent() {
       )}
 
       <section>
-        <div className="mb-2 flex items-baseline justify-between">
+        <div className="mb-4 flex items-baseline justify-between md:mb-2">
           <h2 className="text-base font-semibold text-ink">Resilience ladder</h2>
           <p className="text-xs font-semibold text-slate">3 tiers</p>
         </div>

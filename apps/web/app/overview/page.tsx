@@ -79,8 +79,8 @@ function OverviewContent() {
   }
 
   return (
-    <main className="flex w-full flex-col gap-4">
-      <header>
+    <main className="flex w-full flex-col gap-8 pb-24 md:gap-4 md:pb-0">
+      <header className="mb-2 md:mb-0">
         <p className="text-[11px] font-semibold tracking-[0.14em] text-slate uppercase">
           Statement period
         </p>
@@ -92,7 +92,7 @@ function OverviewContent() {
         ) : null}
       </header>
 
-      <section className="flex items-center gap-3 rounded-[20px] border border-mint/40 bg-mint/35 px-4 py-3 shadow-card">
+      <section className="flex items-center gap-3 rounded-[20px] border border-mint/40 bg-mint/35 px-5 py-4 shadow-card">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-mint">
           <SensiAvatar size="sm" mood="happy" />
         </span>
