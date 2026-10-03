@@ -82,4 +82,4 @@ Dexie, Recharts, shadcn/ui, and Postgres are not dependencies. Device state that
 
 ## Hosting
 
-Vercel hosts the browser demo. A live USSD session needs one always-on Node process, because the store and the webhook map are per process. Regions, the webpack build, and the env vars are in [deploy.md](deploy.md).
+Vercel hosts the browser demo at [https://pesasense.vercel.app](https://pesasense.vercel.app). Africa's Talking should call `https://pesasense.vercel.app/api/ussd`. A live USSD session needs one always-on Node process, because the store and the webhook map are per process. Regions, the webpack build, the callback key, and the env vars are in [deploy.md](deploy.md).

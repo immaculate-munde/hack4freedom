@@ -58,8 +58,10 @@ Set these on the project, then redeploy. `NEXT_PUBLIC_` values are baked in at b
 
 After the first deploy, register:
 
-- Bitika dashboard webhook: `https://<your-host>/api/onramp/webhook`
-- Africa's Talking callback, when a handset is in the demo: `https://<your-host>/api/ussd`
+- Bitika dashboard webhook: `https://pesasense.vercel.app/api/onramp/webhook`
+- Africa's Talking callback: `https://pesasense.vercel.app/api/ussd?key=YOUR_USSD_API_KEY`
+
+The callback path is `POST /api/ussd`. Africa's Talking does not send a custom header, so the key has to sit on that URL. It must match `USSD_API_KEY` on Vercel. It is not the Bitika key. Without it, the live callback answers `END Not authorised.` Full menu, routes, and curl steps: [ussd.md](ussd.md).
 
 Sandbox phones ending `000001` and `000002` are the documented failure cases. A normal sandbox phone exercises collect without moving real KES or sats. See [bitika-api.md](bitika-api.md).
 
@@ -85,7 +87,7 @@ pnpm --filter @pesasense/web start
 - `USSD_SERVICE_CODE`. The short code the gateway assigned.
 - `USSD_STORE_PATH`, only when a disk is attached, for example `/data/ussd.sqlite`. That file holds phone links, sessions, and a purchase index. It must not hold statements or keys. Without a disk, leave this unset. The store stays in memory for that one process, which is enough for a demo that is not restarted mid-session.
 
-Register `https://<host>/api/ussd` as the Africa's Talking callback. The app receives that callback. It does not call the provider's send API. There is no `USSD_USERNAME`.
+Register `https://<host>/api/ussd?key=YOUR_USSD_API_KEY` as the Africa's Talking callback. The current browser demo uses `https://pesasense.vercel.app/api/ussd?key=YOUR_USSD_API_KEY`. The app receives that callback. It does not call the provider's send API. There is no `USSD_USERNAME`.
 
 ## Leave these out of the hackathon deploy
 

@@ -61,7 +61,33 @@ Africa's Talking sends `application/x-www-form-urlencoded`:
 
 The response is `text/plain`: `CON …` to keep the session, `END …` to finish it. JSON with the same field names is accepted so you can test with curl. `msisdn` is accepted as an alias for the phone number.
 
-Set the callback in the Africa's Talking dashboard to `https://<your-host>/api/ussd`. Send `USSD_API_KEY` as `X-USSD-Key`, `Authorization: Bearer …`, or the query `?key=`. Production rejects every request when the key is missing. Local development allows a missing key.
+### Africa's Talking callback URL
+
+The browser demo is [https://pesasense.vercel.app](https://pesasense.vercel.app). In the Africa's Talking dashboard, paste:
+
+```
+https://pesasense.vercel.app/api/ussd
+```
+
+Africa's Talking posts the four form fields above. It does not send a custom header. Production rejects every callback until `USSD_API_KEY` is set on the host and the request carries that same value. Put it on the callback URL, because that is the field the dashboard gives you:
+
+```
+https://pesasense.vercel.app/api/ussd?key=YOUR_USSD_API_KEY
+```
+
+Use the Vercel `USSD_API_KEY`. Do not use the Bitika key. Curl and other clients can send the same secret as `X-USSD-Key` or `Authorization: Bearer …` instead of `?key=`. Local `pnpm dev` allows a missing key. A request with no key on the live host returns `END Not authorised.`
+
+`GET /api/ussd/config` returns the provider, the callback path, and whether `USSD_SERVICE_CODE` is set. It does not return the key. While that variable is unset, the config shows the example code `*384*40401#` and the callback accepts any service code.
+
+| Route | Who calls it |
+| --- | --- |
+| `POST /api/ussd` | Africa's Talking, once per menu step. |
+| `GET /api/ussd/config` | The overview card, to show the short code. |
+| `POST /api/ussd/link` | The browser, to attach an M-Pesa number to Amina or Brian and a Lightning address. |
+| `POST /api/ussd/link-code` | The browser, for a 6-digit code that lasts 15 minutes and works once. |
+| `GET /api/ussd/activity?phone=` | The browser, for the masked number and the shared purchase list. |
+
+Link, link-code, and activity reject `Sec-Fetch-Site: cross-site`. They do not use `USSD_API_KEY`.
 
 ## Local test without a phone
 
@@ -119,7 +145,7 @@ This is not a second financial profile. Postgres is still not a dependency. Node
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------- |
 | `USSD_PROVIDER`                | Label for logs. Default `africastalking`. The callback fields are the ones above.                          |
 | `USSD_SERVICE_CODE`            | Expected short code, for example `*384*40401#`. Unset accepts any code, and the screen shows that example. |
-| `USSD_API_KEY`                 | Shared secret for the callback. Required in production.                                                    |
+| `USSD_API_KEY`                 | Shared secret for the callback. Required in production. Africa's Talking sends it as `?key=` on the callback URL. |
 | `USSD_SESSION_TTL_SECONDS`     | Default 180.                                                                                               |
 | `USSD_STORE_PATH`              | SQLite file. Unset uses `.data/ussd.sqlite` in development and memory in production.                       |
 | `USSD_MAX_REQUESTS_PER_MINUTE` | Default 20 per phone.                                                                                      |
@@ -146,8 +172,8 @@ The link route has no login, same as the rest of this demo. The confirm screen i
 
 A live handset needs one always-on Node process. Vercel is the host for the browser demo. Its instances do not share the in-memory store, so a later menu step can lose the session. Host choice, region, and env vars: [deploy.md](deploy.md).
 
-- Set `USSD_API_KEY` and `USSD_SERVICE_CODE`.
-- Register `https://<host>/api/ussd` with the provider.
+- Set `USSD_API_KEY` and `USSD_SERVICE_CODE` on the host. The live browser demo is [https://pesasense.vercel.app](https://pesasense.vercel.app).
+- In the Africa's Talking dashboard, paste `https://pesasense.vercel.app/api/ussd?key=YOUR_USSD_API_KEY`. The query value is the Vercel `USSD_API_KEY`, not the Bitika key. Another host uses the same path: `https://<host>/api/ussd?key=YOUR_USSD_API_KEY`.
 - One Node process can use the default in-memory store. More than one instance needs a shared `USSD_STORE_PATH` on a disk that survives deploys. Vercel's filesystem does not. Do not put statements in that file.
 - Sessions last three minutes. Expired or unknown sessions tell the person to dial again.
 - `pnpm test` covers the menu, linking, buys, duplicates, expiry, rate limits, and the SQLite migration.
