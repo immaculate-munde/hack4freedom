@@ -12,7 +12,7 @@ import "./globals.css";
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  weight: ["400", "600", "700"],
+  weight: ["400", "600", "700", "800"],
   variable: "--font-jakarta",
   display: "swap",
 });
@@ -41,7 +41,15 @@ export default function RootLayout({
   children: ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${jakarta.variable} h-full`}>
+    <html lang="en" className={`${jakarta.variable} h-full`} suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{if(localStorage.getItem('pesasense.theme')==='dark')document.documentElement.classList.add('dark')}catch(e){}",
+          }}
+        />
+      </head>
       <body className="min-h-full bg-canvas font-sans text-ink antialiased">
         <Providers>
           <FirstRunRedirect>

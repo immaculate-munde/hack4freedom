@@ -14,6 +14,10 @@ import {
 } from "@pesasense/nostr";
 import { PageFrame } from "../../components/page-frame";
 import { useBreezWallet } from "../../contexts/breez-wallet-context";
+import {
+  readStoredOnboardingChama,
+  type OnboardingChama,
+} from "../../lib/onboarding-chama";
 
 const STORAGE_KEY = "pesasense.chama.v1";
 
@@ -45,7 +49,12 @@ export function ChamaFlow() {
   const [quoteSats, setQuoteSats] = useState<number | null>(null);
   const [quoteFailed, setQuoteFailed] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [onboardingChama, setOnboardingChama] = useState<OnboardingChama | null>(null);
   const payLock = useRef(false);
+
+  useEffect(() => {
+    setOnboardingChama(readStoredOnboardingChama());
+  }, []);
 
   useEffect(() => {
     const saved = window.localStorage.getItem(STORAGE_KEY);
@@ -100,7 +109,7 @@ export function ChamaFlow() {
   if (!circle) {
     return (
       <PageFrame title="Chama" description="Loading the demo circle.">
-        <section className="card text-sm text-ink/70">Loading Chama Sisters.</section>
+        <section className="card text-sm text-ink/70">Loading.</section>
       </PageFrame>
     );
   }
@@ -256,9 +265,24 @@ export function ChamaFlow() {
     <PageFrame
       title="Chama"
       backHref="/"
-      description="Chama Sisters is an invented merry-go-round. Each person pays the member whose turn it is, from a wallet they control. Nobody holds the group's money."
+      description={
+        onboardingChama
+          ? `${onboardingChama.name}: ${formatKes(onboardingChama.amountKes)} ${onboardingChama.cadence === "weekly" ? "a week" : "a month"}. Payments come from your own wallet.`
+          : "No chama name was entered on this phone. The round below is a demo record only. Nobody holds the group's money."
+      }
       aside={aside}
     >
+      {onboardingChama ? (
+        <section className="card mb-4">
+          <p className="text-xs font-semibold tracking-wide text-moss uppercase">Your chama</p>
+          <h2 className="mt-1 font-serif text-2xl text-pine">{onboardingChama.name}</h2>
+          <p className="mt-2 text-sm leading-6 text-ink/75">
+            {formatKes(onboardingChama.amountKes)}{" "}
+            {onboardingChama.cadence === "weekly" ? "a week" : "a month"}, from what you
+            entered. Payments come from your own wallet. Nothing is sent until you pay.
+          </p>
+        </section>
+      ) : null}
       <section className="card">
         <div className="mb-4 flex flex-wrap items-center gap-2">
           <span className="inline-flex rounded-full bg-brass/15 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-brass uppercase">
@@ -266,7 +290,7 @@ export function ChamaFlow() {
           </span>
           <span className="text-xs text-ink/60">KES {current.monthlyContributionKes} each month</span>
         </div>
-        <h2 className="font-serif text-2xl text-pine">{current.name}</h2>
+        <h2 className="font-serif text-2xl text-pine">{onboardingChama?.name ?? "Demo round"}</h2>
         <p className="mt-2 text-sm leading-6 text-ink/75">
           Still waiting this round: {formatKes(view.waitingKes)}. A finished round is just a
           record that every payer confirmed their own payment.

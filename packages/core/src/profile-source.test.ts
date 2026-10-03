@@ -28,13 +28,11 @@ describe("profile source", () => {
 
     const stub = selectProfile({
       source: "parsed",
-      messages: [
-        "Confirmed. You have received Ksh1.00 from DEMO on 1/4/26 at 8:00 AM.",
-      ],
+      messages: ["Not an M-Pesa receipt. No money moved here."],
     });
     expect(stub.status).toBe("not-ready");
     if (stub.status === "not-ready") {
-      expect(stub.reason).toMatch(/Not implemented/);
+      expect(stub.reason).toMatch(/zero transactions|Could not build/);
       expect(stub.reason).not.toMatch(/2,000/);
     }
   });

@@ -3,6 +3,8 @@
 import type { WalletEvent, WalletEventStatus } from "@pesasense/core";
 import { useEffect, useState } from "react";
 import { loadWalletEvents, WALLET_EVENTS_CHANGED } from "../lib/wallet-events";
+import { SensiAvatar } from "./sensi-avatar";
+import { SensiBubble } from "./sensi-bubble";
 
 function statusLabel(status: WalletEventStatus): string {
   switch (status) {
@@ -22,10 +24,14 @@ function statusLabel(status: WalletEventStatus): string {
 }
 
 export function WalletActivity({ profileId }: { profileId: string }) {
-  const [events, setEvents] = useState<WalletEvent[]>([]);
+  const [events, setEvents] = useState<WalletEvent[] | null>(null);
 
   useEffect(() => {
-    const refresh = () => setEvents(loadWalletEvents(profileId));
+    const refresh = () => {
+      setTimeout(() => {
+        setEvents(loadWalletEvents(profileId));
+      }, 400);
+    };
     refresh();
     window.addEventListener(WALLET_EVENTS_CHANGED, refresh);
     window.addEventListener("storage", refresh);
@@ -35,7 +41,35 @@ export function WalletActivity({ profileId }: { profileId: string }) {
     };
   }, [profileId]);
 
-  if (events.length === 0) return null;
+  if (events === null) {
+    return (
+      <section className="card mt-4">
+        <h2 className="font-serif text-xl text-pine">Purchases on this device</h2>
+        <ul className="mt-3 divide-y divide-sand text-sm animate-pulse">
+          <li className="flex flex-col gap-2 py-3">
+            <div className="h-4 w-32 rounded-full bg-pearl" />
+            <div className="h-3 w-48 rounded-full bg-pearl" />
+          </li>
+          <li className="flex flex-col gap-2 py-3">
+            <div className="h-4 w-24 rounded-full bg-pearl" />
+            <div className="h-3 w-40 rounded-full bg-pearl" />
+          </li>
+        </ul>
+      </section>
+    );
+  }
+
+  if (events.length === 0) {
+    return (
+      <section className="card mt-4 flex flex-col items-center justify-center py-8 text-center">
+        <SensiAvatar size="sm" mood="happy" />
+        <h2 className="mt-4 font-serif text-xl text-pine">No activity yet</h2>
+        <SensiBubble tailPosition="bottom">
+          <p className="text-sm text-slate">Your first habit starts here.</p>
+        </SensiBubble>
+      </section>
+    );
+  }
 
   return (
     <section className="card mt-4">

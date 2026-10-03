@@ -1,9 +1,27 @@
-import { assertInvestAmount, demoProfiles } from "@pesasense/core";
+import { demoProfiles, type FinancialProfile } from "@pesasense/core";
+import { assertAppInvestAmount } from "../../../../lib/buffer-gate";
+
+function isParsedOnlyMode(): boolean {
+  return (
+    process.env.PROFILE_SOURCE === "parsed" ||
+    process.env.NEXT_PUBLIC_PROFILE_SOURCE === "parsed"
+  );
+}
+
+function isFinancialProfile(value: unknown): value is FinancialProfile {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    (value as FinancialProfile).version === 1 &&
+    typeof (value as FinancialProfile).surplus === "object"
+  );
+}
 import {
   clientSafeOnRampError,
   parseDestination,
   toBitikaPhone,
 } from "@pesasense/wallet";
+import type { ProfileId } from "@pesasense/ussd";
 import { getBitikaRamp } from "../../../../lib/bitika";
 import { rememberSharedPurchase } from "../../../../lib/shared-purchases";
 
@@ -16,6 +34,7 @@ export async function POST(req: Request) {
       approvedByUser?: boolean;
       idempotencyKey?: string;
       profileId?: string;
+      profile?: FinancialProfile;
     };
 
     if (body.approvedByUser !== true) {
@@ -33,11 +52,33 @@ export async function POST(req: Request) {
       );
     }
 
-    if (body.profileId !== "amina" && body.profileId !== "brian") {
-      return Response.json({ error: "Choose a known demo profile." }, { status: 400 });
+    let allowanceProfile: FinancialProfile;
+    let storeProfileId: string;
+
+    if (isFinancialProfile(body.profile)) {
+      allowanceProfile = body.profile;
+      storeProfileId = "device";
+    } else if (body.profileId === "amina" || body.profileId === "brian") {
+      if (isParsedOnlyMode()) {
+        return Response.json(
+          {
+            error:
+              "Demo profiles are disabled. Import M-Pesa messages and try again.",
+          },
+          { status: 400 },
+        );
+      }
+      allowanceProfile = demoProfiles[body.profileId];
+      storeProfileId = body.profileId;
+    } else {
+      return Response.json(
+        { error: "Missing profile. Import your M-Pesa history on this phone." },
+        { status: 400 },
+      );
     }
+
     try {
-      assertInvestAmount(demoProfiles[body.profileId], amountKes);
+      assertAppInvestAmount(allowanceProfile, amountKes);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "This amount is not allowed.";
@@ -63,18 +104,16 @@ export async function POST(req: Request) {
     rememberSharedPurchase({
       purchase,
       phone: payerPhone,
-      profileId: body.profileId,
+      profileId: storeProfileId as ProfileId,
       destination,
       source: "web",
     });
 
     return Response.json(purchase);
   } catch (e) {
-    const upstream =
-      e instanceof Error && e.message.startsWith("Bitika request failed");
     return Response.json(
       { error: clientSafeOnRampError(e, "Could not start the purchase.") },
-      { status: upstream ? 502 : 400 },
+      { status: 400 },
     );
   }
 }

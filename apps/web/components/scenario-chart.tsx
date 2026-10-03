@@ -18,24 +18,23 @@ type ScenarioRow = {
   description: string;
 };
 
-/** A sketch of a hypothetical KES 1,000. Ranges only. Not a price history. */
 const ILLUSTRATIVE_SCENARIO: ScenarioRow[] = [
   {
     name: "Lower",
     range: [400, 800],
-    fill: "#a8a29e",
+    fill: "var(--color-slate)",
     description: "The value can fall. You can lose money.",
   },
   {
     name: "Middle",
     range: [700, 1400],
-    fill: "#3d6b54",
+    fill: "var(--color-moss)",
     description: "It might stay near where it started.",
   },
   {
     name: "Higher",
     range: [1200, 2200],
-    fill: "#8c6a2f",
+    fill: "var(--color-brass)",
     description: "It might be higher. This is not a forecast.",
   },
 ];
@@ -56,8 +55,8 @@ function CustomTooltip({
     return null;
   }
   return (
-    <div className="rounded-xl border border-sand bg-paper p-3 shadow-sm">
-      <p className="text-xs font-semibold text-ink">{data.name}</p>
+    <div className="rounded-xl border border-sand bg-surface p-3 shadow-sm">
+      <p className="text-xs font-semibold text-pine">{data.name}</p>
       <p className="mt-1 text-sm font-bold text-pine">{formatRange(data.range)}</p>
       <p className="mt-1 text-[10px] tracking-wider text-ink/60 uppercase">
         {data.description}
@@ -94,20 +93,20 @@ export function ScenarioChart() {
               dataKey="name"
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 12, fill: "#1a2420", opacity: 0.7 }} // text-ink/70 approx
+              tick={{ fontSize: 12, fontWeight: 600, fill: "var(--color-slate)" }}
               dy={10}
             />
             <YAxis
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 12, fill: "#1a2420", opacity: 0.7 }}
-              tickFormatter={(val: number) => `KES ${val}`}
+              tick={{ fontSize: 11, fill: "var(--color-slate)" }}
+              tickFormatter={(value: number) => `KES ${value.toLocaleString("en-KE")}`}
             />
             <Tooltip
               content={<CustomTooltip />}
-              cursor={{ fill: "rgba(231, 224, 212, 0.4)" }} // sand/40 approx
+              cursor={{ fill: "var(--color-pearl)" }}
             />
-            <Bar dataKey="range" radius={[6, 6, 0, 0]}>
+            <Bar dataKey="range" radius={[8, 8, 0, 0]}>
               {ILLUSTRATIVE_SCENARIO.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={entry.fill} />
               ))}

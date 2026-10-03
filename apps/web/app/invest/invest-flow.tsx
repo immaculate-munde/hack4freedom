@@ -2,11 +2,11 @@
 
 import {
   walletEventFromPurchase,
+  type FinancialProfile,
   type RecordedPurchaseStatus,
   type WalletEvent,
 } from "@pesasense/core";
 import {
-  maskPhone,
   parseDestination,
   toBitcoinCoKeLightningAddress,
   type OnRampPurchase,
@@ -15,6 +15,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BreezWalletSetup } from "../../components/breez-wallet-setup";
 import { WithdrawModal } from "../../components/withdraw-modal";
+import { BitikaPurchaseModal } from "../../components/bitika-purchase-modal";
 import { useBreezWallet } from "../../contexts/breez-wallet-context";
 import { HttpOnRamp } from "../../lib/http-onramp";
 import {
@@ -67,11 +68,13 @@ function statusMessage(
 
 export function InvestFlow({
   profileId,
+  profile,
   surplusFloorKes,
   defaultAmountKes,
   sandbox,
 }: {
-  profileId: "amina" | "brian";
+  profileId: string;
+  profile?: FinancialProfile;
   surplusFloorKes: number;
   defaultAmountKes: number;
   sandbox: boolean;
@@ -289,6 +292,7 @@ export function InvestFlow({
         approvedByUser: true,
         idempotencyKey,
         profileId,
+        ...(profile ? { profile } : {}),
       });
       if (!result.purchaseId) {
         throw new Error("Bitika did not return a transaction code. Try again.");
@@ -314,7 +318,7 @@ export function InvestFlow({
       setStep("confirm");
       setBusy(false);
     }
-  }, [address, amountKes, phone, profileId, followPurchase, recordProgress]);
+  }, [address, amountKes, phone, profile, profileId, followPurchase, recordProgress]);
 
   const withdrawAddress = useMemo(() => {
     try {
@@ -454,37 +458,26 @@ export function InvestFlow({
         </section>
       )}
 
-      {step === "confirm" && (
-        <section className="card">
-          <h2 className="font-serif text-xl text-pine">Confirm</h2>
-          <ul className="mt-4 space-y-2 text-sm text-ink/80">
-            <li>Pay: KES {amountKes}</li>
-            <li>About: {estimatedSats ?? "…"} sats</li>
-            <li>To: {address}</li>
-            <li>Phone: {phone ? maskPhone(phone) : "…"}</li>
-          </ul>
-          <p className="mt-3 text-xs text-ink/60">
-            Sats shown are an estimate before you pay. Live mode adds about 3% on Bitika.
-            Education only, not financial advice.
-          </p>
-          <button
-            type="button"
-            className="btn btn-accent mt-4 w-full"
-            disabled={busy}
-            onClick={() => void startPurchase()}
-          >
-            {busy ? "Starting payment…" : "Approve and pay with M-Pesa"}
-          </button>
-        </section>
-      )}
-
-      {step === "status" && purchase && (
-        <section className="card">
-          <p className="text-sm text-ink/80">
-            {statusMessage(purchase.status, purchase, sandbox, amountKes)}
-          </p>
-        </section>
-      )}
+      <BitikaPurchaseModal
+        isOpen={step === "confirm" || step === "status"}
+        onClose={() => setStep("amount")}
+        kesAmount={amountKes}
+        estimatedSats={estimatedSats}
+        phone={phone}
+        address={address}
+        status={
+          step === "status"
+            ? purchase?.status === "filled"
+              ? "success"
+              : purchase?.status === "failed" || purchase?.status === "cannot_fill" || purchase?.status === "paid_not_delivered"
+                ? "error"
+                : "polling"
+            : "confirm"
+        }
+        errorMessage={purchase ? statusMessage(purchase.status, purchase, sandbox, amountKes) : null}
+        onApprove={() => void startPurchase()}
+        busy={busy}
+      />
 
       {step === "pending" && purchase && (
         <section className="card">

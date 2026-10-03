@@ -1,138 +1,118 @@
-/**
- * Overview.
- * The dashboard from the Serene Shilling screens. Amounts come from the profile.
- * Sats are not shown as a number until a real quote exists.
- */
+"use client";
+
 import Link from "next/link";
-import { PAST_PERFORMANCE_DISCLAIMER } from "@pesasense/core";
+import { Suspense, useState } from "react";
+
+import { PAST_PERFORMANCE_DISCLAIMER, type FinancialProfile } from "@pesasense/core";
+import { DemoProfileSwitch } from "../../components/demo-profile-switch";
+import { ProfileRequired } from "../../components/profile-required";
 import { ProfileSync } from "../../components/profile-sync";
-import { Sensi } from "../../components/sensi";
+import { SensiAvatar } from "../../components/sensi-avatar";
 import { UssdAccess } from "../../components/ussd-access";
 import { WalletActivity } from "../../components/wallet-activity";
-import { formatKes, habitPercentOfFloor } from "../../lib/format";
-import { loadProfile } from "../../lib/load-profile";
 import { ImportTrigger } from "../../components/import-trigger";
+import { showBufferFirstUx } from "../../lib/buffer-gate";
+import { LifeMarkers } from "../../components/life-markers";
+import { buildMoneyStops, MoneyMap } from "../../components/money-map";
+import { useActiveProfile } from "../../lib/use-active-profile";
 
-export default async function OverviewPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ profile?: string }>;
-}) {
-  const params = await searchParams;
-  const loaded = loadProfile(params.profile);
-  if (loaded.status === "not-ready") {
-    return (
-      <main className="card">
-        <h1 className="text-2xl font-semibold text-ink">No profile yet</h1>
-        <p className="mt-3 text-sm leading-6 text-slate">{loaded.reason}</p>
-      </main>
-    );
+const TRUST_ICONS: Record<string, string> = {
+  key: "🔑",
+  chart: "📊",
+  phone: "📱",
+};
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+function TrustChip({ label, icon }: { label: string; icon: string }) {
+  return (
+    <div className="flex flex-col items-center gap-1 px-1">
+      <span className="text-2xl" role="img" aria-label={icon}>
+        {TRUST_ICONS[icon] ?? "✅"}
+      </span>
+      <span className="text-[10px] font-semibold leading-tight text-slate">
+        {label}
+      </span>
+    </div>
+  );
+}
+
+/** Calendar date from a profile window. Returns null when the field is not a real date. */
+function formatWindowDate(iso: string): string | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const monthName = MONTHS[month - 1];
+  if (!monthName || day < 1 || day > 31) return null;
+  return `${day} ${monthName} ${year}`;
+}
+
+function statementPeriod(profile: FinancialProfile, isDemo: boolean): string {
+  const from = formatWindowDate(profile.window.from);
+  const to = formatWindowDate(profile.window.to);
+  if (from && to) return `${from} – ${to}`;
+  if (isDemo) return "Demo statement";
+  return "From the statement on this phone";
+}
+
+function OverviewContent() {
+  const active = useActiveProfile();
+  const [pathFocus, setPathFocus] = useState<{ id: string; token: number } | null>(null);
+  if (!active.ready) {
+    return <ProfileRequired />;
   }
 
-  const { profile, isDemo, demoId, persona } = loaded;
-  const name = demoId === "brian" ? "Brian" : "Amina";
-  const { floor, typical, ceiling } = profile.surplus.monthlyKes;
-  const habit = profile.investmentPlan?.amountKes ?? 0;
-  const share = habitPercentOfFloor(habit, floor);
-  const span = Math.max(ceiling - floor, 1);
-  const typicalPercent = Math.round(((typical - floor) / span) * 100);
-  const query = demoId === "brian" ? "?profile=brian" : "";
-  const cushionMonths = profile.resilience.monthsOfExpensesCovered;
-  const cushionPercent = Math.max(
-    0,
-    Math.min(100, Math.round((cushionMonths / 3) * 100)),
-  );
+  const { profile, profileId, isDemo, displayName: name } = active;
+  const persona = isDemo ? `${name} (invented demo)` : "Your profile on this phone";
+
+  const floor = profile.surplus.monthlyKes.floor;
+  const query = isDemo && profileId === "brian" ? "?profile=brian" : "";
+  const bufferFirst = showBufferFirstUx(profile) || floor <= 0;
+  const period = statementPeriod(profile, isDemo);
+
+  function openPromisedOnPath() {
+    const stop = buildMoneyStops(profile).find((item) => item.id.startsWith("commitment-"));
+    if (!stop) return;
+    setPathFocus({ id: stop.id, token: Date.now() });
+    document.getElementById("month-path")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-col gap-4">
-      <section className="flex items-center gap-3 rounded-[20px] bg-white px-4 py-3 shadow-card">
+    <main className="flex w-full flex-col gap-4">
+      <header>
+        <p className="text-[11px] font-semibold tracking-[0.14em] text-slate uppercase">
+          Statement period
+        </p>
+        <p className="mt-1 text-sm font-semibold text-ink">{period}</p>
+        {isDemo ? (
+          <p className="mt-2">
+            <DemoTag />
+          </p>
+        ) : null}
+      </header>
+
+      <section className="flex items-center gap-3 rounded-[20px] border border-mint/40 bg-mint/35 px-4 py-3 shadow-card">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-mint">
-          <Sensi className="h-9 w-9" />
+          <SensiAvatar size="sm" mood="happy" />
         </span>
         <p className="text-sm leading-5 text-ink">
-          <span className="font-semibold">Habari {name}.</span>{" "}
-          {profile.surplus.bufferFirst
+          <span className="font-semibold">Habari {name} 👋</span>{" "}
+          {bufferFirst
             ? "The buffer comes first. This history is not ready for a Bitcoin habit yet."
-            : "Everything essential is covered this month."}
+            : "Here is the picture from this statement, then what a habit would mean."}
         </p>
       </section>
 
-      <section className="rounded-[20px] bg-white p-5 shadow-card">
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-[11px] font-semibold tracking-[0.12em] text-slate uppercase">
-            Safe monthly surplus
-          </p>
-          {isDemo ? <DemoTag /> : null}
-        </div>
-        <p className="mt-3 text-[32px] leading-10 font-bold tracking-tight text-ink tabular-nums">
-          {formatKes(floor)} – {formatKes(ceiling)}
-        </p>
-        <p className="mt-1 text-sm text-slate">
-          Calm surplus after bills, chamas, and daily life.
-        </p>
-        <div className="mt-5" aria-hidden="true">
-          <div className="relative h-1.5 rounded-full bg-pearl">
-            <div className="absolute inset-y-0 right-0 left-[8%] rounded-full bg-teal/70" />
-            <div
-              className="absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-teal ring-4 ring-white"
-              style={{ left: `${typicalPercent}%` }}
-            />
-          </div>
-          <div className="mt-3 flex items-center justify-between gap-2 text-[11px] font-semibold text-slate">
-            <span>Conservative</span>
-            <span className="rounded-full bg-mint px-2 py-1 text-teal">
-              Typical {formatKes(typical)}
-            </span>
-            <span>Relaxed</span>
-          </div>
-        </div>
-        <p className="sr-only">
-          Floor {formatKes(floor)}, typical {formatKes(typical)}, high{" "}
-          {formatKes(ceiling)}.
-        </p>
-      </section>
+      <MoneyMap profile={profile} isDemo={isDemo} focusRequest={pathFocus} />
 
-      {profile.surplus.bufferFirst ? (
-        <section className="rounded-[20px] bg-white p-5 shadow-card">
-          <p className="text-[11px] font-semibold tracking-[0.12em] text-slate uppercase">
-            Safety cushion
-          </p>
-          <p className="mt-2 text-sm leading-6 text-ink">
-            {cushionMonths} months of expenses covered. The aim is 3 months.
-          </p>
-          <div className="mt-3 h-2 rounded-full bg-pearl" aria-hidden="true">
-            <div
-              className="h-2 rounded-full bg-teal"
-              style={{ width: `${cushionPercent}%` }}
-            />
-          </div>
-          <Link href={`/habit${query}`} className="btn btn-secondary mt-4 inline-flex">
-            Here&apos;s how
-          </Link>
-        </section>
-      ) : (
-        <section className="rounded-[20px] bg-white p-5 shadow-card">
-          <p className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.12em] text-teal uppercase">
-            <span className="h-1.5 w-1.5 rounded-full bg-teal" aria-hidden="true" />
-            Your habit
-          </p>
-          <div className="mt-2 flex items-end justify-between gap-3">
-            <p className="text-[28px] leading-9 font-bold text-ink tabular-nums">
-              {formatKes(habit)}{" "}
-              <span className="text-base font-semibold text-slate">/ month</span>
-            </p>
-            <Link href={`/habit${query}`} className="btn btn-secondary px-4 py-2">
-              Adjust
-            </Link>
-          </div>
-          <p className="mt-2 text-sm text-slate">
-            <span className="mr-1 rounded-full border border-line px-2 py-0.5 text-[11px] font-semibold">
-              Demo
-            </span>
-            Sats appear when there is a quote. {share}% of the safe floor.
-          </p>
-        </section>
-      )}
+      <LifeMarkers
+        profile={profile}
+        isDemo={isDemo}
+        habitHref={`/habit${query}`}
+        onOpenPromisedStop={openPromisedOnPath}
+      />
 
       <section className="rounded-[20px] bg-white p-5 shadow-card">
         <p className="text-[11px] font-semibold tracking-[0.12em] text-slate uppercase">
@@ -153,9 +133,11 @@ export default async function OverviewPage({
         <TrustChip label="Never leaves phone" icon="phone" />
       </section>
 
-      {isDemo ? <WalletActivity profileId={demoId} /> : null}
-      {isDemo ? <UssdAccess profileId={demoId} /> : null}
-      {isDemo ? <ProfileSync profile={profile} profileId={demoId} /> : null}
+      <WalletActivity profileId={profileId} />
+      {profileId === "amina" || profileId === "brian" ? (
+        <UssdAccess profileId={profileId} />
+      ) : null}
+      <ProfileSync profile={profile} profileId={profileId} />
 
       {isDemo ? (
         <section className="card space-y-3">
@@ -167,11 +149,7 @@ export default async function OverviewPage({
           </p>
           <ImportTrigger />
           <div className="flex gap-3 pt-1 text-sm">
-            {demoId === "brian" ? (
-              <Link href="/overview" className="text-teal underline underline-offset-2">View Amina</Link>
-            ) : (
-              <Link href="/overview?profile=brian" className="text-teal underline underline-offset-2">View the thin profile</Link>
-            )}
+            <DemoProfileSwitch profileId={profileId} />
           </div>
         </section>
       ) : null}
@@ -183,44 +161,18 @@ export default async function OverviewPage({
   );
 }
 
-function DemoTag() {
+function DemoTag({ dark = false }: { dark?: boolean }) {
   return (
-    <span className="rounded-full bg-pearl px-2.5 py-1 text-[11px] font-semibold text-slate">
+    <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${dark ? "bg-paper/15 text-paper" : "bg-pearl text-slate"}`}>
       Demo data
     </span>
   );
 }
 
-function TrustChip({ label, icon }: { label: string; icon: "key" | "chart" | "phone" }) {
+export default function OverviewPage() {
   return (
-    <p className="flex flex-col items-center gap-1.5 px-1 text-[11px] leading-4 font-semibold text-slate">
-      <ChipIcon name={icon} />
-      {label}
-    </p>
-  );
-}
-
-function ChipIcon({ name }: { name: "key" | "chart" | "phone" }) {
-  const common = "h-4 w-4 fill-none stroke-teal";
-  if (name === "key") {
-    return (
-      <svg viewBox="0 0 24 24" aria-hidden="true" className={common} strokeWidth="1.75">
-        <circle cx="8" cy="14" r="3.2" />
-        <path strokeLinecap="round" d="M11 14h9l-2 2M17 14v2" />
-      </svg>
-    );
-  }
-  if (name === "chart") {
-    return (
-      <svg viewBox="0 0 24 24" aria-hidden="true" className={common} strokeWidth="1.75">
-        <path strokeLinecap="round" d="M4 18h16M7 15V9M12 15V6M17 15v-4" />
-      </svg>
-    );
-  }
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className={common} strokeWidth="1.75">
-      <rect x="7" y="3" width="10" height="18" rx="2" />
-      <path strokeLinecap="round" d="M11 18h2" />
-    </svg>
+    <Suspense>
+      <OverviewContent />
+    </Suspense>
   );
 }

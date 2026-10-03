@@ -13,9 +13,10 @@ import { useEffect, useState, type ReactNode } from "react";
 const WELCOME_FLAG = "hasSeenWelcome";
 
 /** Routes a first-time visitor may open before they tap Get started. */
-const OPEN_PREFIXES = ["/welcome", "/onboarding", "/import", "/trust"];
+const OPEN_PREFIXES = ["/welcome", "/onboarding", "/onboard", "/trust"];
 
 function isOpenPath(pathname: string): boolean {
+  if (pathname === "/") return true;
   return OPEN_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );

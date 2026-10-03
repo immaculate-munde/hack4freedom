@@ -37,30 +37,50 @@ const LINES = [
   "PesaSense is not a licensed exchange or investment adviser. That status is still to be confirmed.",
 ] as const;
 
-/** The trust-screen notice. One short card, no alarm styling. */
-export function RegulatoryDisclosure() {
-  return (
-    <aside aria-label="Regulatory notice" className="card">
+/** The trust-screen notice. Card on the trust page, plain rows in a footer. */
+export function RegulatoryDisclosure({ variant = "card" }: { variant?: "card" | "footer" }) {
+  const body = (
+    <>
       <div className="flex items-start gap-2">
-        <InfoIcon />
+        {variant === "card" ? <InfoIcon /> : null}
         <div>
-          <p className="text-sm font-semibold text-ink">The honest picture</p>
-          <p className="mt-1 text-xs leading-5 text-ink/60">
-            As of 1 October 2026. Status to be confirmed.
+          <p
+            className={
+              variant === "footer"
+                ? "text-[11px] font-semibold tracking-[0.14em] text-slate uppercase"
+                : "text-sm font-semibold text-ink"
+            }
+          >
+            The honest picture
           </p>
+          <p className="mt-1 text-xs leading-5 text-slate">As of 1 October 2026. Status to be confirmed.</p>
         </div>
       </div>
-      <ul className="mt-4 space-y-3">
+      <ul className={variant === "footer" ? "mt-5 grid gap-4 md:grid-cols-3" : "mt-4 space-y-3"}>
         {LINES.map((line) => (
-          <li key={line} className="text-sm leading-6 text-ink/80">
+          <li key={line} className="text-sm leading-6 text-ink">
             {line}
           </li>
         ))}
       </ul>
-      <p className="mt-4 text-xs leading-5 text-ink/55">
-        The on-ramp partner&apos;s licence status is to be confirmed. We do not call a
-        partner licensed until that is checked.
+      <p className="mt-4 text-xs leading-5 text-slate">
+        The on-ramp partner&apos;s licence status is to be confirmed. We do not call a partner licensed until
+        that is checked.
       </p>
+    </>
+  );
+
+  if (variant === "footer") {
+    return (
+      <div aria-label="Regulatory notice" className="contents">
+        {body}
+      </div>
+    );
+  }
+
+  return (
+    <aside aria-label="Regulatory notice" className="card">
+      {body}
     </aside>
   );
 }

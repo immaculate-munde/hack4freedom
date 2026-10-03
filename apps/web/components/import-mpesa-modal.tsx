@@ -1,9 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { parseSmsBatch, buildProfile } from "@pesasense/core";
-import type { FinancialProfile } from "@pesasense/core";
+import { useRouter } from "next/navigation";
+import { demoProfiles, type FinancialProfile } from "@pesasense/core";
 import { useProfile } from "../contexts/profile-context";
+import { PdfImportForm } from "./pdf-import-form";
+import { SmsImportForm } from "./sms-import-form";
+import { routeAfterImport } from "../lib/profile-from-import";
 
 function XIcon() {
   return (
@@ -24,92 +27,45 @@ function XIcon() {
   );
 }
 
-function Spinner() {
-  return (
-    <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
-      <circle
-        className="opacity-25"
-        cx="12"
-        cy="12"
-        r="10"
-        stroke="currentColor"
-        strokeWidth="4"
-      />
-      <path
-        className="opacity-75"
-        fill="currentColor"
-        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-      />
-    </svg>
-  );
-}
-
 export interface ImportMpesaModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
 export function ImportMpesaModal({ isOpen, onClose }: ImportMpesaModalProps) {
+  const router = useRouter();
   const { setProfile } = useProfile();
-  const [smsData, setSmsData] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<FinancialProfile | null>(null);
 
   if (!isOpen) return null;
 
   function handleClose() {
-    setSmsData("");
-    setError(null);
     setResult(null);
-    setLoading(false);
     onClose();
-  }
-
-  function handleAnalyze() {
-    if (!smsData.trim()) return;
-    setLoading(true);
-    setError(null);
-
-    setTimeout(() => {
-      try {
-        const batch = smsData
-          .split(/\n\s*\n/)
-          .map((item) => item.trim())
-          .filter((item) => item.length > 0);
-        const parsed = parseSmsBatch(batch);
-        const profile = buildProfile({
-          transactions: parsed,
-          onboarding: { debts: [], chamaMemberships: [], goal: { kind: "other" } },
-        });
-        setResult(profile);
-      } catch (err: any) {
-        const message = err instanceof Error ? err.message : "";
-        if (message.includes("Not implemented")) {
-          setError("Reading a real statement is coming soon.");
-          setResult(null);
-          // Fall back to demo profile
-          setProfile(null);
-        } else {
-          setError(
-            "We couldn't read that data. Try pasting the full SMS, or use the demo profile.",
-          );
-        }
-      } finally {
-        setLoading(false);
-      }
-    }, 800);
   }
 
   function handleCommit() {
     if (!result) return;
-    setProfile(result);
+    const next = result;
+    setProfile(next);
+    try {
+      localStorage.setItem("hasSeenWelcome", "true");
+    } catch {
+      // ignore
+    }
     handleClose();
+    router.push(routeAfterImport(next));
   }
 
   function handleUseDemo() {
-    setProfile(null);
+    setProfile(demoProfiles.amina);
+    try {
+      localStorage.setItem("hasSeenWelcome", "true");
+    } catch {
+      // ignore
+    }
     handleClose();
+    router.push("/overview");
   }
 
   return (
@@ -175,7 +131,7 @@ export function ImportMpesaModal({ isOpen, onClose }: ImportMpesaModalProps) {
             </div>
 
             {result ? (
-              <div className="mt-5 space-y-3 rounded-2xl border border-pine/20 bg-moss/5 p-4">
+              <div className="mt-5 space-y-3 rounded-2xl border border-mint/60 bg-mint/25 p-4">
                 <p className="text-sm font-semibold text-pine">Analysis complete</p>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
@@ -193,59 +149,46 @@ export function ImportMpesaModal({ isOpen, onClose }: ImportMpesaModalProps) {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-ink/65">Commitments</span>
-                    <span className="font-semibold text-ink">
-                      {result.commitments.length} detected
-                    </span>
-                  </div>
-                </div>
+                    <span className="font-semibold text-ink">{result.commitments.length} detected</span>
+                  </div >
+                </div >
                 <button onClick={handleCommit} className="btn btn-primary mt-2 w-full">
-                  Use this profile
+                  {routeAfterImport(result) === "/habit" ? "Set the habit" : "Use this profile"}
                 </button>
-              </div>
+              </div >
             ) : (
-              <div className="mt-5 space-y-3">
-                <textarea
-                  className="field min-h-[140px] text-sm leading-6"
-                  placeholder="Paste your M-Pesa SMS messages here..."
-                  value={smsData}
-                  onChange={(e) => setSmsData(e.target.value)}
+              <div className="mt-5 space-y-5">
+                <SmsImportForm
+                  onProfileReady={setResult}
+                  onDemoFallback={handleUseDemo}
                 />
-
-                {error && (
-                  <p className="rounded-xl bg-brass/10 px-3 py-2 text-xs font-medium text-brass">
-                    {error}
+                <div className="border-t border-sand/50 pt-4">
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate">
+                    Or upload PDF
                   </p>
-                )}
-
-                <button
-                  onClick={handleAnalyze}
-                  disabled={loading || !smsData.trim()}
-                  className="btn btn-primary flex w-full items-center justify-center gap-2"
-                >
-                  {loading ? (
-                    <>
-                      <Spinner /> Analyzing...
-                    </>
-                  ) : (
-                    "Process Data"
-                  )}
-                </button>
+                  <PdfImportForm
+                    onProfileReady={setResult}
+                    onDemoFallback={handleUseDemo}
+                  />
+                </div>
               </div>
             )}
 
-            {!result && (
-              <div className="mt-4 border-t border-sand/50 pb-2 pt-4">
-                <button
-                  onClick={handleUseDemo}
-                  className="btn btn-ghost w-full text-center"
-                >
-                  Use demo profile (Amina)
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
+            {
+              !result && (
+                <div className="mt-4 border-t border-sand/50 pb-2 pt-4">
+                  <button
+                    onClick={handleUseDemo}
+                    className="btn btn-ghost w-full text-center"
+                  >
+                    Use demo profile (Amina)
+                  </button>
+                </div>
+              )
+            }
+          </div >
+        </div >
+      </div >
+    </div >
   );
 }
