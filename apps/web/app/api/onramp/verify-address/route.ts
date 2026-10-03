@@ -1,10 +1,11 @@
 import { parseDestination, resolveLightningAddress } from "@pesasense/wallet";
+import { apiError } from "../../../../lib/api-error";
 
 export async function POST(req: Request) {
   try {
     const body = (await req.json()) as { address?: string };
     if (!body.address?.trim()) {
-      return Response.json({ error: "Enter a Lightning address." }, { status: 400 });
+      return apiError("errors.enterLightning", 400);
     }
     const parsed = parseDestination(body.address);
     if (parsed.kind === "lightning_address") {

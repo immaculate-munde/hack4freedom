@@ -7,6 +7,7 @@
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
+import { isUssdLang, type UssdLang } from "./copy";
 import {
   isFlow,
   isProfileId,
@@ -89,15 +90,25 @@ export function migrate(db: DatabaseSync): void {
     id TEXT PRIMARY KEY,
     applied_at TEXT NOT NULL
   )`);
-  const existing = db
-    .prepare("SELECT id FROM schema_migrations WHERE id = ?")
-    .get("001_init");
+  applyMigration(db, "001_init", () => {
+    db.exec(MIGRATION_001);
+  });
+  applyMigration(db, "002_language", () => {
+    db.exec(`CREATE TABLE IF NOT EXISTS ussd_languages (
+      phone TEXT PRIMARY KEY,
+      language TEXT NOT NULL CHECK (language IN ('en', 'sw'))
+    )`);
+  });
+}
+
+function applyMigration(db: DatabaseSync, id: string, change: () => void): void {
+  const existing = db.prepare("SELECT id FROM schema_migrations WHERE id = ?").get(id);
   if (existing) return;
   db.exec("BEGIN");
   try {
-    db.exec(MIGRATION_001);
+    change();
     db.prepare("INSERT INTO schema_migrations (id, applied_at) VALUES (?, ?)").run(
-      "001_init",
+      id,
       new Date().toISOString(),
     );
     db.exec("COMMIT");
@@ -302,6 +313,24 @@ class SqliteUssdStore implements UssdStore {
       .prepare("UPDATE rate_buckets SET count = count + 1 WHERE bucket = ?")
       .run(bucket);
     return asNumber(row.count) + 1;
+  }
+
+  getLanguage(phone: string): UssdLang | null {
+    const row = this.db
+      .prepare("SELECT language FROM ussd_languages WHERE phone = ?")
+      .get(phone);
+    if (!isRecord(row)) return null;
+    const language = asString(row.language);
+    return isUssdLang(language) ? language : null;
+  }
+
+  setLanguage(phone: string, language: UssdLang): void {
+    this.db
+      .prepare(
+        `INSERT INTO ussd_languages (phone, language) VALUES (?, ?)
+         ON CONFLICT(phone) DO UPDATE SET language = excluded.language`,
+      )
+      .run(phone, language);
   }
 
   close(): void {

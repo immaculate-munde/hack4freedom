@@ -187,6 +187,7 @@ export function UssdAccess({ profileId }: { profileId: ProfileId }) {
           phone,
           profileId,
           destination: destination.trim() || undefined,
+          language: locale,
         }),
       });
       const body = (await res.json()) as ApiErrorBody;
@@ -213,6 +214,7 @@ export function UssdAccess({ profileId }: { profileId: ProfileId }) {
         body: JSON.stringify({
           profileId,
           destination: destination.trim() || undefined,
+          language: locale,
         }),
       });
       const body = (await res.json()) as ApiErrorBody & { code?: string };

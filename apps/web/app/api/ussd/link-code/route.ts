@@ -4,10 +4,12 @@
 
 import {
   isProfileId,
+  isUssdLang,
   newLinkCode,
   publicServiceCode,
   ussdDestination,
 } from "@pesasense/ussd";
+import { apiError } from "../../../../lib/api-error";
 import { isCrossSite } from "../../../../lib/same-origin";
 import { getUssdStore } from "../../../../lib/ussd-server";
 
@@ -18,16 +20,16 @@ const CODE_TTL_MS = 15 * 60 * 1000;
 
 export async function POST(req: Request) {
   if (isCrossSite(req)) {
-    return Response.json({ error: "This request was refused." }, { status: 403 });
+    return apiError("errors.refused", 403);
   }
-  let body: { profileId?: unknown; destination?: unknown };
+  let body: { profileId?: unknown; destination?: unknown; language?: unknown };
   try {
     body = (await req.json()) as typeof body;
   } catch {
-    return Response.json({ error: "Could not read this request." }, { status: 400 });
+    return apiError("errors.couldNotRead", 400);
   }
   if (typeof body.profileId !== "string" || !isProfileId(body.profileId)) {
-    return Response.json({ error: "Choose a known demo profile." }, { status: 400 });
+    return apiError("errors.knownProfile", 400);
   }
 
   const destination =
@@ -39,10 +41,7 @@ export async function POST(req: Request) {
     body.destination.trim() !== "" &&
     !destination
   ) {
-    return Response.json(
-      { error: "Enter a Lightning address like name@wallet.com." },
-      { status: 400 },
-    );
+    return apiError("errors.enterLightningExample", 400);
   }
 
   const store = getUssdStore();
@@ -57,16 +56,14 @@ export async function POST(req: Request) {
         destination,
         expiresAt,
       });
+      if (isUssdLang(body.language)) store.setLanguage(`code:${code}`, body.language);
       break;
     } catch {
       code = "";
     }
   }
   if (!code) {
-    return Response.json(
-      { error: "Could not create a code. Try again." },
-      { status: 500 },
-    );
+    return apiError("errors.codeFailed", 500);
   }
 
   const service = publicServiceCode(process.env);

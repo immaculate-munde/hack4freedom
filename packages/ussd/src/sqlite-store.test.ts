@@ -86,7 +86,7 @@ describe("sqlite ussd store", () => {
 
     const db = new DatabaseSync(filename);
     const migrations = db.prepare("SELECT id FROM schema_migrations").all();
-    expect(migrations).toEqual([{ id: "001_init" }]);
+    expect(migrations).toEqual([{ id: "001_init" }, { id: "002_language" }]);
     const indexes = db
       .prepare(
         "SELECT name FROM sqlite_master WHERE type = 'index' AND name LIKE 'idx_%'",

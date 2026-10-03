@@ -4,7 +4,7 @@
   "demoStatement": "Demo statement",
   "statementOnPhone": "From the statement on this phone",
   "demoData": "Demo data",
-  "greeting": "Habari {name} 👋",
+  "greeting": "Hello {name}",
   "bufferFirst": "The buffer comes first. This history is not ready for a Bitcoin habit yet.",
   "habitReady": "Here is the picture from this statement, then what a habit would mean.",
   "chamaTitle": "Chama",

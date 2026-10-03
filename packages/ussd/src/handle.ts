@@ -4,6 +4,7 @@
  */
 
 import { maskPhone, toBitikaPhone } from "@pesasense/wallet";
+import { ussdCopy } from "./copy";
 import type { UssdConfig } from "./config";
 import { demoFacts } from "./facts";
 import { ussdIdempotencyKey } from "./idempotency";
@@ -86,12 +87,14 @@ export async function handleUssd(
   }
 
   const textBody = normalizeText(inbound.text, config.serviceCode);
+  const lang = deps.store.getLanguage(phone) ?? "en";
+  const say = ussdCopy(lang);
   if (!validUssdText(textBody)) {
-    return text(200, end("Use the number keys."));
+    return text(200, end(say.numberKeys));
   }
   const segments = textBody === "" ? [] : textBody.split("*");
   if (segments.length > 8) {
-    return text(200, end("This session is too long. Dial again."));
+    return text(200, end(say.sessionTooLong));
   }
 
   return withLock(inbound.sessionId, async () => {
@@ -99,7 +102,7 @@ export async function handleUssd(
     const existing = deps.store.getSession(inbound.sessionId);
     if (existing && existing.phone !== phone) {
       log(deps, "rejected", { reason: "session-phone", sessionId: inbound.sessionId });
-      return text(200, end("This session does not match the number."));
+      return text(200, end(say.sessionMismatch));
     }
     if (existing && existing.lastText === textBody) {
       log(deps, "duplicate", {
@@ -114,18 +117,18 @@ export async function handleUssd(
         existing,
         phone,
         textBody,
-        end("This session is finished. Dial again."),
+        end(say.sessionFinished),
       );
     }
     if (!existing && textBody !== "") {
       log(deps, "expired", { sessionId: inbound.sessionId, phone: maskPhone(phone) });
-      return text(200, end("Session expired. Dial again."));
+      return text(200, end(say.sessionExpired));
     }
 
     const requests = deps.store.hitRate(`req:${phone}`, deps.now(), 60_000);
     if (requests > config.maxRequestsPerMinute) {
       log(deps, "rate-limited", { phone: maskPhone(phone) });
-      return text(200, end("Too many tries. Wait a minute."));
+      return text(200, end(say.tooManyTries));
     }
 
     const account = deps.store.getAccount(phone);
@@ -138,14 +141,16 @@ export async function handleUssd(
       destination: account?.destination ?? null,
       latest: summary(deps.store.latestPurchase(phone)),
       facts,
+      language: lang,
     });
+    if (outcome.setLanguage) deps.store.setLanguage(phone, outcome.setLanguage);
 
     let response = outcome.response;
 
     if (outcome.redeemCode) {
       const redeemed = deps.store.redeemLinkCode(outcome.redeemCode, phone, deps.now());
       if (!redeemed) {
-        response = end("Code not recognised or it has expired.");
+        response = end(say.codeExpired);
         outcome = {
           ...outcome,
           purchase: undefined,
@@ -167,6 +172,9 @@ export async function handleUssd(
           via: "code",
         });
         const linked = deps.store.getAccount(phone);
+        const fromCode = deps.store.getLanguage(`code:${outcome.redeemCode}`);
+        if (fromCode) deps.store.setLanguage(phone, fromCode);
+        const linkedLang = deps.store.getLanguage(phone) ?? lang;
         outcome = runMenu({
           flow: "menu",
           segments: outcome.restAfterRedeem,
@@ -174,6 +182,7 @@ export async function handleUssd(
           destination: linked?.destination ?? null,
           latest: summary(deps.store.latestPurchase(phone)),
           facts,
+          language: linkedLang,
         });
         response = outcome.response;
       }
@@ -199,11 +208,11 @@ export async function handleUssd(
 
     if (outcome.purchase) {
       if (purchaseId) {
-        response = end("This session is finished. Dial again.");
+        response = end(say.sessionFinished);
       } else {
         const buys = deps.store.hitRate(`buy:${phone}`, deps.now(), 3_600_000);
         if (buys > config.maxBuysPerHour) {
-          response = end("Buy limit reached. Try again later.");
+          response = end(say.buyLimit);
         } else {
           const idempotencyKey = ussdIdempotencyKey(
             inbound.sessionId,
@@ -234,7 +243,7 @@ export async function handleUssd(
               createdAtMs: deps.now(),
             });
             response = end(
-              purchaseResultLine(amountKes, purchase.purchaseId, purchase.status),
+              purchaseResultLine(amountKes, purchase.purchaseId, purchase.status, lang),
             );
             log(deps, "purchase", {
               phone: maskPhone(phone),
@@ -243,7 +252,7 @@ export async function handleUssd(
               status: purchase.status,
             });
           } catch (error) {
-            response = end("Could not start the buy. Try again later.");
+            response = end(say.couldNotStartLater);
             log(deps, "purchase-failed", {
               phone: maskPhone(phone),
               message: safeError(error),
@@ -256,7 +265,7 @@ export async function handleUssd(
     if (outcome.refreshStatus) {
       const latest = deps.store.latestPurchase(phone);
       if (!latest) {
-        response = end("No buy on this number yet.");
+        response = end(say.noBuyYet);
       } else {
         try {
           const checked = await deps.checkStatus(latest.purchaseId);
@@ -272,14 +281,14 @@ export async function handleUssd(
               purchaseId: latest.purchaseId,
               amountKes,
               status: checked.status,
-            }),
+            }, lang),
           );
           log(deps, "status", {
             phone: maskPhone(phone),
             status: checked.status,
           });
         } catch (error) {
-          response = end("Could not check the buy. Try again shortly.");
+          response = end(say.couldNotCheck);
           log(deps, "status-failed", {
             phone: maskPhone(phone),
             message: safeError(error),
