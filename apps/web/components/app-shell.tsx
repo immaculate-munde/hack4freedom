@@ -27,6 +27,41 @@ const NAV = [...PRIMARY, ...MORE] as const;
 
 type NavKey = (typeof NAV)[number]["key"];
 
+type SensiTopic = "surplus" | "bitcoin" | "wallet" | "habit" | "chama" | "scam" | "fallback";
+
+const SENSI_REPLIES: Record<SensiTopic, string> = {
+  surplus: "sensi.replySurplus",
+  bitcoin: "sensi.replyBitcoin",
+  wallet: "sensi.replyWallet",
+  habit: "sensi.replyHabit",
+  chama: "sensi.replyChama",
+  scam: "sensi.replyScam",
+  fallback: "sensi.replyFallback",
+};
+
+const SENSI_LINKS: Record<SensiTopic, { href: string; label: string }> = {
+  surplus: { href: "/surplus", label: "sensi.seeSurplus" },
+  bitcoin: { href: "/learn", label: "sensi.seeLearn" },
+  wallet: { href: "/wallet", label: "sensi.seeWallet" },
+  habit: { href: "/habit", label: "sensi.seeHabit" },
+  chama: { href: "/chama", label: "sensi.seeChama" },
+  scam: { href: "/learn", label: "sensi.seeLearn" },
+  fallback: { href: "/learn", label: "sensi.seeLearn" },
+};
+
+function sensiTopic(text: string): SensiTopic {
+  const question = text.toLowerCase();
+  if (/scam|guaranteed|recovery word|seed|ulaghai|maneno ya kurejesha|faida iliyohakikishwa/.test(question)) {
+    return "scam";
+  }
+  if (/wallet|custody|private key|mkoba|funguo|kujihifadhi/.test(question)) return "wallet";
+  if (/chama/.test(question)) return "chama";
+  if (/habit|monthly|kila mwezi|tabia/.test(question)) return "habit";
+  if (/surplus|floor|buffer|cushion|zaida|ziada|sakafu|hifadhi/.test(question)) return "surplus";
+  if (/bitcoin|btc|sats/.test(question)) return "bitcoin";
+  return "fallback";
+}
+
 function hidesNav(pathname: string): boolean {
   return pathname === "/welcome" || pathname === "/onboarding" || pathname === "/onboard";
 }
@@ -55,10 +90,21 @@ export function AppShell({ children }: { children: ReactNode }) {
   const quiet = hidesNav(pathname);
   const { locale, t } = useI18n();
   const [isSensiOpen, setIsSensiOpen] = useState(false);
+  const [sensiDraft, setSensiDraft] = useState("");
+  const [sensiQuestion, setSensiQuestion] = useState<string | null>(null);
+  const [sensiReply, setSensiReply] = useState<SensiTopic | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [navCollapsed, setNavCollapsed] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const moreActive = MORE.some((item) => item.match(pathname));
+
+  function askSensi(text: string, topic?: SensiTopic) {
+    const question = text.trim();
+    if (!question) return;
+    setSensiQuestion(question);
+    setSensiReply(topic ?? sensiTopic(question));
+    setSensiDraft("");
+  }
 
   useEffect(() => {
     const key = titleKey(pathname);
@@ -308,7 +354,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div
               role="dialog"
               aria-label={t("sensi.guide")}
-              className="fixed right-4 bottom-24 z-40 w-[min(22rem,calc(100vw-2rem))] rounded-3xl border border-sand bg-paper p-4 shadow-2xl lg:bottom-6 lg:right-6"
+              className="fixed right-4 bottom-24 z-40 max-h-[min(32rem,calc(100dvh-8rem))] w-[min(22rem,calc(100vw-2rem))] overflow-y-auto rounded-3xl border border-sand bg-paper p-4 shadow-2xl lg:bottom-6 lg:right-6"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-2">
@@ -321,29 +367,66 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <button
                   type="button"
                   aria-label={t("sensi.close")}
-                  onClick={() => setIsSensiOpen(false)}
+                  onClick={() => {
+                    setSensiDraft("");
+                    setSensiQuestion(null);
+                    setSensiReply(null);
+                    setIsSensiOpen(false);
+                  }}
                   className="btn inline-flex h-8 w-8 items-center justify-center rounded-full bg-pearl text-slate"
                 >
                   ×
                 </button>
               </div>
+              {sensiQuestion ? (
+                <p className="mt-3 rounded-2xl bg-pearl px-3 py-2 text-xs font-semibold text-ink">{sensiQuestion}</p>
+              ) : null}
               <SensiBubble tailPosition="bottom">
-                {t("sensi.askAnything")}
+                <p aria-live="polite">{sensiReply ? t(SENSI_REPLIES[sensiReply]) : t("sensi.askAnything")}</p>
               </SensiBubble>
+              {sensiReply ? (
+                <Link
+                  href={SENSI_LINKS[sensiReply].href}
+                  className="mt-3 inline-flex text-xs font-semibold text-pine underline"
+                >
+                  {t(SENSI_LINKS[sensiReply].label)}
+                </Link>
+              ) : null}
               <div className="mt-3 grid gap-2">
                 <button
                   type="button"
                   className="btn rounded-2xl border border-sand bg-surface px-3 py-2 text-left text-xs font-semibold text-ink"
+                  onClick={() => askSensi(t("sensi.askSurplus"), "surplus")}
                 >
                   {t("sensi.askSurplus")}
                 </button>
                 <button
                   type="button"
                   className="btn rounded-2xl border border-sand bg-surface px-3 py-2 text-left text-xs font-semibold text-ink"
+                  onClick={() => askSensi(t("sensi.howBitcoin"), "bitcoin")}
                 >
                   {t("sensi.howBitcoin")}
                 </button>
               </div>
+              <form
+                className="mt-3 flex gap-2"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  askSensi(sensiDraft);
+                }}
+              >
+                <input
+                  type="text"
+                  value={sensiDraft}
+                  onChange={(event) => setSensiDraft(event.target.value)}
+                  placeholder={t("sensi.placeholder")}
+                  aria-label={t("sensi.placeholder")}
+                  className="field min-w-0 flex-1 text-sm"
+                />
+                <button type="submit" className="btn btn-accent shrink-0 rounded-full px-4" disabled={!sensiDraft.trim()}>
+                  {t("sensi.send")}
+                </button>
+              </form>
             </div>
           ) : null}
           <button
