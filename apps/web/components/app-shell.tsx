@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { useI18n } from "../contexts/language-context";
 import { CustomerRail } from "./customer-rail";
@@ -101,6 +101,7 @@ function titleKey(pathname: string): string | null {
   if (pathname.startsWith("/invest")) return "common.titles.invest";
   if (pathname.startsWith("/wallet")) return "common.titles.wallet";
   if (pathname.startsWith("/chama")) return "common.titles.chama";
+  if (pathname.startsWith("/settings")) return "common.titles.settings";
   if (pathname.startsWith("/trust")) return "common.titles.trust";
   return null;
 }
@@ -174,6 +175,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setMoreOpen(false);
+    setProfileOpen(false);
   }, [pathname]);
 
   useEffect(() => {
@@ -542,6 +544,7 @@ function ProfileMenu({
   onClose: () => void;
 }) {
   const { t } = useI18n();
+  const router = useRouter();
   return (
     <div className="relative">
       <button
@@ -567,6 +570,16 @@ function ProfileMenu({
           <Suspense fallback={null}>
             <CustomerRail />
           </Suspense>
+          <Link
+            href="/settings"
+            onClick={() => {
+              onClose();
+              router.push("/settings");
+            }}
+            className="btn btn-secondary mt-2 inline-flex w-full justify-center bg-paper"
+          >
+            {t("nav.settings")}
+          </Link>
         </div>
       ) : null}
     </div>

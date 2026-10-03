@@ -1,0 +1,14 @@
+{
+  "title": "Mipangilio",
+  "description": "Lugha, mwonekano, mkoba, na data kwenye simu hii.",
+  "thisPhone": "Simu hii",
+  "language": "Lugha",
+  "languageHint": "Kiingereza au Kiswahili.",
+  "appearance": "Mwonekano",
+  "appearanceHint": "Mwanga au giza.",
+  "habitLine": "{amount}, {cadence}",
+  "walletClosed": "Hakuna mkoba uliofunguliwa kwenye kivinjari hiki bado.",
+  "openWallet": "Fungua mkoba",
+  "data": "Data yako",
+  "privacy": "Faragha"
+}

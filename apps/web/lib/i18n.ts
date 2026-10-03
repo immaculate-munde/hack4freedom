@@ -11,6 +11,7 @@ import enOnboard from "../locales/en/onboard.json";
 import enOnboarding from "../locales/en/onboarding.json";
 import enOverview from "../locales/en/overview.json";
 import enSensi from "../locales/en/sensi.json";
+import enSettings from "../locales/en/settings.json";
 import enSurplus from "../locales/en/surplus.json";
 import enTrust from "../locales/en/trust.json";
 import enWallet from "../locales/en/wallet.json";
@@ -29,6 +30,7 @@ import swOnboard from "../locales/sw/onboard.json";
 import swOnboarding from "../locales/sw/onboarding.json";
 import swOverview from "../locales/sw/overview.json";
 import swSensi from "../locales/sw/sensi.json";
+import swSettings from "../locales/sw/settings.json";
 import swSurplus from "../locales/sw/surplus.json";
 import swTrust from "../locales/sw/trust.json";
 import swWallet from "../locales/sw/wallet.json";
@@ -56,6 +58,7 @@ const catalogs: Record<Locale, Record<string, unknown>> = {
     onboarding: enOnboarding,
     overview: enOverview,
     sensi: enSensi,
+    settings: enSettings,
     surplus: enSurplus,
     trust: enTrust,
     wallet: enWallet,
@@ -76,6 +79,7 @@ const catalogs: Record<Locale, Record<string, unknown>> = {
     onboarding: swOnboarding,
     overview: swOverview,
     sensi: swSensi,
+    settings: swSettings,
     surplus: swSurplus,
     trust: swTrust,
     wallet: swWallet,
