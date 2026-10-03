@@ -62,7 +62,16 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const key = titleKey(pathname);
-    document.title = key ? `${t(key)} · PesaSense` : "PesaSense";
+    const next = key ? `${t(key)} · PesaSense` : "PesaSense";
+    const apply = () => {
+      if (document.title !== next) document.title = next;
+    };
+    apply();
+    const titleEl = document.querySelector("title");
+    if (!titleEl) return;
+    const observer = new MutationObserver(apply);
+    observer.observe(titleEl, { childList: true, characterData: true, subtree: true });
+    return () => observer.disconnect();
   }, [pathname, locale, t]);
 
   useEffect(() => {

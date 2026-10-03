@@ -32,6 +32,7 @@ type Copy = {
   lessonRange: string;
   bufferFirstBuy: string;
   amountRefused: string;
+  amountBetween: string;
   buyUpTo: string;
   habitIs: string;
   enterAmount: string;
@@ -112,8 +113,9 @@ const en: Copy = {
   lessonRange: "Reply 1 to 4, or dial again.",
   bufferFirstBuy: "Build a buffer before buying Bitcoin.",
   amountRefused: "This amount is not allowed.",
+  amountBetween: "Amount must be between {min} and {max} KES.",
   buyUpTo: "Buy up to {max}.",
-  habitIs: "Habit is {amount}.",
+  habitIs: "Habit {amount}",
   enterAmount: "Enter amount in KES:",
   buy: "Buy {amount}",
   toWallet: "To {destination}",
@@ -192,8 +194,9 @@ const sw: Copy = {
   lessonRange: "Jibu 1 hadi 4, au piga tena.",
   bufferFirstBuy: "Jenga akiba kabla ya kununua Bitcoin.",
   amountRefused: "Kiasi hiki hakiruhusiwi.",
+  amountBetween: "Kiasi lazima kiwe kati ya {min} na {max} KES.",
   buyUpTo: "Nunua hadi {max}.",
-  habitIs: "Tabia ni {amount}.",
+  habitIs: "Tabia {amount}",
   enterAmount: "Weka kiasi kwa KES:",
   buy: "Nunua {amount}",
   toWallet: "Kwenda {destination}",
@@ -259,7 +262,11 @@ export function fill(template: string, vars: Record<string, string | number>): s
 export function localizeRefusal(lang: UssdLang, refusal: string): string {
   const copy = ussdCopy(lang);
   if (/buffer/i.test(refusal)) return copy.bufferFirstBuy;
-  if (/not allowed|too small|between|whole number|shillings/i.test(refusal)) {
+  const between = refusal.match(/between\s+([\d,]+)\s+and\s+([\d,]+)/i);
+  if (between?.[1] && between[2]) {
+    return fill(copy.amountBetween, { min: between[1], max: between[2] });
+  }
+  if (/not allowed|too small|whole number|shillings/i.test(refusal)) {
     return copy.amountRefused;
   }
   return copy.buyNotAllowed;
