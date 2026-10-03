@@ -330,7 +330,7 @@ body {
   .more-sheet-root {
     position: fixed;
     inset: 0;
-    z-index: 28;
+    z-index: 42;
   }
 
   .more-sheet-backdrop {

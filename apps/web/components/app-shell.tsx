@@ -306,7 +306,6 @@ export function AppShell({ children }: { children: ReactNode }) {
                           key={item.href}
                           href={item.href}
                           aria-current={active ? "page" : undefined}
-                          onClick={() => setMoreOpen(false)}
                           className={`flex min-h-12 items-center gap-3 rounded-2xl px-3 text-sm font-semibold ${
                             active ? "bg-mint text-pine" : "text-ink hover:bg-pearl"
                           }`}
@@ -416,7 +415,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             aria-label="Open Sensi guide"
             aria-expanded={isSensiOpen}
             onClick={() => setIsSensiOpen((current) => !current)}
-            className="btn fixed right-4 bottom-20 z-40 flex h-14 w-14 items-center justify-center rounded-full border-2 border-paper bg-[#f3efe4] shadow-[0_8px_24px_rgb(30_58_50/0.18)] lg:hidden"
+            className={`btn fixed right-4 bottom-20 z-40 flex h-14 w-14 items-center justify-center rounded-full border-2 border-paper bg-[#f3efe4] shadow-[0_8px_24px_rgb(30_58_50/0.18)] lg:hidden ${
+              moreOpen ? "pointer-events-none invisible" : ""
+            }`}
           >
             <SensiAvatar size="sm" mood={isSensiOpen ? "happy" : "neutral"} />
           </button>
