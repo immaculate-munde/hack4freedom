@@ -138,11 +138,20 @@ body {
   .app-sidebar {
     position: sticky;
     top: 0;
+    display: flex;
     height: 100dvh;
     width: 16.5rem;
     flex-shrink: 0;
+    overflow: hidden;
     background: var(--color-pine);
     color: var(--color-paper);
+  }
+
+  .app-sidebar-nav {
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
   }
 
   .app-sidebar.app-sidebar-collapsed {
@@ -316,6 +325,31 @@ body {
 
   .app-mobile-nav::-webkit-scrollbar {
     display: none;
+  }
+
+  .more-sheet-root {
+    position: fixed;
+    inset: 0;
+    z-index: 28;
+  }
+
+  .more-sheet-backdrop {
+    position: absolute;
+    inset: 0;
+    border: 0;
+    background: rgb(15 23 42 / 0.28);
+  }
+
+  .more-sheet {
+    position: absolute;
+    right: 0.75rem;
+    bottom: calc(4.25rem + env(safe-area-inset-bottom));
+    left: 0.75rem;
+    border-radius: 1.5rem;
+    border: 1px solid var(--color-sand);
+    background: var(--color-paper);
+    padding: 1rem;
+    box-shadow: 0 12px 36px -4px rgb(15 23 42 / 0.12);
   }
 
   .landing {
