@@ -79,3 +79,7 @@ eCash is out of scope. There is no pooled wallet and no eCash mint in this repo.
 ## Libraries this repo does not use
 
 Dexie, Recharts, shadcn/ui, and Postgres are not dependencies. Device state that exists today is `localStorage` and `sessionStorage`, as listed above. The USSD phone link and purchase index use Node's built-in SQLite in development so the handset and the browser share one server record. That file does not hold statements, keys, or a second profile. Production without `USSD_STORE_PATH` keeps it in memory for the process, the same limit as the webhook map.
+
+## Hosting
+
+Vercel hosts the browser demo at [https://pesasense.vercel.app](https://pesasense.vercel.app). Africa's Talking should call `https://pesasense.vercel.app/api/ussd`. A live USSD session needs one always-on Node process, because the store and the webhook map are per process. Regions, the webpack build, the callback key, and the env vars are in [deploy.md](deploy.md).
