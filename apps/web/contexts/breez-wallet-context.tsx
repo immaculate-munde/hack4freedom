@@ -88,7 +88,8 @@ export function BreezWalletProvider({ children }: { children: ReactNode }) {
       setStatus("ready");
     } catch (e) {
       setStatus("error");
-      setError(e instanceof Error ? e.message : "Could not open wallet.");
+      const message = e instanceof Error ? e.message.trim() : "";
+      setError(message && !/\s/.test(message) ? message : message || "walletSetup.openFailed");
     }
   }, []);
 
@@ -146,7 +147,7 @@ export function BreezWalletProvider({ children }: { children: ReactNode }) {
     async (amountSats: number, lightningDestination: string) => {
       const mnemonic = loadStoredMnemonic();
       if (!mnemonic) {
-        throw new Error("Unlock your PesaSense wallet first.");
+        throw new Error("walletSetup.unlockFirst");
       }
       const sdk = await connectBreezWallet(mnemonic);
       await sendToLightningAddress(sdk, lightningDestination, amountSats);

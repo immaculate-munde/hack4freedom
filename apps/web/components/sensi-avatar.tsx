@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useI18n } from "../contexts/language-context";
 
 export type SensiSize = "sm" | "md" | "lg" | "xl";
 export type SensiMood = "neutral" | "happy" | "thinking" | "celebrating";
@@ -96,8 +97,9 @@ function Mouth({ mood }: { mood: SensiMood }): ReactNode {
 
 /** Sensi, drawn as a small face that blinks and sways. Motion stops when the person asks for less movement. */
 export function SensiAvatar({ size = "md", mood = "neutral" }: { size?: SensiSize; mood?: SensiMood }) {
+  const { t } = useI18n();
   return (
-    <span className={`sensi ${SIZE_CLASSES[size]}`} role="img" aria-label="Sensi">
+    <span className={`sensi ${SIZE_CLASSES[size]}`} role="img" aria-label={t("sensi.name")}>
       <svg viewBox="0 0 100 100" className="h-full w-full overflow-visible">
         <g className="sensi-bob">
           <g className="sensi-hair">

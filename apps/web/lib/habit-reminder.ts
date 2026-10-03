@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import type { BuyCadence } from "@pesasense/core";
+import { formatKes } from "./format";
+import { translate, type Locale } from "./i18n";
 
 const STORAGE_KEY = "pesasense.habit-reminder.v1";
 
@@ -71,7 +73,10 @@ function nextFirst(from: Date): Date {
  * A missing API or a denied permission leaves the saved in-app reminder in place.
  * The text never says money was sent.
  */
-export async function requestReminderNotification(amountKes: number): Promise<void> {
+export async function requestReminderNotification(
+  amountKes: number,
+  locale: Locale,
+): Promise<void> {
   if (typeof window === "undefined" || typeof Notification === "undefined") return;
 
   let permission = Notification.permission;
@@ -85,8 +90,9 @@ export async function requestReminderNotification(amountKes: number): Promise<vo
   if (permission !== "granted") return;
 
   const when = nextFirst(new Date());
-  const title = "PesaSense reminder";
-  const body = `The 1st is a day to review KES ${amountKes}. You approve each purchase. Nothing is sent on its own.`;
+  const amount = formatKes(amountKes, locale);
+  const title = translate(locale, "habit.reminder.title");
+  const body = translate(locale, "habit.reminder.body", { amount });
   const host = globalThis as { TimestampTrigger?: new (timestamp: number) => unknown };
   const TimestampTrigger = host.TimestampTrigger;
 
@@ -107,7 +113,7 @@ export async function requestReminderNotification(amountKes: number): Promise<vo
 
   try {
     new Notification(title, {
-      body: `Reminder saved for the 1st (KES ${amountKes}). You approve each purchase.`,
+      body: translate(locale, "habit.reminder.saved", { amount }),
     });
   } catch {
     // Showing the notification can still fail. The in-app reminder stands.

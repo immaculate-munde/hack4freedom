@@ -1,0 +1,14 @@
+{
+  "title": "Settings",
+  "description": "Language, appearance, wallet, and the data on this phone.",
+  "thisPhone": "This phone",
+  "language": "Language",
+  "languageHint": "English or Swahili.",
+  "appearance": "Appearance",
+  "appearanceHint": "Light or dark.",
+  "habitLine": "{amount}, {cadence}",
+  "walletClosed": "No wallet is open in this browser yet.",
+  "openWallet": "Open wallet",
+  "data": "Your data",
+  "privacy": "Privacy"
+}

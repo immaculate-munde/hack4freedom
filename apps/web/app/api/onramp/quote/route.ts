@@ -1,4 +1,5 @@
-import { BITIKA_MAX_KES, BITIKA_MIN_KES, clientSafeOnRampError } from "@pesasense/wallet";
+import { BITIKA_MAX_KES, BITIKA_MIN_KES, clientSafeOnRampCode } from "@pesasense/wallet";
+import { apiError } from "../../../../lib/api-error";
 import { getBitikaRamp } from "../../../../lib/bitika";
 
 export async function POST(req: Request) {
@@ -6,21 +7,18 @@ export async function POST(req: Request) {
     const body = (await req.json()) as { amountKes?: number };
     const amountKes = body.amountKes;
     if (typeof amountKes !== "number" || !Number.isInteger(amountKes)) {
-      return Response.json({ error: "amountKes must be a whole number." }, { status: 400 });
+      return apiError("errors.wholeShillings", 400);
     }
     if (amountKes < BITIKA_MIN_KES || amountKes > BITIKA_MAX_KES) {
-      return Response.json(
-        { error: `Amount must be between ${BITIKA_MIN_KES} and ${BITIKA_MAX_KES} KES.` },
-        { status: 400 },
-      );
+      return apiError("errors.amountRange", 400, {
+        min: BITIKA_MIN_KES,
+        max: BITIKA_MAX_KES,
+      });
     }
     const ramp = getBitikaRamp();
     const quote = await ramp.getQuote({ amountKes });
     return Response.json(quote);
   } catch (e) {
-    return Response.json(
-      { error: clientSafeOnRampError(e, "Could not fetch a quote.") },
-      { status: 502 },
-    );
+    return apiError(clientSafeOnRampCode(e) ?? "errors.quoteFailed", 502);
   }
 }

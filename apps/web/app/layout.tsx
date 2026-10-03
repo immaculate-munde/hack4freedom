@@ -4,9 +4,11 @@
  */
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
+import { cookies } from "next/headers";
 import type { ReactNode } from "react";
 import { AppShell } from "../components/app-shell";
 import { FirstRunRedirect } from "../components/first-run-redirect";
+import { isLocale, LANGUAGE_STORAGE_KEY } from "../lib/i18n";
 import { Providers } from "./providers";
 import "./globals.css";
 
@@ -35,23 +37,27 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: ReactNode;
 }>) {
+  const jar = await cookies();
+  const stored = jar.get(LANGUAGE_STORAGE_KEY)?.value;
+  const locale = isLocale(stored) ? stored : "en";
+
   return (
-    <html lang="en" className={`${jakarta.variable} h-full`} suppressHydrationWarning>
+    <html lang={locale} className={`${jakarta.variable} h-full`} suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
             __html:
-              "try{if(localStorage.getItem('pesasense.theme')==='dark')document.documentElement.classList.add('dark')}catch(e){}",
+              "try{if(localStorage.getItem('pesasense.theme')==='dark')document.documentElement.classList.add('dark')}catch(e){}try{var m=document.cookie.match(/(?:^|; )pesasense.language=(en|sw)/);if(m)document.documentElement.lang=m[1]}catch(e){}",
           }}
         />
       </head>
       <body className="min-h-full bg-canvas font-sans text-ink antialiased">
-        <Providers>
+        <Providers locale={locale}>
           <FirstRunRedirect>
             <AppShell>{children}</AppShell>
           </FirstRunRedirect>

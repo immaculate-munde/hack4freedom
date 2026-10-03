@@ -1,0 +1,22 @@
+{
+  "promptReady": "Hiyo ndiyo picha kutoka historia yako.",
+  "promptPaste": "Bandika ujumbe, au weka PDF. Nitasoma kwenye simu hii.",
+  "sensiAlt": "Sensi",
+  "title": "Ingiza data yako",
+  "privacy": "Taarifa zako haziondoki kwenye simu yako. Nakala rudufu zimesimbwa kwa ufunguo wako.",
+  "analysisComplete": "Uchambuzi umekamilika",
+  "safeSurplus": "Kiwango salama cha ziada",
+  "resilience": "Ustahimilivu",
+  "monthsCovered": "Miezi {count} imefunikwa",
+  "commitments": "Malipo yaliyogunduliwa",
+  "items": "{count} vitu",
+  "incomeRange": "Kiwango cha mapato",
+  "kesRange": "KES {floor} – {ceiling}",
+  "setHabit": "Weka tabia",
+  "goDashboard": "Nenda kwenye dashibodi yangu",
+  "smsPaste": "Bandika SMS za M-Pesa",
+  "pdfUpload": "Pakia PDF ya M-Pesa",
+  "demoFixture": "Faili ya mfano:",
+  "passwordWord": "nenosiri",
+  "useDemo": "Tumia wasifu wa mfano (Amina)"
+}

@@ -13,6 +13,7 @@ import {
   type ChamaCircle,
 } from "@pesasense/nostr";
 import { PageFrame } from "../../components/page-frame";
+import { useFormat, useI18n } from "../../contexts/language-context";
 import { useBreezWallet } from "../../contexts/breez-wallet-context";
 import {
   readStoredOnboardingChama,
@@ -21,26 +22,35 @@ import {
 
 const STORAGE_KEY = "pesasense.chama.v1";
 
-function formatKes(amount: number): string {
-  return new Intl.NumberFormat("en-KE", {
-    style: "currency",
-    currency: "KES",
-    maximumFractionDigits: 0,
-  }).format(amount);
-}
-
-function roleLabel(
-  role: "receives" | "recorded" | "waiting",
-  sentSats?: number,
-): string {
-  if (role === "receives") return "Receives this round";
-  if (role === "recorded") {
-    return sentSats && sentSats > 0 ? `Sent ${sentSats} sats` : "Recorded on their phone";
-  }
-  return "Not recorded yet";
-}
+const CHAMA_ERRORS: Record<string, string> = {
+  "Use a Lightning address you control, like name@wallet.com.": "chama.errors.ownAddress",
+  "Only a member of this chama can do that.": "chama.errors.onlyMember",
+  "There is no open round.": "chama.errors.noOpenRound",
+  "This round has payments to more than one address.": "chama.errors.manyAddresses",
+  "The member receiving this round does not pay into it.": "chama.errors.recipientDoesNotPay",
+  "This contribution is already recorded.": "chama.errors.already",
+  "This payment would return to your own Lightning address.": "chama.errors.ownReturn",
+  "This round changed before the payment could be recorded.": "chama.errors.roundChanged",
+  "This chama has no members to rotate to.": "chama.errors.noMembers",
+  "This recipient uses a real Lightning address. Pay from your own wallet.": "chama.errors.realAddress",
+  "A Lightning payment needs a positive whole sats amount.": "chama.errors.positiveSats",
+  "This is a demo address. It cannot receive sats. Record the demo contribution instead.":
+    "chama.errors.demoAddress",
+  "That Lightning address already belongs to another member.": "chama.errors.taken",
+  "A reliability note is available after a round finishes.": "chama.errors.noteAfterRound",
+  "Enter a positive sats amount.": "walletSetup.positiveSats",
+  "Could not open wallet.": "walletSetup.openFailed",
+  "Pay from the wallet that matches this member's Lightning address.": "chama.matchWallet",
+  "Could not record this contribution.": "chama.recordFailed",
+  "The payment did not finish.": "chama.payFailed",
+  "Could not save that address.": "chama.saveFailed",
+  "Could not use this wallet address.": "chama.useFailed",
+  "Could not save that note.": "chama.noteFailed",
+};
 
 export function ChamaFlow() {
+  const { t } = useI18n();
+  const { kes, number } = useFormat();
   const wallet = useBreezWallet();
   const [circle, setCircle] = useState<ChamaCircle | null>(null);
   const [actorId, setActorId] = useState("amina");
@@ -51,6 +61,19 @@ export function ChamaFlow() {
   const [busy, setBusy] = useState(false);
   const [onboardingChama, setOnboardingChama] = useState<OnboardingChama | null>(null);
   const payLock = useRef(false);
+
+  function explain(err: unknown, fallbackKey: string): string {
+    if (!(err instanceof Error)) return t(fallbackKey);
+    const message = err.message.trim();
+    if (!message) return t(fallbackKey);
+    if (!/\s/.test(message)) {
+      const translated = t(message);
+      if (translated !== message) return translated;
+    }
+    const key = CHAMA_ERRORS[message];
+    if (key) return t(key);
+    return t(fallbackKey);
+  }
 
   useEffect(() => {
     setOnboardingChama(readStoredOnboardingChama());
@@ -108,8 +131,8 @@ export function ChamaFlow() {
 
   if (!circle) {
     return (
-      <PageFrame title="Chama" description="Loading the demo circle.">
-        <section className="card text-sm text-ink/70">Loading.</section>
+      <PageFrame title={t("chama.title")} description={t("chama.loadingCircle")}>
+        <section className="card text-sm text-ink/70">{t("chama.loading")}</section>
       </PageFrame>
     );
   }
@@ -123,11 +146,9 @@ export function ChamaFlow() {
   }
   if (!view) {
     return (
-      <PageFrame title="Chama" description="This saved circle cannot be read.">
+      <PageFrame title={t("chama.title")} description={t("chama.unreadable")}>
         <section className="card">
-          <p className="text-sm leading-6 text-ink/75">
-            The saved chama record is incomplete, so it was not applied.
-          </p>
+          <p className="text-sm leading-6 text-ink/75">{t("chama.incomplete")}</p>
           <button
             type="button"
             className="btn btn-primary mt-4"
@@ -140,7 +161,7 @@ export function ChamaFlow() {
               setAddressDraft("");
             }}
           >
-            Reset demo circle
+            {t("chama.reset")}
           </button>
         </section>
       </PageFrame>
@@ -174,19 +195,22 @@ export function ChamaFlow() {
     try {
       persist(recordOwnContribution(current, actor.id, new Date().toISOString()));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not record this contribution.");
+      setError(explain(err, "chama.recordFailed"));
     }
   }
 
   async function onPayFromWallet() {
     if (!actor || busy || payLock.current || !satsToSend) return;
     if (wallet.status !== "ready" || wallet.lightningAddress !== actor.lightningAddress) {
-      setError("Pay from the wallet that matches this member's Lightning address.");
+      setError(t("chama.matchWallet"));
       return;
     }
     if (wallet.balanceSats < satsToSend) {
       setError(
-        `This wallet has ${wallet.balanceSats} sats. About ${satsToSend} sats are needed.`,
+        t("chama.needSats", {
+          balance: number(wallet.balanceSats),
+          needed: number(satsToSend),
+        }),
       );
       return;
     }
@@ -203,7 +227,7 @@ export function ChamaFlow() {
       );
       persist(next);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "The payment did not finish.");
+      setError(explain(err, "chama.payFailed"));
     } finally {
       payLock.current = false;
       setBusy(false);
@@ -216,7 +240,7 @@ export function ChamaFlow() {
       persist(setOwnLightningAddress(current, actor.id, addressDraft));
       setAddressDraft("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save that address.");
+      setError(explain(err, "chama.saveFailed"));
     }
   }
 
@@ -225,7 +249,7 @@ export function ChamaFlow() {
     try {
       persist(setOwnLightningAddress(current, actor.id, wallet.lightningAddress));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not use this wallet address.");
+      setError(explain(err, "chama.useFailed"));
     }
   }
 
@@ -234,70 +258,86 @@ export function ChamaFlow() {
     try {
       persist(optInReliabilityBadge(current, actor.id, new Date().toISOString()));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save that note.");
+      setError(explain(err, "chama.noteFailed"));
     }
   }
 
+  function roleText(role: "receives" | "recorded" | "waiting", sentSats?: number): string {
+    if (role === "receives") return t("chama.role.receives");
+    if (role === "recorded") {
+      return sentSats && sentSats > 0
+        ? t("chama.role.sent", { sats: number(sentSats) })
+        : t("chama.role.recorded");
+    }
+    return t("chama.role.waiting");
+  }
+
+  const cadence =
+    onboardingChama?.cadence === "weekly" ? t("chama.aWeek") : t("chama.aMonth");
+  const contribution = kes(current.monthlyContributionKes);
+
   const aside = (
     <section className="card text-sm">
-      <p className="text-xs tracking-wide text-moss uppercase">This round</p>
-      <p className="mt-1 font-semibold text-pine">{view.recipient.name} receives</p>
+      <p className="text-xs tracking-wide text-moss uppercase">{t("chama.thisRound")}</p>
+      <p className="mt-1 font-semibold text-pine">{t("chama.receives", { name: view.recipient.name })}</p>
       <p className="mt-2 leading-6 text-ink/70">
-        {formatKes(current.monthlyContributionKes)} from each other member, paid to{" "}
-        <span className="break-all">{view.payDestination}</span>.
-        {view.payDestination !== view.recipient.lightningAddress ? (
-          <> This round stays on that address because a payment already went there.</>
-        ) : null}
+        {t("chama.fromEachLead", { amount: contribution })}
+        <span className="break-all">{view.payDestination}</span>
+        {t("chama.fromEachEnd")}
+        {view.payDestination !== view.recipient.lightningAddress ? t("chama.staysOnAddress") : null}
       </p>
       <p className="mt-3 text-ink/70">
         {view.completedRounds === 0
-          ? "No round has finished yet."
-          : `${view.completedRounds} round${view.completedRounds === 1 ? "" : "s"} finished.`}
+          ? t("chama.noRoundFinished")
+          : view.completedRounds === 1
+            ? t("chama.roundsOne", { count: view.completedRounds })
+            : t("chama.roundsMany", { count: view.completedRounds })}
       </p>
-      <p className="mt-3 text-xs leading-5 text-ink/55">
-        PesaSense does not hold the sats. A real address is paid from this phone's own wallet.
-        A demo address is only a record.
-      </p>
+      <p className="mt-3 text-xs leading-5 text-ink/55">{t("chama.custody")}</p>
     </section>
   );
 
   return (
     <PageFrame
-      title="Chama"
+      title={t("chama.title")}
       backHref="/"
       description={
         onboardingChama
-          ? `${onboardingChama.name}: ${formatKes(onboardingChama.amountKes)} ${onboardingChama.cadence === "weekly" ? "a week" : "a month"}. Payments come from your own wallet.`
-          : "No chama name was entered on this phone. The round below is a demo record only. Nobody holds the group's money."
+          ? t("chama.named", {
+              name: onboardingChama.name,
+              amount: kes(onboardingChama.amountKes),
+              cadence,
+            })
+          : t("chama.noName")
       }
       aside={aside}
     >
       {onboardingChama ? (
         <section className="card mb-6 md:mb-4">
-          <p className="text-xs font-semibold tracking-wide text-moss uppercase">Your chama</p>
+          <p className="text-xs font-semibold tracking-wide text-moss uppercase">{t("chama.yourChama")}</p>
           <h2 className="mt-1 font-serif text-2xl text-pine">{onboardingChama.name}</h2>
           <p className="mt-2 text-sm leading-6 text-ink/75">
-            {formatKes(onboardingChama.amountKes)}{" "}
-            {onboardingChama.cadence === "weekly" ? "a week" : "a month"}, from what you
-            entered. Payments come from your own wallet. Nothing is sent until you pay.
+            {t("chama.entered", {
+              amount: kes(onboardingChama.amountKes),
+              cadence,
+            })}
           </p>
         </section>
       ) : null}
       <section className="card">
         <div className="mb-4 flex flex-wrap items-center gap-2">
           <span className="inline-flex rounded-full bg-brass/15 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-brass uppercase">
-            Demo circle
+            {t("chama.demoCircle")}
           </span>
-          <span className="text-xs text-ink/60">KES {current.monthlyContributionKes} each month</span>
+          <span className="text-xs text-ink/60">{t("chama.eachMonth", { amount: contribution })}</span>
         </div>
-        <h2 className="font-serif text-2xl text-pine">{onboardingChama?.name ?? "Demo round"}</h2>
+        <h2 className="font-serif text-2xl text-pine">{onboardingChama?.name ?? t("chama.demoRound")}</h2>
         <p className="mt-2 text-sm leading-6 text-ink/75">
-          Still waiting this round: {formatKes(view.waitingKes)}. A finished round is just a
-          record that every payer confirmed their own payment.
+          {t("chama.waiting", { amount: kes(view.waitingKes) })}
         </p>
 
         <label className="mt-5 block text-xs font-semibold tracking-wide text-moss uppercase">
-          This phone belongs to
+          {t("chama.belongsTo")}
           <select
             className="field mt-2"
             value={actor?.id ?? ""}
@@ -315,10 +355,7 @@ export function ChamaFlow() {
             ))}
           </select>
         </label>
-        <p className="mt-2 text-xs leading-5 text-ink/55">
-          A real circle uses each member's own phone. Switching here only changes whose
-          confirmation you can record.
-        </p>
+        <p className="mt-2 text-xs leading-5 text-ink/55">{t("chama.switchHint")}</p>
 
         <ul className="mt-5 divide-y divide-sand">
           {view.rows.map((row) => {
@@ -333,12 +370,12 @@ export function ChamaFlow() {
                 <div>
                   <p className="font-semibold text-ink">
                     {row.member.name}
-                    {row.member.id === actor?.id ? " (this phone)" : ""}
+                    {row.member.id === actor?.id ? t("chama.thisPhone") : ""}
                   </p>
                   <p className="mt-0.5 break-all text-xs text-ink/55">{row.member.lightningAddress}</p>
                 </div>
                 <p className="shrink-0 text-right text-xs font-semibold text-pine">
-                  {roleLabel(row.role, sentSats)}
+                  {roleText(row.role, sentSats)}
                 </p>
               </li>
             );
@@ -352,7 +389,7 @@ export function ChamaFlow() {
             disabled={busy}
             onClick={onRecordDemo}
           >
-            Record demo contribution ({formatKes(current.monthlyContributionKes)}, no sats sent)
+            {t("chama.recordDemo", { amount: contribution })}
           </button>
         ) : null}
         {actor && actorRow?.role === "waiting" && !demoDestination && ownsThisWallet ? (
@@ -363,30 +400,33 @@ export function ChamaFlow() {
             onClick={() => void onPayFromWallet()}
           >
             {busy
-              ? "Sending from your wallet…"
+              ? t("chama.sending")
               : satsToSend
-                ? `Pay ${satsToSend} sats from my wallet`
+                ? t("chama.pay", { sats: number(satsToSend) })
                 : quoteFailed
-                  ? "Could not price this contribution"
-                  : "Pricing this contribution…"}
+                  ? t("chama.priceFailed")
+                  : t("chama.pricing")}
           </button>
         ) : null}
         {actor && actorRow?.role === "waiting" && !demoDestination && !ownsThisWallet ? (
           <p className="mt-4 text-sm leading-6 text-ink/75">
-            This round pays {view.payDestination}. Save this phone's own Breez address on your
-            member profile, then pay from that wallet. This phone cannot pay for someone else.
+            {t("chama.payOwn", { address: view.payDestination })}
           </p>
         ) : null}
         {actor && actorRow?.role === "receives" ? (
           <p className="mt-4 text-sm leading-6 text-ink/75">
-            This round the others pay {actor.lightningAddress}. This phone does not send.
+            {t("chama.othersPay", { address: actor.lightningAddress })}
           </p>
         ) : null}
         {actor && actorRow?.role === "recorded" ? (
           <p className="mt-4 text-sm leading-6 text-ink/75">
             {actorPayment?.settlement === "lightning" && actorPayment.amountSats
-              ? `${actor.name} sent ${actorPayment.amountSats} sats to ${actorPayment.destination}.`
-              : `${actor.name} already recorded this round on their own phone.`}
+              ? t("chama.sentTo", {
+                  name: actor.name,
+                  sats: number(actorPayment.amountSats),
+                  destination: actorPayment.destination,
+                })
+              : t("chama.alreadyRecorded", { name: actor.name })}
           </p>
         ) : null}
 
@@ -394,10 +434,8 @@ export function ChamaFlow() {
       </section>
 
       <section className="card mt-6 md:mt-4">
-        <h2 className="font-serif text-xl text-pine">Your receive address</h2>
-        <p className="mt-2 text-sm leading-6 text-ink/75">
-          When it is your turn, others pay this address. You can replace only your own.
-        </p>
+        <h2 className="font-serif text-xl text-pine">{t("chama.receiveTitle")}</h2>
+        <p className="mt-2 text-sm leading-6 text-ink/75">{t("chama.receiveBody")}</p>
         <p className="mt-3 break-all text-sm font-medium text-pine">
           {actor?.lightningAddress}
         </p>
@@ -405,8 +443,8 @@ export function ChamaFlow() {
           <input
             className="field"
             value={addressDraft}
-            placeholder="name@wallet.com"
-            aria-label="Your Lightning address"
+            placeholder={t("chama.addressPlaceholder")}
+            aria-label={t("chama.addressAria")}
             onChange={(event) => setAddressDraft(event.target.value)}
             disabled={busy}
           />
@@ -416,7 +454,7 @@ export function ChamaFlow() {
             disabled={busy}
             onClick={onSaveAddress}
           >
-            Save my address
+            {t("chama.saveAddress")}
           </button>
         </div>
         {actor && wallet.status === "ready" && wallet.lightningAddress ? (
@@ -426,19 +464,17 @@ export function ChamaFlow() {
             disabled={busy}
             onClick={onUseBreezAddress}
           >
-            Use my Breez address
+            {t("chama.useBreez")}
           </button>
         ) : null}
       </section>
 
       <section className="card mt-6 md:mt-4">
-        <h2 className="font-serif text-xl text-pine">Reliability note</h2>
-        <p className="mt-2 text-sm leading-6 text-ink/75">
-          After a round finishes, this phone can keep an opt-in note. It is not published.
-        </p>
+        <h2 className="font-serif text-xl text-pine">{t("chama.reliabilityTitle")}</h2>
+        <p className="mt-2 text-sm leading-6 text-ink/75">{t("chama.reliabilityBody")}</p>
         {badge ? (
           <p className="mt-3 text-sm font-medium text-pine">
-            Saved on this device ({badge.proof.ref}).
+            {t("chama.savedNote", { ref: badge.proof.ref ?? "" })}
           </p>
         ) : (
           <button
@@ -447,7 +483,7 @@ export function ChamaFlow() {
             disabled={busy || view.completedRounds === 0}
             onClick={onOptIn}
           >
-            Keep a note for this phone
+            {t("chama.keepNote")}
           </button>
         )}
       </section>
@@ -465,7 +501,7 @@ export function ChamaFlow() {
           setAddressDraft("");
         }}
       >
-        Reset demo circle
+        {t("chama.reset")}
       </button>
     </PageFrame>
   );

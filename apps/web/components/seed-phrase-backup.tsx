@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useI18n } from "../contexts/language-context";
 import { downloadRecoveryBackup } from "../lib/breez/recovery-backup";
 
 export function SeedPhraseBackup({
@@ -12,6 +13,7 @@ export function SeedPhraseBackup({
   busy: boolean;
   onConfirm: () => void;
 }) {
+  const { t } = useI18n();
   const words = useMemo(() => mnemonic.trim().split(/\s+/), [mnemonic]);
   const [copied, setCopied] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
@@ -26,23 +28,22 @@ export function SeedPhraseBackup({
         className="rounded-2xl border-2 border-brass/50 bg-brass/10 p-4"
         role="alert"
       >
-        <p className="font-semibold text-ink">Save your recovery phrase now</p>
+        <p className="font-semibold text-ink">{t("walletSetup.saveNow")}</p>
         <ul className="mt-3 list-disc space-y-2 pl-5 leading-6 text-ink/85">
           <li>
-            <strong>These 12 words are your wallet.</strong> If you lose them, your
-            sats are gone. PesaSense cannot reset them.
+            <strong>{t("walletSetup.wordsAreWalletLead")}</strong> {t("walletSetup.wordsAreWalletRest")}
           </li>
-          <li>Do not screenshot this screen or store the phrase in email or chat.</li>
+          <li>{t("walletSetup.noScreenshot")}</li>
           <li>
-            Write it on paper, or download the backup file and move it to a safe place
-            on <strong>this device only</strong> (not a shared folder).
+            {t("walletSetup.writeLead")} <strong>{t("walletSetup.writeStrong")}</strong>
+            {t("walletSetup.writeRest")}
           </li>
         </ul>
       </div>
 
       <div className="card border-pine/20">
         <p className="text-xs font-semibold tracking-wide text-moss uppercase">
-          Your 12 words
+          {t("walletSetup.yourWords")}
         </p>
         <ol className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
           {words.map((word, index) => (
@@ -68,12 +69,12 @@ export function SeedPhraseBackup({
             void navigator.clipboard.writeText(mnemonic).then(
               () => setCopied(true),
               () => {
-                window.alert("Could not copy. Select the phrase and copy it manually.");
+                window.alert(t("walletSetup.copyFailed"));
               },
             );
           }}
         >
-          {copied ? "Copied" : "Copy phrase"}
+          {copied ? t("walletSetup.copied") : t("walletSetup.copyPhrase")}
         </button>
         <button
           type="button"
@@ -83,13 +84,13 @@ export function SeedPhraseBackup({
             setDownloaded(true);
           }}
         >
-          {downloaded ? "Downloaded" : "Download backup file"}
+          {downloaded ? t("walletSetup.downloaded") : t("walletSetup.download")}
         </button>
       </div>
       <p className="text-xs leading-5 text-ink/55">
-        The file is named{" "}
-        <code className="text-[10px]">pesasense-wallet-recovery-*.txt</code>. Keep it
-        private; delete it from Downloads if that folder is synced or shared.
+        {t("walletSetup.fileLead")}{" "}
+        <code className="text-[10px]">pesasense-wallet-recovery-*.txt</code>
+        {t("walletSetup.fileRest")}
       </p>
 
       <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-sand bg-white/50 p-3">
@@ -100,17 +101,13 @@ export function SeedPhraseBackup({
           onChange={(e) => setAcknowledged(e.target.checked)}
         />
         <span className="leading-6 text-ink/85">
-          I understand that losing this phrase means losing access to my Bitcoin, and
-          I have <strong>written it down or saved the backup file</strong> in a safe
-          place.
+          {t("walletSetup.ackLead")} <strong>{t("walletSetup.ackStrong")}</strong>
+          {t("walletSetup.ackRest")}
         </span>
       </label>
 
       {acknowledged && savedHint ? (
-        <p className="text-xs text-brass">
-          Tip: copy or download the backup file before opening your wallet, even if you
-          wrote the words on paper.
-        </p>
+        <p className="text-xs text-brass">{t("walletSetup.tip")}</p>
       ) : null}
 
       <button
@@ -119,7 +116,7 @@ export function SeedPhraseBackup({
         disabled={busy || !canContinue}
         onClick={onConfirm}
       >
-        {busy ? "Opening wallet…" : "I saved my phrase — open wallet"}
+        {busy ? t("walletSetup.openingWallet") : t("walletSetup.savedOpen")}
       </button>
     </div>
   );

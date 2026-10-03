@@ -23,6 +23,20 @@ function bitikaUpstreamHint(message: string): string | null {
   return null;
 }
 
+/** Stable key when Bitika's status code is one we explain. Null for other failures. */
+export function clientSafeOnRampCode(error: unknown): string | null {
+  if (!(error instanceof Error) || !error.message.startsWith("Bitika request failed")) {
+    return null;
+  }
+  const match = error.message.match(/Bitika request failed \((\d+)\)/);
+  const status = match?.[1];
+  if (status === "403") return "errors.bitika403";
+  if (status === "400") return "errors.bitika400";
+  if (status === "401") return "errors.bitika401";
+  if (status === "429") return "errors.bitika429";
+  return null;
+}
+
 export function clientSafeOnRampError(error: unknown, fallback: string): string {
   if (error instanceof BitikaLiquidityError) return error.message;
   if (error instanceof Error && error.message.startsWith("Bitika request failed")) {

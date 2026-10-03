@@ -7,19 +7,21 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LogoMark } from "./brand/LogoMark";
+import { useI18n } from "../contexts/language-context";
 
 const WELCOME_FLAG = "hasSeenWelcome";
 
 const NAV = [
-  { label: "Home", href: "/", kind: "stay" },
-  { label: "How it works", href: "/welcome", kind: "link" },
-  { label: "Plans", href: "/habit", kind: "enter" },
-  { label: "Start", href: "/welcome", kind: "link" },
+  { labelKey: "welcome.landing.home", href: "/", kind: "stay" },
+  { labelKey: "welcome.landing.how", href: "/welcome", kind: "link" },
+  { labelKey: "welcome.landing.plans", href: "/habit", kind: "enter" },
+  { labelKey: "welcome.landing.start", href: "/welcome", kind: "link" },
 ] as const;
 
 /** Marketing screen. Entering the app marks the welcome visit so the shell opens. */
 export function LandingPage() {
   const router = useRouter();
+  const { t } = useI18n();
 
   function enter(href: string) {
     localStorage.setItem(WELCOME_FLAG, "true");
@@ -37,33 +39,33 @@ export function LandingPage() {
           <LogoMark className="h-8 w-8 shrink-0" />
           <div>
             <p className="text-[13px] font-extrabold tracking-[0.14em] text-white">PESASENSE</p>
-            <p className="text-[11px] font-semibold text-white/75">Private on your phone</p>
+            <p className="text-[11px] font-semibold text-white/75">{t("welcome.landing.tagline")}</p>
           </div>
         </div>
 
         <div className="landing-tools">
           <button
             type="button"
-            aria-label="Open your overview"
+            aria-label={t("welcome.landing.openOverview")}
             onClick={() => enter("/overview")}
             className="landing-avatar"
           >
             <PersonIcon />
           </button>
-          <nav className="landing-pill" aria-label="Landing">
+          <nav className="landing-pill" aria-label={t("welcome.landing.navLabel")}>
             {NAV.map((item) =>
               item.kind === "enter" ? (
-                <button key={item.label} type="button" onClick={() => enter(item.href)} className="landing-pill-link">
-                  {item.label}
+                <button key={item.labelKey} type="button" onClick={() => enter(item.href)} className="landing-pill-link">
+                  {t(item.labelKey)}
                 </button>
               ) : (
                 <Link
-                  key={item.label}
+                  key={item.labelKey}
                   href={item.href}
                   aria-current={item.kind === "stay" ? "page" : undefined}
                   className="landing-pill-link"
                 >
-                  {item.label}
+                  {t(item.labelKey)}
                 </Link>
               ),
             )}
@@ -73,26 +75,26 @@ export function LandingPage() {
 
       <div className="landing-copy">
         <h1>
-          Make sense
+          {t("welcome.landing.heroLine1")}
           <br />
-          of your money.
+          {t("welcome.landing.heroLine2")}
           <br />
-          Start small.
+          {t("welcome.landing.heroLine3")}
         </h1>
         <div className="landing-actions">
           <button type="button" onClick={() => enter("/overview")} className="landing-ghost">
-            See surplus
+            {t("welcome.landing.seeSurplus")}
             <ArrowIcon />
           </button>
           <Link href="/welcome" className="landing-ghost">
-            Get started
+            {t("welcome.getStarted")}
             <ArrowIcon />
           </Link>
         </div>
       </div>
 
       <div className="landing-seal" aria-hidden="true">
-        <Seal />
+        <Seal label={t("welcome.landing.seal")} />
       </div>
     </main>
   );
@@ -128,7 +130,7 @@ function Scene() {
   );
 }
 
-function Seal() {
+function Seal({ label }: { label: string }) {
   return (
     <svg viewBox="0 0 140 140" className="h-28 w-28 text-white">
       <defs>
@@ -136,7 +138,7 @@ function Seal() {
       </defs>
       <circle cx="70" cy="70" r="54" fill="none" stroke="currentColor" strokeWidth="1.25" strokeDasharray="2 3.5" opacity="0.85" />
       <text fill="currentColor" fontSize="9" fontWeight="700" letterSpacing="2.4">
-        <textPath href="#seal-ring">STAYS ON YOUR PHONE · PRIVATE · </textPath>
+        <textPath href="#seal-ring">{label}</textPath>
       </text>
       <g transform="translate(54 50)" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
         <path d="M16 36 V18" />

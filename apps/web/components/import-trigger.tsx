@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useI18n } from "../contexts/language-context";
 import { ImportMpesaModal } from "./import-mpesa-modal";
 
 export function ImportTrigger() {
+  const { t } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -15,7 +17,7 @@ export function ImportTrigger() {
           className="btn btn-primary"
           id="import-trigger-pdf"
         >
-          Import M-Pesa statement
+          {t("import.statement")}
         </button>
         <button
           type="button"
@@ -23,7 +25,7 @@ export function ImportTrigger() {
           className="btn btn-secondary"
           id="import-trigger-sms"
         >
-          Paste messages instead
+          {t("import.pasteInstead")}
         </button>
       </div>
       <ImportMpesaModal isOpen={isOpen} onClose={() => setIsOpen(false)} />

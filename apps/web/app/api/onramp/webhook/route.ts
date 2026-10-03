@@ -3,6 +3,7 @@ import {
   purchaseFromBitika,
   verifyBitikaWebhook,
 } from "@pesasense/wallet";
+import { apiError } from "../../../../lib/api-error";
 import {
   claimWebhookEvent,
   releaseWebhookEvent,
@@ -12,35 +13,32 @@ import { syncSharedStatus } from "../../../../lib/shared-purchases";
 export async function POST(req: Request) {
   const secret = process.env.BITIKA_WEBHOOK_SECRET;
   if (!secret) {
-    return Response.json(
-      { error: "Webhook secret is not configured." },
-      { status: 500 },
-    );
+    return apiError("errors.webhookSecret", 500);
   }
 
   const raw = await req.text();
   if (
     !(await verifyBitikaWebhook(raw, req.headers.get("x-bitika-signature"), secret))
   ) {
-    return Response.json({ error: "Invalid webhook signature." }, { status: 401 });
+    return apiError("errors.webhookSignature", 401);
   }
 
   let body: { id?: unknown; data?: unknown };
   try {
     body = JSON.parse(raw) as { id?: unknown; data?: unknown };
   } catch {
-    return Response.json({ error: "Invalid webhook payload." }, { status: 400 });
+    return apiError("errors.webhookPayload", 400);
   }
 
   if (typeof body.id !== "string" || body.id.trim() === "") {
-    return Response.json({ error: "Invalid webhook payload." }, { status: 400 });
+    return apiError("errors.webhookPayload", 400);
   }
 
   let purchase;
   try {
     purchase = purchaseFromBitika(normalizeBitikaTransaction(body.data));
   } catch {
-    return Response.json({ error: "Invalid webhook payload." }, { status: 400 });
+    return apiError("errors.webhookPayload", 400);
   }
   if (!claimWebhookEvent(body.id)) {
     return Response.json({ ok: true, duplicate: true });
@@ -49,7 +47,7 @@ export async function POST(req: Request) {
     syncSharedStatus(purchase);
   } catch {
     releaseWebhookEvent(body.id);
-    return Response.json({ error: "Could not store the update." }, { status: 500 });
+    return apiError("errors.webhookStore", 500);
   }
 
   return Response.json({ ok: true });

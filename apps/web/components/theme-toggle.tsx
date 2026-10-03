@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useI18n } from "../contexts/language-context";
 
 const THEME_KEY = "pesasense.theme";
 
@@ -14,10 +15,15 @@ export function applyTheme(dark: boolean) {
 }
 
 export function ThemeToggle() {
+  const { t } = useI18n();
   const [dark, setDark] = useState(false);
 
   useEffect(() => {
-    setDark(document.documentElement.classList.contains("dark"));
+    const sync = () => setDark(document.documentElement.classList.contains("dark"));
+    sync();
+    const observer = new MutationObserver(sync);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
   }, []);
 
   function toggle() {
@@ -30,7 +36,7 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={toggle}
-      aria-label={dark ? "Use light mode" : "Use dark mode"}
+      aria-label={dark ? t("common.lightMode") : t("common.darkMode")}
       aria-pressed={dark}
       className="btn inline-flex h-10 w-10 items-center justify-center rounded-full border border-sand bg-paper text-pine"
     >

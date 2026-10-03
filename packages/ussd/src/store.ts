@@ -3,6 +3,7 @@
  * Financial profiles are not stored here. They stay in @pesasense/core.
  */
 
+import { isUssdLang, type UssdLang } from "./copy";
 import type {
   LinkCodeResult,
   ProfileId,
@@ -12,6 +13,8 @@ import type {
   UssdFlow,
   UssdSession,
 } from "./types";
+
+export { isUssdLang, type UssdLang };
 
 export interface PurchasePatch {
   status: string;
@@ -39,6 +42,8 @@ export interface UssdStore {
   latestPurchase(phone: string): PurchaseRecord | null;
   listPurchases(phone: string, limit: number): PurchaseRecord[];
   hitRate(bucket: string, now: number, windowMs: number): number;
+  getLanguage(phone: string): UssdLang | null;
+  setLanguage(phone: string, language: UssdLang): void;
   close(): void;
 }
 
@@ -56,6 +61,7 @@ export function createMemoryUssdStore(): UssdStore {
   const codes = new Map<string, LinkCodeRow>();
   const purchases = new Map<string, PurchaseRecord>();
   const rates = new Map<string, { windowStart: number; count: number }>();
+  const languages = new Map<string, UssdLang>();
 
   return {
     getAccount(phone) {
@@ -136,12 +142,19 @@ export function createMemoryUssdStore(): UssdStore {
       current.count += 1;
       return current.count;
     },
+    getLanguage(phone) {
+      return languages.get(phone) ?? null;
+    },
+    setLanguage(phone, language) {
+      languages.set(phone, language);
+    },
     close() {
       accounts.clear();
       sessions.clear();
       codes.clear();
       purchases.clear();
       rates.clear();
+      languages.clear();
     },
   };
 }
