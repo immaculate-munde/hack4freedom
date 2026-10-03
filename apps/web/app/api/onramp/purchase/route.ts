@@ -111,11 +111,9 @@ export async function POST(req: Request) {
 
     return Response.json(purchase);
   } catch (e) {
-    const upstream =
-      e instanceof Error && e.message.startsWith("Bitika request failed");
     return Response.json(
       { error: clientSafeOnRampError(e, "Could not start the purchase.") },
-      { status: upstream ? 502 : 400 },
+      { status: 400 },
     );
   }
 }

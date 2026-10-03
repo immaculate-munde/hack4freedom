@@ -155,7 +155,11 @@ export function LifeMarkers({
           </span>
         ) : null}
       </div>
-      <div className="grid grid-cols-5 gap-1.5" role="group" aria-label="Month markers">
+      <div
+        className="grid grid-cols-2 gap-1.5 min-[400px]:grid-cols-3 min-[520px]:grid-cols-5"
+        role="group"
+        aria-label="Month markers"
+      >
         {markers.map((marker, index) => {
           const isSelected = marker.id === selected.id;
           return (

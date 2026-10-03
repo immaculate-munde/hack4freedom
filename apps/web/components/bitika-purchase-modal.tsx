@@ -36,7 +36,7 @@ export function BitikaPurchaseModal({
       role="dialog"
       aria-modal="true"
       aria-label="Confirm Bitika purchase"
-      className="fixed inset-0 z-[25]"
+      className="fixed inset-0 z-[50]"
     >
       <div
         className="absolute inset-0 bg-ink/60 backdrop-blur-sm"
@@ -44,7 +44,9 @@ export function BitikaPurchaseModal({
         onClick={status === "confirm" ? onClose : undefined}
       />
 
-      <div className="absolute inset-x-0 bottom-0 flex flex-col rounded-t-[28px] bg-paper p-6 shadow-[0_-8px_40px_rgb(0_0_0/0.18)] sm:inset-0 sm:m-auto sm:h-fit sm:max-w-sm sm:rounded-[28px]">
+      <div
+        className="absolute inset-x-0 bottom-0 flex max-h-[min(88dvh,calc(100dvh-3rem))] flex-col overflow-y-auto rounded-t-[28px] bg-paper p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-[0_-8px_40px_rgb(0_0_0/0.18)] max-lg:mb-[calc(3.75rem+env(safe-area-inset-bottom))] sm:inset-0 sm:m-auto sm:mb-0 sm:h-fit sm:max-h-[90dvh] sm:max-w-sm sm:rounded-[28px]"
+      >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-teal text-on-primary text-xs font-bold tracking-tight">
@@ -151,9 +153,10 @@ function Row({
 }) {
   return (
     <div className="flex items-baseline justify-between gap-3 border-b border-line pb-3 last:border-0 last:pb-0">
-      <span className="text-xs text-slate">{label}</span>
+      <span className="shrink-0 text-xs text-slate">{label}</span>
       <span
-        className={`text-right text-sm ${bold ? "font-bold text-ink" : "font-medium text-ink"} ${truncate ? "max-w-[160px] truncate" : ""}`}
+        className={`min-w-0 text-right text-sm break-all ${bold ? "font-bold text-ink" : "font-medium text-ink"} ${truncate ? "truncate sm:break-all" : ""}`}
+        title={truncate ? value : undefined}
       >
         {value}
       </span>
