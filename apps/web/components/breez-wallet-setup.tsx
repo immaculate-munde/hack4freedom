@@ -55,7 +55,7 @@ export function BreezWalletSetup({ compact }: { compact?: boolean }) {
   if (wallet.status === "ready" && wallet.lightningAddress) {
     return (
       <div className="rounded-2xl border border-moss/30 bg-moss/5 p-4 text-sm">
-        <p className="font-medium text-pine">PesaSense wallet is ready</p>
+        <p className="font-medium text-pine">Your PesaSense wallet is ready</p>
         <p className="mt-2 break-all font-mono text-xs">{wallet.lightningAddress}</p>
         <p className="mt-2 text-ink/70">Balance: {wallet.balanceSats} sats</p>
         {!compact ? (
