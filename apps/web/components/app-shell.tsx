@@ -319,7 +319,10 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </div>
               </div>
             ) : null}
-            <nav className="app-mobile-nav safe-bottom lg:hidden" aria-label={t.nav}>
+            <nav
+              className="app-mobile-nav safe-bottom pb-[env(safe-area-inset-bottom)] lg:hidden"
+              aria-label={t.nav}
+            >
               {PRIMARY.map((tab) => {
                 const active = tab.match(pathname);
                 return (

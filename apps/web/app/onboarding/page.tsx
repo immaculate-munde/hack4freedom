@@ -255,7 +255,7 @@ export default function OnboardingPage() {
     const shown = Math.min(beat, lines.length);
     const done = shown >= lines.length;
     return (
-      <main className="mx-auto flex min-h-dvh w-full max-w-5xl flex-col items-center justify-center gap-4 px-5 py-8 sm:px-8 lg:flex-row lg:items-center">
+      <main className="mx-auto flex min-h-dvh w-full max-w-5xl flex-col items-center justify-center gap-6 px-5 py-8 pb-24 sm:px-8 lg:flex-row lg:items-center lg:pb-8">
         <img
           src={done ? "/sensi-yes.png" : "/sensi-think.png"}
           alt="Sensi"
@@ -299,7 +299,7 @@ export default function OnboardingPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-5xl flex-col px-5 py-5 sm:px-8">
+    <main className="mx-auto flex min-h-dvh w-full max-w-5xl flex-col px-5 py-5 pb-24 sm:px-8 lg:pb-8">
       <header className="flex items-center justify-between">
         <button
           type="button"
@@ -330,7 +330,7 @@ export default function OnboardingPage() {
         </div>
       </header>
 
-      <div className="mt-2 grid flex-1 items-center gap-1 lg:grid-cols-[minmax(16rem,22rem)_minmax(0,1fr)] lg:gap-4">
+      <div className="mt-2 grid flex-1 items-center gap-6 lg:grid-cols-[minmax(16rem,22rem)_minmax(0,1fr)] lg:gap-4">
         <div className="flex flex-col items-center">
           <img
             src={pose}
@@ -342,7 +342,7 @@ export default function OnboardingPage() {
         <div>
           <Thought {...promptFor(step, draft)}>
             {acknowledgment ? <p className="text-sm font-semibold text-pine">{acknowledgment}</p> : null}
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-6">
         {step === 0 ? (
           <DebtStep draft={draft} patch={patch} choose={choose} continueStep={() => advance(draft)} />
         ) : null}
@@ -516,7 +516,7 @@ function YesNo({
   onChange: (value: boolean) => void;
 }) {
   return (
-    <div className="mt-4 grid grid-cols-2 gap-3">
+    <div className="mt-6 grid grid-cols-2 gap-3 lg:mt-4">
       <button
         type="button"
         aria-pressed={value === true}
@@ -642,7 +642,7 @@ function ChamaStep({
               />
             </span>
           </label>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="mt-2 grid grid-cols-2 gap-3 lg:mt-0">
             <button
               type="button"
               aria-pressed={draft.chamaCadence === "monthly"}
@@ -684,7 +684,7 @@ function GoalStep({
 }) {
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-2">
+      <div className="mt-2 flex flex-col gap-4 lg:mt-0 lg:gap-2">
         {GOALS.map((goal) => (
           <button
             key={goal.id}
@@ -768,7 +768,7 @@ function BitcoinExperienceStep({
       )}
 
       {draft.hasInvestedBitcoin === false && (
-        <div className="flex flex-col gap-2">
+        <div className="mt-2 flex flex-col gap-4 lg:mt-0 lg:gap-2">
           {BITCOIN_REASONS.map((reason) => {
             const selected = draft.bitcoinReasons.includes(reason.id);
             return (

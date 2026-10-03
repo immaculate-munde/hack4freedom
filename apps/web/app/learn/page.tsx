@@ -104,8 +104,8 @@ function LearnPageContent() {
   };
 
   return (
-    <main className="flex w-full flex-col gap-6">
-      <header>
+    <main className="flex w-full flex-col gap-8 pb-24 md:gap-6 md:pb-0">
+      <header className="mb-2 md:mb-0">
         <p className="text-[11px] font-semibold tracking-[0.14em] text-brass uppercase">
           Knowledge and safety
         </p>
@@ -119,7 +119,7 @@ function LearnPageContent() {
       </header>
 
       <ScrollReveal>
-        <section className="rounded-[20px] border border-coral/35 bg-coral/10 p-4 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+        <section className="rounded-[20px] border border-coral/35 bg-coral/10 p-5 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
         <div className="flex items-center gap-2">
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-coral/20 text-coral">
             <WarnIcon />
@@ -155,7 +155,7 @@ function LearnPageContent() {
           </div>
           <p className="text-xs font-semibold text-slate">3 topics</p>
         </div>
-        <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-2 lg:grid-cols-3">
           {GUIDES.map((guide, index) => {
             const expanded = open === index;
             return (
@@ -164,7 +164,7 @@ function LearnPageContent() {
                   type="button"
                   aria-expanded={expanded}
                   onClick={() => setOpen(expanded ? null : index)}
-                  className="btn flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+                  className="btn flex w-full items-center justify-between gap-3 py-3 text-left"
                 >
                   <span className="text-sm font-semibold text-ink">{guide.title}</span>
                   <span className="text-slate" aria-hidden="true">
@@ -203,7 +203,9 @@ function LearnPageContent() {
         >
           What could happen to your savings?
         </h2>
-        <ScenarioChart />
+        <div className="min-w-0 overflow-hidden px-0">
+          <ScenarioChart />
+        </div>
       </section>
       </ScrollReveal>
 
@@ -330,7 +332,7 @@ function LearnPageContent() {
       </ScrollReveal>
 
       <ScrollReveal>
-      <section className="rounded-[20px] border border-sky/35 bg-sky/10 p-4 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+      <section className="rounded-[20px] border border-sky/35 bg-sky/10 p-5 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
         <div className="flex items-baseline justify-between">
           <p className="text-[11px] font-semibold tracking-[0.14em] text-teal uppercase">
             Quick check

@@ -18,7 +18,7 @@ export function PageFrame({
   aside?: ReactNode;
 }) {
   return (
-    <main className="page-frame">
+    <main className="page-frame pb-24 md:pb-0">
       <div className="page-frame-primary">
         {backHref ? (
           <Link href={backHref} className="btn btn-ghost mb-2 inline-flex lg:hidden">

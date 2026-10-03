@@ -4,6 +4,8 @@ A private, on-device financial profile that helps someone in Kenya start a small
 
 Built for [Hack4Freedom](https://www.hack4freedom.com/) Nairobi.
 
+Live site at [Pesasense](https://pesasense.vercel.app/)
+
 ## For judges
 
 The live path is a surplus, a refused plan when the buffer is thin, a non-custodial buy, a browser wallet, an encrypted Nostr copy, and a chama record that never holds sats.
