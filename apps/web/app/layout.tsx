@@ -60,7 +60,7 @@ export default async function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html:
-              "try{if(localStorage.getItem('pesasense.theme')==='dark')document.documentElement.classList.add('dark')}catch(e){}try{var m=document.cookie.match(/(?:^|; )pesasense.language=(en|sw)/);if(m)document.documentElement.lang=m[1]}catch(e){}",
+              "try{var stored=localStorage.getItem('pesasense.theme');var dark=stored==='dark'||(stored!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches);if(dark)document.documentElement.classList.add('dark');var color=dark?'#0e1512':'#0D7A73';var meta=document.querySelector('meta[name=\"theme-color\"]');if(!meta){meta=document.createElement('meta');meta.setAttribute('name','theme-color');document.head.appendChild(meta);}meta.setAttribute('content',color);}catch(e){}try{var m=document.cookie.match(/(?:^|; )pesasense.language=(en|sw)/);if(m)document.documentElement.lang=m[1]}catch(e){}",
           }}
         />
       </head>

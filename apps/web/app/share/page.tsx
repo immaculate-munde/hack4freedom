@@ -74,23 +74,23 @@ function SharePageContent() {
             <p className="rounded-xl bg-brass/10 px-3 py-2 text-sm leading-6 text-brass">{warning}</p>
           ) : null}
           {ready && !sharedText && !warning ? (
-            <p className="text-sm leading-6 text-ink/70">{t("import.share.empty")}</p>
+            <p className="text-sm leading-6 text-ink-soft">{t("import.share.empty")}</p>
           ) : null}
 
           {!ready ? (
-            <p className="text-sm text-ink/60">{t("common.loading")}</p>
+            <p className="text-sm text-slate">{t("common.loading")}</p>
           ) : result ? (
             <div className="space-y-3 rounded-2xl border border-mint/60 bg-mint/25 p-4">
               <p className="text-sm font-semibold text-pine">{t("import.complete")}</p>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between gap-3">
-                  <span className="text-ink/65">{t("import.safeSurplus")}</span>
+                  <span className="text-ink-soft">{t("import.safeSurplus")}</span>
                   <span className="font-semibold text-ink">
                     {kes(result.surplus.monthlyKes.floor)} – {number(result.surplus.monthlyKes.ceiling)}
                   </span>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <span className="text-ink/65">{t("import.resilience")}</span>
+                  <span className="text-ink-soft">{t("import.resilience")}</span>
                   <span className="font-semibold text-ink">
                     {t("import.months", { count: result.resilience.monthsOfExpensesCovered })}
                   </span>

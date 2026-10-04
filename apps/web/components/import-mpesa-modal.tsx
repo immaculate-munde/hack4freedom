@@ -96,13 +96,13 @@ export function ImportMpesaModal({ isOpen, onClose }: ImportMpesaModalProps) {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h2 className="font-serif text-xl text-pine">{t("import.title")}</h2>
-                <p className="mt-0.5 text-xs text-ink/55">{t("import.stays")}</p>
+                <p className="mt-0.5 text-xs text-slate">{t("import.stays")}</p>
               </div>
               <button
                 type="button"
                 aria-label={t("common.close")}
                 onClick={handleClose}
-                className="btn btn-ghost -mr-1 -mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-sand/80 text-ink/50 hover:text-ink"
+                className="btn btn-ghost -mr-1 -mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-sand/80 text-slate hover:text-ink"
               >
                 <XIcon />
               </button>
@@ -123,8 +123,8 @@ export function ImportMpesaModal({ isOpen, onClose }: ImportMpesaModalProps) {
                 />
               </svg>
               <div className="flex flex-col gap-1">
-                <p className="text-xs leading-5 text-ink/70">{t("import.neverLeave")}</p>
-                <p className="text-[11px] leading-4 text-ink/55">{t("import.passwordNote")}</p>
+                <p className="text-xs leading-5 text-ink-soft">{t("import.neverLeave")}</p>
+                <p className="text-[11px] leading-4 text-slate">{t("import.passwordNote")}</p>
               </div>
             </div>
 
@@ -133,19 +133,19 @@ export function ImportMpesaModal({ isOpen, onClose }: ImportMpesaModalProps) {
                 <p className="text-sm font-semibold text-pine">{t("import.complete")}</p>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-ink/65">{t("import.safeSurplus")}</span>
+                    <span className="text-ink-soft">{t("import.safeSurplus")}</span>
                     <span className="font-semibold text-ink">
                       {kes(result.surplus.monthlyKes.floor)} – {number(result.surplus.monthlyKes.ceiling)}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-ink/65">{t("import.resilience")}</span>
+                    <span className="text-ink-soft">{t("import.resilience")}</span>
                     <span className="font-semibold text-ink">
                       {t("import.months", { count: result.resilience.monthsOfExpensesCovered })}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-ink/65">{t("import.commitments")}</span>
+                    <span className="text-ink-soft">{t("import.commitments")}</span>
                     <span className="font-semibold text-ink">
                       {t("import.detected", { count: result.commitments.length })}
                     </span>

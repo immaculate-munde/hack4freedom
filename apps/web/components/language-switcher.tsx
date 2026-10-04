@@ -15,7 +15,7 @@ export function LanguageSwitcher({ tone = "paper" }: { tone?: "paper" | "pearl" 
     >
       <LocaleButton label="EN" locale="en" pressed={locale === "en"} onSelect={setLocale} />
       {tone === "pearl" ? (
-        <span className="px-1 text-xs text-line" aria-hidden="true">
+        <span className="px-1 text-xs text-slate" aria-hidden="true">
           |
         </span>
       ) : null}
@@ -40,8 +40,8 @@ function LocaleButton({
       type="button"
       aria-pressed={pressed}
       onClick={() => onSelect(locale)}
-      className={`inline-flex h-8 min-w-9 items-center justify-center rounded-full px-2 text-xs font-semibold ${
-        pressed ? "bg-paper text-pine shadow-card" : "text-slate"
+      className={`locale-option inline-flex h-8 min-w-9 items-center justify-center rounded-full px-2 text-xs font-semibold ${
+        pressed ? "bg-brass text-on-accent shadow-card" : "text-slate"
       }`}
     >
       {label}

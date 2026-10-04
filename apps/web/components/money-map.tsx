@@ -253,7 +253,7 @@ export function MoneyMap({
   return (
     <section
       id="month-path"
-      className="overflow-x-clip rounded-[28px] bg-[#141210] px-3 py-6 sm:px-6"
+      className="overflow-x-clip rounded-[28px] border border-[#e3b23c]/25 bg-[#141210] px-3 py-6 sm:px-6"
       aria-labelledby={headingId}
     >
       <div className="mb-2 flex items-center justify-between gap-3">

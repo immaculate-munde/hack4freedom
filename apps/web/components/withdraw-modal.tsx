@@ -126,20 +126,20 @@ export function WithdrawModal({
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 className="font-serif text-xl text-pine">{t("wallet.withdraw.title")}</h2>
-            <p className="mt-0.5 text-xs text-ink/55">{t("wallet.withdraw.fee")}</p>
+            <p className="mt-0.5 text-xs text-slate">{t("wallet.withdraw.fee")}</p>
           </div>
           <button
             type="button"
             aria-label={t("common.close")}
             onClick={onClose}
-            className="btn btn-ghost -mr-1 -mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-sand/80 text-ink/50 hover:text-ink"
+            className="btn btn-ghost -mr-1 -mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-sand/80 text-slate hover:text-ink"
           >
             <XIcon />
           </button>
         </div>
 
         <div className="mt-5 flex justify-center">
-          <div className="rounded-2xl border border-sand bg-white p-3 shadow-sm">
+          <div className="rounded-2xl border border-sand bg-surface p-3 shadow-sm">
             <QRCodeSVG
               value={withdrawAddress}
               size={180}
@@ -159,7 +159,7 @@ export function WithdrawModal({
               <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-pine/10 text-[10px] font-bold tabular-nums text-pine">
                 {i + 1}
               </span>
-              <p className="text-xs leading-5 text-ink/75">{t(key)}</p>
+              <p className="text-xs leading-5 text-ink-soft">{t(key)}</p>
             </li>
           ))}
         </ol>
@@ -194,9 +194,9 @@ export function WithdrawModal({
             </p>
           </div>
         ) : amountSats ? (
-          <p className="mt-4 text-xs leading-5 text-ink/55">
+          <p className="mt-4 text-xs leading-5 text-slate">
             {t("wallet.withdraw.sendLead")}
-            <span className="font-semibold text-ink/80">
+            <span className="font-semibold text-ink-soft">
               {number(amountSats)} sats
             </span>
             {t("wallet.withdraw.sendTrail")}

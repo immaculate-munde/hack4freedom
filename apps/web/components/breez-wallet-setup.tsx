@@ -85,7 +85,7 @@ function OpeningWallet({ compact }: { compact?: boolean }) {
       >
         {t("walletSetup.openingTitle")}
       </h2>
-      <p className="mt-2 min-h-6 max-w-[16rem] text-balance text-sm text-ink/70">
+      <p className="mt-2 min-h-6 max-w-[16rem] text-balance text-sm text-ink-soft">
         {t(OPENING_STEPS[step] ?? OPENING_STEPS[0])}
       </p>
       <div className="mt-4 flex gap-1.5 sm:mt-5" aria-hidden>
@@ -113,7 +113,7 @@ export function BreezWalletSetup({ compact }: { compact?: boolean }) {
 
   if (wallet.status === "no_api_key") {
     return (
-      <div className="rounded-2xl border border-brass/40 bg-brass/10 p-4 text-sm text-ink/80">
+      <div className="rounded-2xl border border-brass/40 bg-brass/10 p-4 text-sm text-ink-soft">
         <p className="font-medium text-pine">{t("walletSetup.keyNeeded")}</p>
         <p className="mt-2 leading-6">
           {t("walletSetup.keyLead")}
@@ -161,7 +161,7 @@ export function BreezWalletSetup({ compact }: { compact?: boolean }) {
       <div className="rounded-2xl border border-moss/30 bg-moss/5 p-4 text-sm">
         <p className="font-medium text-pine">{t("walletSetup.ready")}</p>
         <p className="mt-2 break-all font-mono text-xs">{wallet.lightningAddress}</p>
-        <p className="mt-2 text-ink/70">
+        <p className="mt-2 text-ink-soft">
           {t("walletSetup.balance", { sats: number(wallet.balanceSats) })}
         </p>
         {!compact ? (
@@ -182,7 +182,7 @@ export function BreezWalletSetup({ compact }: { compact?: boolean }) {
   if (mode === "restore") {
     return (
       <div className="space-y-3 text-sm">
-        <p className="text-ink/80">{t("walletSetup.pastePhrase")}</p>
+        <p className="text-ink-soft">{t("walletSetup.pastePhrase")}</p>
         <textarea
           className="field min-h-[100px] font-mono text-xs"
           value={restoreText}
@@ -224,7 +224,7 @@ export function BreezWalletSetup({ compact }: { compact?: boolean }) {
   return (
     <div className="space-y-3 text-sm">
       {!compact ? (
-        <p className="leading-6 text-ink/80">
+        <p className="leading-6 text-ink-soft">
           {t("walletSetup.introLead")}
           <strong>{t("walletSetup.introStrong")}</strong>
           {t("walletSetup.introMid")}

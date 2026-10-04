@@ -173,7 +173,7 @@ export function LifeMarkers({
   });
 
   return (
-    <section className="rounded-[28px] bg-[#141210] px-3 py-3 sm:px-4" aria-label={t("overview.markers.heading")}>
+    <section className="rounded-[28px] border border-[#e3b23c]/25 bg-[#141210] px-3 py-3 sm:px-4" aria-label={t("overview.markers.heading")}>
       <div className="mb-2 flex items-center justify-between gap-3">
         <h2 className="text-xs font-semibold tracking-[0.16em] text-[#e3b23c] uppercase">
           {t("overview.markers.heading")}

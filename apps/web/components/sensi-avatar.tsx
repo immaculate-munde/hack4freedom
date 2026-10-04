@@ -127,7 +127,7 @@ export function SensiAvatar({ size = "md", mood = "neutral" }: { size?: SensiSiz
               />
             ) : null}
           </g>
-          <ellipse cx="50" cy="55" rx="27" ry="33" className="fill-paper stroke-pine" strokeWidth="3" />
+          <ellipse cx="50" cy="55" rx="27" ry="33" className="fill-on-brand stroke-pine" strokeWidth="3" />
           <g className="sensi-eyes">
             <Eyes mood={mood} />
           </g>

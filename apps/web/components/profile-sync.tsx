@@ -141,7 +141,7 @@ export function ProfileSync({
   return (
     <section className="card mt-4">
       <h2 className="font-serif text-xl text-pine">{t("import.sync.title")}</h2>
-      <p className="mt-2 text-sm leading-6 text-ink/75">{t("import.sync.body")}</p>
+      <p className="mt-2 text-sm leading-6 text-ink-soft">{t("import.sync.body")}</p>
       <div className="mt-4 flex flex-col gap-2 sm:flex-row">
         <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => void onSave()}>
           {t("import.sync.save")}
@@ -153,7 +153,7 @@ export function ProfileSync({
           {t("import.sync.share")}
         </button>
       </div>
-      {message ? <p className="mt-3 text-sm text-ink/80">{message}</p> : null}
+      {message ? <p className="mt-3 text-sm text-ink-soft">{message}</p> : null}
     </section>
   );
 }

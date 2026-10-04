@@ -34,7 +34,7 @@ export function CustomerRail() {
       <div className="flex items-center gap-3">
         <span
           aria-hidden="true"
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-pine text-lg font-bold text-[#fdfbf7]"
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-pine text-lg font-bold text-on-brand"
         >
           {initialFor(displayName)}
         </span>

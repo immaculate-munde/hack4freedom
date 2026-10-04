@@ -4,14 +4,54 @@ import { useEffect, useState } from "react";
 import { useI18n } from "../contexts/language-context";
 
 const THEME_KEY = "pesasense.theme";
+const LIGHT_CHROME = "#0D7A73";
+const DARK_CHROME = "#0e1512";
+
+function readThemePreference(): "light" | "dark" | null {
+  try {
+    const stored = localStorage.getItem(THEME_KEY);
+    if (stored === "light" || stored === "dark") return stored;
+  } catch {
+    // Storage can be blocked. Fall through to the system theme.
+  }
+  return null;
+}
+
+function setThemeColor(dark: boolean) {
+  const content = dark ? DARK_CHROME : LIGHT_CHROME;
+  let meta = document.querySelector('meta[name="theme-color"]');
+  if (!meta) {
+    meta = document.createElement("meta");
+    meta.setAttribute("name", "theme-color");
+    document.head.appendChild(meta);
+  }
+  meta.setAttribute("content", content);
+}
 
 export function applyTheme(dark: boolean) {
   document.documentElement.classList.toggle("dark", dark);
+  setThemeColor(dark);
   try {
     localStorage.setItem(THEME_KEY, dark ? "dark" : "light");
   } catch {
     // The page still switches for this visit.
   }
+}
+
+export function ThemePreferenceSync() {
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    function apply() {
+      const stored = readThemePreference();
+      const dark = stored === "dark" || (stored !== "light" && media.matches);
+      document.documentElement.classList.toggle("dark", dark);
+      setThemeColor(dark);
+    }
+    apply();
+    media.addEventListener("change", apply);
+    return () => media.removeEventListener("change", apply);
+  }, []);
+  return null;
 }
 
 export function ThemeToggle() {

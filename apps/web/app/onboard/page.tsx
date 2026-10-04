@@ -66,7 +66,7 @@ export default function OnboardPage() {
               <ThemeToggle />
             </div>
           </div>
-          <div className="flex items-start gap-3 rounded-xl bg-moss/10 p-3 text-sm text-ink/80">
+          <div className="flex items-start gap-3 rounded-xl bg-moss/10 p-3 text-sm text-ink-soft">
             <svg
               className="mt-0.5 h-5 w-5 shrink-0 text-moss"
               fill="none"
@@ -90,7 +90,7 @@ export default function OnboardPage() {
 
             <div className="mt-6 space-y-4">
               <div className="flex justify-between border-b border-sand/50 pb-3">
-                <span className="text-sm font-medium text-ink/70">{t("onboard.safeSurplus")}</span>
+                <span className="text-sm font-medium text-ink-soft">{t("onboard.safeSurplus")}</span>
                 <span className="font-bold text-pine">
                   {t("onboard.kesRange", {
                     floor: number(parsedProfile.surplus.monthlyKes.floor),
@@ -99,7 +99,7 @@ export default function OnboardPage() {
                 </span>
               </div>
               <div className="flex justify-between border-b border-sand/50 pb-3">
-                <span className="text-sm font-medium text-ink/70">{t("onboard.resilience")}</span>
+                <span className="text-sm font-medium text-ink-soft">{t("onboard.resilience")}</span>
                 <span className="font-bold text-ink">
                   {t("onboard.monthsCovered", {
                     count: number(parsedProfile.resilience.monthsOfExpensesCovered),
@@ -107,13 +107,13 @@ export default function OnboardPage() {
                 </span>
               </div>
               <div className="flex justify-between border-b border-sand/50 pb-3">
-                <span className="text-sm font-medium text-ink/70">{t("onboard.commitments")}</span>
+                <span className="text-sm font-medium text-ink-soft">{t("onboard.commitments")}</span>
                 <span className="font-bold text-ink">
                   {t("onboard.items", { count: number(parsedProfile.commitments.length) })}
                 </span>
               </div>
               <div className="flex justify-between pt-1">
-                <span className="text-sm font-medium text-ink/70">{t("onboard.incomeRange")}</span>
+                <span className="text-sm font-medium text-ink-soft">{t("onboard.incomeRange")}</span>
                 <span className="font-bold text-ink">
                   {t("onboard.kesRange", {
                     floor: number(parsedProfile.income.monthlyKes.floor),
@@ -141,7 +141,7 @@ export default function OnboardPage() {
             <section className="card space-y-4">
               <h2 className="font-semibold text-pine">{t("onboard.pdfUpload")}</h2>
               <PdfImportForm onProfileReady={setParsedProfile} onDemoFallback={handleUseDemo} />
-              <p className="text-[11px] leading-4 text-ink/55">
+              <p className="text-[11px] leading-4 text-slate">
                 {t("onboard.demoFixture")}{" "}
                 <a
                   href="/fixtures/amina-statement.pdf"

@@ -39,7 +39,7 @@ function InvestPageContent({ bitikaMode: mode }: { bitikaMode: "sandbox" | "live
     return (
       <PageFrame title={t("invest.notReady")} backHref="/" backLabel={t("invest.backOverview")}>
         <section className="card">
-          <p className="text-sm leading-6 text-ink/80">{reason}</p>
+          <p className="text-sm leading-6 text-ink-soft">{reason}</p>
         </section>
         {profileId === "amina" || profileId === "brian" ? (
           <UssdAccess profileId={profileId} />
@@ -52,7 +52,7 @@ function InvestPageContent({ bitikaMode: mode }: { bitikaMode: "sandbox" | "live
     return (
       <PageFrame title={t("invest.setHabit")} backHref="/habit" backLabel={t("invest.setHabit")}>
         <section className="card">
-          <p className="text-sm leading-6 text-ink/80">{t("invest.setHabitFirst")}</p>
+          <p className="text-sm leading-6 text-ink-soft">{t("invest.setHabitFirst")}</p>
           <Link href="/habit" className="btn btn-accent mt-4 inline-flex">
             {t("invest.setHabit")}
           </Link>

@@ -130,7 +130,7 @@ function OverviewContent() {
         onOpenPromisedStop={openPromisedOnPath}
       />
 
-      <section className="rounded-[20px] bg-white p-5 shadow-card">
+      <section className="rounded-[20px] border border-line bg-surface p-5 shadow-card">
         <p className="text-[11px] font-semibold tracking-[0.12em] text-slate uppercase">
           {t("overview.chamaTitle")}
         </p>
@@ -175,7 +175,7 @@ function OverviewContent() {
 function DemoTag({ dark = false }: { dark?: boolean }) {
   const { t } = useI18n();
   return (
-    <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${dark ? "bg-paper/15 text-paper" : "bg-pearl text-slate"}`}>
+    <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${dark ? "bg-on-brand/15 text-on-brand" : "bg-pearl text-slate"}`}>
       {t("overview.demoData")}
     </span>
   );

@@ -22,7 +22,7 @@ export default function WalletPage() {
             <h2 className="font-serif text-lg text-pine">{t("wallet.balance")}</h2>
             <p className="mt-2 text-3xl font-semibold tabular-nums text-pine">
               {number(wallet.balanceSats)}
-              <span className="ml-1 text-sm font-normal text-ink/60">sats</span>
+              <span className="ml-1 text-sm font-normal text-slate">sats</span>
             </p>
             <Link href="/invest" className="btn btn-primary mt-4 inline-flex w-full justify-center">
               {t("common.titles.invest")}
@@ -36,7 +36,7 @@ export default function WalletPage() {
       {wallet.status === "ready" ? (
         <section className="card mt-4 text-sm lg:mt-0">
           <h2 className="font-serif text-xl text-pine">{t("wallet.withdrawTitle")}</h2>
-          <p className="mt-2 leading-6 text-ink/70">
+          <p className="mt-2 leading-6 text-ink-soft">
             {t("wallet.withdrawLead")}
             <strong>{t("invest.withdrawInApp")}</strong>
             {t("wallet.withdrawTrail")}

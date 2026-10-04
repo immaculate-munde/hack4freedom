@@ -29,7 +29,7 @@ export function SeedPhraseBackup({
         role="alert"
       >
         <p className="font-semibold text-ink">{t("walletSetup.saveNow")}</p>
-        <ul className="mt-3 list-disc space-y-2 pl-5 leading-6 text-ink/85">
+        <ul className="mt-3 list-disc space-y-2 pl-5 leading-6 text-ink-soft">
           <li>
             <strong>{t("walletSetup.wordsAreWalletLead")}</strong> {t("walletSetup.wordsAreWalletRest")}
           </li>
@@ -51,12 +51,12 @@ export function SeedPhraseBackup({
               key={`${index}-${word}`}
               className="flex items-center gap-2 rounded-xl bg-sand/50 px-2.5 py-2 font-mono text-xs"
             >
-              <span className="text-ink/40 tabular-nums">{index + 1}.</span>
+              <span className="text-slate tabular-nums">{index + 1}.</span>
               <span className="text-ink">{word}</span>
             </li>
           ))}
         </ol>
-        <p className="mt-4 break-words rounded-xl border border-dashed border-sand bg-paper/80 px-3 py-2 font-mono text-[11px] leading-5 text-ink/70">
+        <p className="mt-4 break-words rounded-xl border border-dashed border-sand bg-paper/80 px-3 py-2 font-mono text-[11px] leading-5 text-ink-soft">
           {mnemonic}
         </p>
       </div>
@@ -87,20 +87,20 @@ export function SeedPhraseBackup({
           {downloaded ? t("walletSetup.downloaded") : t("walletSetup.download")}
         </button>
       </div>
-      <p className="text-xs leading-5 text-ink/55">
+      <p className="text-xs leading-5 text-slate">
         {t("walletSetup.fileLead")}{" "}
         <code className="text-[10px]">pesasense-wallet-recovery-*.txt</code>
         {t("walletSetup.fileRest")}
       </p>
 
-      <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-sand bg-white/50 p-3">
+      <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-sand bg-surface p-3">
         <input
           type="checkbox"
           className="mt-1 h-4 w-4 accent-pine"
           checked={acknowledged}
           onChange={(e) => setAcknowledged(e.target.checked)}
         />
-        <span className="leading-6 text-ink/85">
+        <span className="leading-6 text-ink-soft">
           {t("walletSetup.ackLead")} <strong>{t("walletSetup.ackStrong")}</strong>
           {t("walletSetup.ackRest")}
         </span>

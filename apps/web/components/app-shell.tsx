@@ -362,7 +362,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                           href={item.href}
                           aria-current={active ? "page" : undefined}
                           className={`flex min-h-12 items-center gap-3 rounded-2xl px-3 text-sm font-semibold ${
-                            active ? "bg-mint text-pine" : "text-ink hover:bg-pearl"
+                            active ? "bg-brass/20 text-ink ring-1 ring-brass/60" : "text-ink hover:bg-pearl"
                           }`}
                         >
                           <NavIcon name={item.key} />
@@ -392,7 +392,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   >
                     <span
                       className={`flex h-7 w-12 items-center justify-center rounded-full ${
-                        active ? "bg-moss/20" : ""
+                        active ? "bg-brass/25" : ""
                       }`}
                     >
                       <NavIcon name={tab.key} />
@@ -412,7 +412,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               >
                 <span
                   className={`flex h-7 w-12 items-center justify-center rounded-full ${
-                    moreOpen || moreActive ? "bg-moss/20" : ""
+                    moreOpen || moreActive ? "bg-brass/25" : ""
                   }`}
                 >
                   <MoreIcon />
@@ -465,7 +465,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   <div className="flex flex-col gap-4 pb-1">
                     {sensiTurns.map((turn) => (
                       <div key={turn.id} className="flex flex-col gap-2">
-                        <p className="ml-10 self-end rounded-2xl rounded-br-md bg-pine px-3 py-2 text-sm leading-5 text-paper">
+                        <p className="ml-10 self-end rounded-2xl rounded-br-md bg-pine px-3 py-2 text-sm leading-5 text-on-brand">
                           {turn.question}
                         </p>
                         <div>
@@ -556,7 +556,7 @@ function ProfileMenu({
         aria-label={t("nav.profile")}
         aria-expanded={open}
         onClick={onToggle}
-        className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-pine text-paper"
+        className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-pine text-on-brand"
       >
         <PersonIcon />
       </button>

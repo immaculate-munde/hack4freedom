@@ -136,7 +136,7 @@ function HabitContent() {
       </header>
 
       <section className="flex items-start gap-3 rounded-[20px] bg-mint px-4 py-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-teal">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-paper text-teal">
           <LeafIcon />
         </span>
         <div>
@@ -151,7 +151,7 @@ function HabitContent() {
       </section>
 
       {offer.ok ? (
-        <section className="rounded-[20px] bg-white p-5 shadow-card">
+        <section className="rounded-[20px] bg-surface p-5 shadow-card">
           <div className="flex items-center justify-between gap-3">
             <p className="text-[11px] font-semibold tracking-[0.12em] text-slate uppercase">
               {t("habit.allocated")}
@@ -161,7 +161,7 @@ function HabitContent() {
                 type="button"
                 aria-pressed={cadence === "weekly"}
                 onClick={() => setCadence("weekly")}
-                className={`rounded-full px-3 py-1 ${cadence === "weekly" ? "bg-white text-teal shadow-card" : "text-slate"}`}
+                className={`rounded-full px-3 py-1 ${cadence === "weekly" ? "bg-brass text-on-accent shadow-card" : "text-slate"}`}
               >
                 {t("common.weekly")}
               </button>
@@ -169,7 +169,7 @@ function HabitContent() {
                 type="button"
                 aria-pressed={cadence === "monthly"}
                 onClick={() => setCadence("monthly")}
-                className={`rounded-full px-3 py-1 ${cadence === "monthly" ? "bg-white text-teal shadow-card" : "text-slate"}`}
+                className={`rounded-full px-3 py-1 ${cadence === "monthly" ? "bg-brass text-on-accent shadow-card" : "text-slate"}`}
               >
                 {t("common.monthly")}
               </button>
@@ -205,7 +205,7 @@ function HabitContent() {
             <p className="text-slate tabular-nums">{t("habit.floor", { amount: kes(floor) })}</p>
           </div>
           <div className="mt-2 h-2 rounded-full bg-pearl" aria-hidden="true">
-            <div className="h-2 rounded-full bg-teal" style={{ width: `${width}%` }} />
+            <div className="h-2 rounded-full bg-teal dark:bg-[#8fd0c4]" style={{ width: `${width}%` }} />
           </div>
           <p className="mt-3 text-sm leading-6 text-slate">{t("habit.cadenceNote")}</p>
           {errorText ? (
@@ -245,7 +245,7 @@ function HabitContent() {
           <h2 className="text-base font-semibold text-ink">{t("habit.ladderTitle")}</h2>
           <p className="text-xs font-semibold text-slate">{t("habit.tiers", { count: 3 })}</p>
         </div>
-        <div className="overflow-hidden rounded-[20px] bg-white shadow-card">
+        <div className="overflow-hidden rounded-[20px] border border-line bg-surface shadow-card">
           <Ladder
             n="1"
             title={t("habit.cashTitle")}
@@ -327,9 +327,9 @@ export default function HabitPage() {
     <Suspense
       fallback={
         <main className="mx-auto flex w-full max-w-2xl flex-col gap-4">
-          <div className="animate-pulse h-6 w-32 rounded-full bg-pearl" />
-          <div className="animate-pulse h-10 w-64 rounded-full bg-pearl" />
-          <div className="card animate-pulse h-40 bg-pearl" />
+          <div className="skeleton animate-pulse h-6 w-32 rounded-full" />
+          <div className="skeleton animate-pulse h-10 w-64 rounded-full" />
+          <div className="card skeleton animate-pulse h-40" />
         </main>
       }
     >

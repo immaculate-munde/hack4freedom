@@ -234,8 +234,8 @@ export function InstallAppCard() {
     return (
       <section className="card">
         <h2 className="font-serif text-lg text-pine">{t("settings.installTitle")}</h2>
-        <p className="mt-1 text-sm leading-6 text-ink/70">{t("settings.installInstalled")}</p>
-        <p className="mt-2 text-sm leading-6 text-ink/70">{t("settings.installShare")}</p>
+        <p className="mt-1 text-sm leading-6 text-ink-soft">{t("settings.installInstalled")}</p>
+        <p className="mt-2 text-sm leading-6 text-ink-soft">{t("settings.installShare")}</p>
       </section>
     );
   }
@@ -260,10 +260,10 @@ export function InstallAppCard() {
   return (
     <section className="card">
       <h2 className="font-serif text-lg text-pine">{t("settings.installTitle")}</h2>
-      <p className="mt-1 text-sm leading-6 text-ink/70">{t("settings.installBody")}</p>
-      <p className="mt-2 text-sm leading-6 text-ink/70">{t("settings.installShare")}</p>
-      {mode === "ios" ? <p className="mt-2 text-sm leading-6 text-ink/80">{t("settings.installIos")}</p> : null}
-      {offline ? <p className="mt-2 text-sm leading-6 text-ink/80">{t("settings.installOffline")}</p> : null}
+      <p className="mt-1 text-sm leading-6 text-ink-soft">{t("settings.installBody")}</p>
+      <p className="mt-2 text-sm leading-6 text-ink-soft">{t("settings.installShare")}</p>
+      {mode === "ios" ? <p className="mt-2 text-sm leading-6 text-ink-soft">{t("settings.installIos")}</p> : null}
+      {offline ? <p className="mt-2 text-sm leading-6 text-ink-soft">{t("settings.installOffline")}</p> : null}
       {mode === "ios" ? null : (
         <div className="mt-4 flex flex-wrap gap-2">
           <button
