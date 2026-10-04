@@ -10,5 +10,16 @@
   "walletClosed": "Hakuna mkoba uliofunguliwa kwenye kivinjari hiki bado.",
   "openWallet": "Fungua mkoba",
   "data": "Data yako",
-  "privacy": "Faragha"
+  "privacy": "Faragha",
+  "installTitle": "Sakinisha PesaSense",
+  "installBody": "Iongeze kwenye skrini ya nyumbani ili ifunguke kama programu. Wasifu wako unabaki kwenye simu hii.",
+  "installShare": "Ikisha sakinishwa kwenye Android, chagua ujumbe wa M-Pesa kwenye SMS na uguse Shiriki, kisha PesaSense. Kwenye iPhone, bandika ujumbe au tumia PDF ya taarifa.",
+  "installAction": "Sakinisha programu",
+  "installWorking": "Inafungua usakinishaji…",
+  "installInstalled": "PesaSense imesakinishwa kwenye kifaa hiki.",
+  "installIos": "Katika Safari, gusa Shiriki, kisha Ongeza kwenye Skrini ya Nyumbani.",
+  "installMenu": "Fungua menyu ya kivinjari kisha chagua Sakinisha programu au Ongeza kwenye Skrini ya Nyumbani.",
+  "installDismiss": "Sio sasa",
+  "installOffline": "Unganisha mtandao kabla ya kusakinisha.",
+  "installShow": "Jinsi ya kusakinisha"
 }

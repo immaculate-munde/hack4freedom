@@ -20,6 +20,7 @@ import { useFormat, useI18n } from "../../contexts/language-context";
 import { useBreezWallet } from "../../contexts/breez-wallet-context";
 import { messageFromApi, type ApiErrorBody } from "../../lib/api-message";
 import { HttpOnRamp } from "../../lib/http-onramp";
+import { isOnline } from "../../lib/network";
 import type { Locale, TranslateVars } from "../../lib/i18n";
 import {
   latestSubmittedPurchase,
@@ -325,6 +326,10 @@ export function InvestFlow({
 
   const verifyAddress = useCallback(async () => {
     setError(null);
+    if (!isOnline()) {
+      setError(t("common.offlineAction"));
+      return;
+    }
     setBusy(true);
     try {
       parseDestination(address);
@@ -351,6 +356,10 @@ export function InvestFlow({
 
   const loadQuote = useCallback(async () => {
     setError(null);
+    if (!isOnline()) {
+      setError(t("common.offlineAction"));
+      return;
+    }
     if (amountKes < 10 || amountKes > maxKes) {
       setError(t("invest.amountRange", { min: number(10), max: number(maxKes) }));
       return;
@@ -378,6 +387,10 @@ export function InvestFlow({
   const startPurchase = useCallback(async () => {
     if (following.current) return;
     setError(null);
+    if (!isOnline()) {
+      setError(t("common.offlineAction"));
+      return;
+    }
     setBusy(true);
     setStep("status");
     try {

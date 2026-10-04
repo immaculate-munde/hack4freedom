@@ -6,6 +6,7 @@ import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { useI18n } from "../contexts/language-context";
 import { CustomerRail } from "./customer-rail";
 import { LanguageSwitcher } from "./language-switcher";
+import { PwaExperience } from "./pwa-experience";
 import { SensiAvatar } from "./sensi-avatar";
 import { ThemeToggle } from "./theme-toggle";
 
@@ -103,6 +104,7 @@ function titleKey(pathname: string): string | null {
   if (pathname.startsWith("/chama")) return "common.titles.chama";
   if (pathname.startsWith("/settings")) return "common.titles.settings";
   if (pathname.startsWith("/trust")) return "common.titles.trust";
+  if (pathname.startsWith("/share")) return "common.titles.share";
   return null;
 }
 
@@ -293,6 +295,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       )}
 
       <div className="app-main-column">
+        <PwaExperience />
         {quiet ? null : (
         <header className="app-mobile-header lg:hidden">
           <Brand />

@@ -22,6 +22,10 @@
   "noProfileBody": "Demo personas are turned off. Paste your M-Pesa SMS on the import screen. The profile is built on this device and saved here. There is no separate profile server.",
   "importMpesa": "Import M-Pesa messages",
   "answerQuestionsFirst": "Answer onboarding questions first",
+  "offlineBanner": "You are offline. Pages already opened on this phone still load. Payments, the wallet, and profile sync need a connection.",
+  "offlineAction": "This needs a connection. Nothing was sent.",
+  "updateReady": "A new version of PesaSense is ready.",
+  "updateAction": "Update",
   "titles": {
     "welcome": "Welcome",
     "onboarding": "A few questions",
@@ -34,6 +38,7 @@
     "wallet": "Wallet",
     "chama": "Chama",
     "settings": "Settings",
-    "trust": "Who regulates what"
+    "trust": "Who regulates what",
+    "share": "Shared messages"
   }
 }

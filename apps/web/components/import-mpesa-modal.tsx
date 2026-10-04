@@ -6,6 +6,7 @@ import { demoProfiles, type FinancialProfile } from "@pesasense/core";
 import { useFormat, useI18n } from "../contexts/language-context";
 import { useProfile } from "../contexts/profile-context";
 import { PdfImportForm } from "./pdf-import-form";
+import { ShareImportHint } from "./share-import-hint";
 import { SmsImportForm } from "./sms-import-form";
 import { routeAfterImport } from "../lib/profile-from-import";
 
@@ -156,6 +157,7 @@ export function ImportMpesaModal({ isOpen, onClose }: ImportMpesaModalProps) {
               </div>
             ) : (
               <div className="mt-5 space-y-5">
+                <ShareImportHint />
                 <SmsImportForm
                   onProfileReady={setResult}
                   onDemoFallback={handleUseDemo}
