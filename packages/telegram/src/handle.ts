@@ -53,7 +53,45 @@ export type TelegramHandleResult = {
   replies: TelegramReply[];
   /** Answer callback_query so Telegram stops the loading spinner. */
   callbackQueryId: string | null;
+  /** Optional toast text for answerCallbackQuery (also echoed in chat). */
+  callbackAnswerText?: string | null;
 };
+
+/** Human label for an inline button so chat history shows what was tapped. */
+function callbackChoiceLabel(data: string): string | null {
+  const exact: Record<string, string> = {
+    "path:habit": "Start a small habit",
+    "path:learn": "Learn about Bitcoin",
+    "learn:0": "Learn about Bitcoin",
+    menu: "Back to menu",
+    skip: "Skip",
+    "debt:yes": "Yes",
+    "debt:no": "No",
+    "chama:yes": "Yes",
+    "chama:no": "No",
+    "goal:buffer": "Emergency buffer",
+    "goal:long": "Long-term saving",
+    "demo:amina": "Demo Amina (labeled demo)",
+    breakdown: "Show breakdown",
+    habit: "Set habit",
+    "cadence:monthly": "Monthly",
+    "cadence:weekly": "Weekly",
+    remind: "Remind me on the 1st",
+    invest: "Review investment",
+    "dest:bitcoincke": "Use 07…@bitcoin.co.ke",
+    approve: "Approve",
+    cancel_invest: "Cancel",
+  };
+  if (exact[data]) return exact[data]!;
+  if (data.startsWith("learn:")) return "Next";
+  return null;
+}
+
+function withChoiceEcho(data: string, replies: TelegramReply[]): TelegramReply[] {
+  const label = callbackChoiceLabel(data);
+  if (!label) return replies;
+  return [reply(`You chose: ${label}`), ...replies];
+}
 
 const START_COPY = [
   "PesaSense helps you read your M-Pesa history and start a small Bitcoin habit.",
@@ -188,6 +226,19 @@ function chamaQuestion(): TelegramReply {
   ]);
 }
 
+function chamaNameQuestion(): TelegramReply {
+  return reply("What do you call this chama?", [
+    [{ text: "Skip", callbackData: "skip" }],
+  ]);
+}
+
+function chamaAmountQuestion(label: string): TelegramReply {
+  return reply(
+    `Noted: ${label}. About how much do you contribute monthly in whole KES? Tap Skip if you're not sure.`,
+    [[{ text: "Skip", callbackData: "skip" }]],
+  );
+}
+
 function goalQuestion(): TelegramReply {
   return reply("What matters most right now?", [
     [{ text: "Emergency buffer", callbackData: "goal:buffer" }],
@@ -277,9 +328,12 @@ export async function handleTelegram(
   }
 
   if (inbound.kind === "callback") {
+    const replies = await onCallback(session, inbound.data, deps, config);
+    const choice = callbackChoiceLabel(inbound.data);
     return {
-      replies: await onCallback(session, inbound.data, deps, config),
+      replies: withChoiceEcho(inbound.data, replies),
       callbackQueryId,
+      callbackAnswerText: choice ? `You chose: ${choice}` : null,
     };
   }
 
@@ -328,6 +382,19 @@ async function advanceSkip(
     return [chamaQuestion()];
   }
   if (session.step === "ask_chama") {
+    save(deps, { ...session, step: "ask_goal" }, config);
+    return [goalQuestion()];
+  }
+  if (session.step === "ask_chama_name") {
+    const onboarding: OnboardingAnswers = {
+      ...session.onboarding,
+      chamaMemberships: [],
+    };
+    save(deps, { ...session, onboarding, step: "ask_goal" }, config);
+    return [reply("No chama details noted."), goalQuestion()];
+  }
+  if (session.step === "ask_chama_amount") {
+    // Name already stored with contribution 0; Skip keeps that.
     save(deps, { ...session, step: "ask_goal" }, config);
     return [goalQuestion()];
   }
@@ -384,18 +451,16 @@ async function onCallback(
   }
 
   if (data.startsWith("chama:")) {
-    const yes = data === "chama:yes";
+    if (data === "chama:yes") {
+      save(deps, { ...session, step: "ask_chama_name" }, config);
+      return [chamaNameQuestion()];
+    }
     const onboarding: OnboardingAnswers = {
       ...session.onboarding,
-      chamaMemberships: yes
-        ? [{ name: "My chama", monthlyContributionKes: 0, kind: "other" }]
-        : [],
+      chamaMemberships: [],
     };
     save(deps, { ...session, onboarding, step: "ask_goal" }, config);
-    return [
-      reply(yes ? "Chama noted." : "No chama noted."),
-      goalQuestion(),
-    ];
+    return [reply("No chama noted."), goalQuestion()];
   }
 
   if (data.startsWith("goal:")) {
@@ -730,6 +795,41 @@ async function onText(
     ];
   }
 
+  if (session.step === "ask_chama_name") {
+    const name = text.trim();
+    if (!name) {
+      return [chamaNameQuestion()];
+    }
+    const onboarding: OnboardingAnswers = {
+      ...session.onboarding,
+      chamaMemberships: [{ name, monthlyContributionKes: 0, kind: "other" }],
+    };
+    save(deps, { ...session, onboarding, step: "ask_chama_amount" }, config);
+    return [chamaAmountQuestion(name)];
+  }
+
+  if (session.step === "ask_chama_amount") {
+    const amount = parseWholeKes(text);
+    if (amount === null) {
+      return [
+        reply("Send a whole number of shillings, with no decimals. Or tap Skip.", [
+          [{ text: "Skip", callbackData: "skip" }],
+        ]),
+      ];
+    }
+    const existing = session.onboarding.chamaMemberships[0];
+    const name = existing?.name ?? "Chama";
+    const onboarding: OnboardingAnswers = {
+      ...session.onboarding,
+      chamaMemberships: [{ name, monthlyContributionKes: amount, kind: "other" }],
+    };
+    save(deps, { ...session, onboarding, step: "ask_goal" }, config);
+    return [
+      reply(`Noted: ${name} — KES ${amount.toLocaleString("en-KE")}/month.`),
+      goalQuestion(),
+    ];
+  }
+
   if (session.step === "awaiting_pdf_password") {
     if (!session.pendingPdfFileId) {
       save(deps, { ...session, step: "awaiting_import" }, config);
@@ -842,7 +942,11 @@ async function onText(
     }
   }
 
-  if (session.step === "ask_debt" || session.step === "ask_chama" || session.step === "ask_goal") {
+  if (
+    session.step === "ask_debt" ||
+    session.step === "ask_chama" ||
+    session.step === "ask_goal"
+  ) {
     return advanceSkip(session, deps, config);
   }
 

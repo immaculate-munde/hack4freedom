@@ -17,6 +17,8 @@ export type TelegramStep =
   | "ask_debt_name"
   | "ask_debt_amount"
   | "ask_chama"
+  | "ask_chama_name"
+  | "ask_chama_amount"
   | "ask_goal"
   | "awaiting_import"
   | "awaiting_pdf_password"

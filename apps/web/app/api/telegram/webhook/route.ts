@@ -109,7 +109,11 @@ export async function POST(req: Request) {
       callbackQueryId(update),
     );
     if (result.callbackQueryId) {
-      await answerTelegramCallback(token, result.callbackQueryId);
+      await answerTelegramCallback(
+        token,
+        result.callbackQueryId,
+        result.callbackAnswerText,
+      );
     }
     await sendTelegramReplies(token, chatId, result.replies);
   } catch (error) {

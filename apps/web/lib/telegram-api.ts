@@ -52,9 +52,11 @@ export async function sendTelegramReplies(
 export async function answerTelegramCallback(
   botToken: string,
   callbackQueryId: string,
+  text?: string | null,
 ): Promise<void> {
   await telegramCall(botToken, "answerCallbackQuery", {
     callback_query_id: callbackQueryId,
+    ...(text ? { text } : {}),
   });
 }
 
