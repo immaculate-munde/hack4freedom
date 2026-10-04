@@ -12,12 +12,14 @@ import {
 export function SmsImportForm({
   onProfileReady,
   onDemoFallback,
+  initialText = "",
 }: {
   onProfileReady: (profile: FinancialProfile) => void;
   onDemoFallback: () => void;
+  initialText?: string;
 }) {
   const { t } = useI18n();
-  const [smsData, setSmsData] = useState("");
+  const [smsData, setSmsData] = useState(initialText);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

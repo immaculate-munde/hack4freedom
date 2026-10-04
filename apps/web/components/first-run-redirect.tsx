@@ -14,7 +14,7 @@ import { useI18n } from "../contexts/language-context";
 const WELCOME_FLAG = "hasSeenWelcome";
 
 /** Routes a first-time visitor may open before they tap Get started. */
-const OPEN_PREFIXES = ["/welcome", "/onboarding", "/onboard", "/trust"];
+const OPEN_PREFIXES = ["/welcome", "/onboarding", "/onboard", "/trust", "/share"];
 
 function isOpenPath(pathname: string): boolean {
   if (pathname === "/") return true;

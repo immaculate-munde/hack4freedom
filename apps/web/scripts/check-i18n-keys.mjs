@@ -33,6 +33,8 @@ const files = [
   "apps/web/components/seed-phrase-backup.tsx",
   "apps/web/components/import-mpesa-modal.tsx",
   "apps/web/components/sms-import-form.tsx",
+  "apps/web/components/share-import-hint.tsx",
+  "apps/web/app/share/page.tsx",
   "apps/web/components/pdf-import-form.tsx",
   "apps/web/components/import-trigger.tsx",
   "apps/web/components/profile-sync.tsx",

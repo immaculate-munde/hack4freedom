@@ -104,6 +104,7 @@ function titleKey(pathname: string): string | null {
   if (pathname.startsWith("/chama")) return "common.titles.chama";
   if (pathname.startsWith("/settings")) return "common.titles.settings";
   if (pathname.startsWith("/trust")) return "common.titles.trust";
+  if (pathname.startsWith("/share")) return "common.titles.share";
   return null;
 }
 

@@ -1,13 +1,17 @@
 /**
  * PesaSense service worker.
- * Caches the app shell and static files. Never caches /api or non-GET requests.
+ * Caches the app shell and static files. Never caches /api or non-GET requests,
+ * except the share-target POST, which stays in Cache Storage on this phone.
  * Bump VERSION when the precache list changes. Old pesasense-* caches are deleted on activate.
+ * pesasense-share is kept so an in-flight share is not wiped during an update.
  */
+importScripts("/share-target-sw.js");
+
 const VERSION = "v1";
 const SHELL = `pesasense-shell-${VERSION}`;
 const PAGES = `pesasense-pages-${VERSION}`;
 const STATIC = `pesasense-static-${VERSION}`;
-const CURRENT = new Set([SHELL, PAGES, STATIC]);
+const CURRENT = new Set([SHELL, PAGES, STATIC, "pesasense-share"]);
 
 const PRECACHE = [
   "/offline.html",
@@ -47,11 +51,15 @@ self.addEventListener("message", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const request = event.request;
+  if (isShareTargetPost(request)) {
+    event.respondWith(handleShareTarget(request));
+    return;
+  }
   if (request.method !== "GET") return;
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
-  if (url.pathname === "/sw.js") return;
+  if (url.pathname === "/sw.js" || url.pathname === "/share-target-sw.js") return;
   if (url.pathname.startsWith("/api/")) return;
 
   if (request.mode === "navigate") {

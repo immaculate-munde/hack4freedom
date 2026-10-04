@@ -16,6 +16,15 @@
   "useProfile": "Use this profile",
   "orPdf": "Or upload PDF",
   "useDemo": "Use demo profile (Amina)",
+  "share": {
+    "hint": "On Android, install PesaSense, then select M-Pesa texts in your SMS app and tap Share, then PesaSense. The text stays on this phone. A share is one message or a short selection, not your full history. On iPhone, paste the messages or use the statement PDF.",
+    "title": "Shared M-Pesa messages",
+    "stays": "Read on this phone. Nothing from the share is uploaded.",
+    "empty": "Nothing is waiting. Share M-Pesa texts from your SMS app into the installed app, or paste them below.",
+    "missed": "That share did not stay on this phone, so it was dropped. Paste the messages instead.",
+    "large": "That selection was too long to keep on this phone. Share fewer messages, or paste them.",
+    "pasteLink": "Paste or upload a statement"
+  },
   "sms": {
     "placeholder": "Paste your raw M-Pesa transaction messages here...",
     "analyze": "Analyze Data",

@@ -16,6 +16,15 @@
   "useProfile": "Tumia wasifu huu",
   "orPdf": "Au pakia PDF",
   "useDemo": "Tumia wasifu wa mfano (Amina)",
+  "share": {
+    "hint": "Kwenye Android, sakinisha PesaSense, kisha chagua ujumbe wa M-Pesa kwenye SMS na uguse Shiriki, kisha PesaSense. Maandishi yanabaki kwenye simu hii. Kushiriki ni ujumbe mmoja au chaguo fupi, si historia yote. Kwenye iPhone, bandika ujumbe au tumia PDF ya taarifa.",
+    "title": "Ujumbe wa M-Pesa ulioshirikiwa",
+    "stays": "Unasomwa kwenye simu hii. Hakuna kilichopakiwa kutoka kwenye kushiriki.",
+    "empty": "Hakuna kinachosubiri. Shiriki ujumbe wa M-Pesa kutoka programu ya SMS hadi programu iliyosakinishwa, au ubandike hapa chini.",
+    "missed": "Ushiriki huo haukubaki kwenye simu hii, kwa hiyo umeachwa. Bandika ujumbe badala yake.",
+    "large": "Chaguo hilo lilikuwa refu sana kubaki kwenye simu hii. Shiriki ujumbe mchache, au ubandike.",
+    "pasteLink": "Bandika au pakia taarifa"
+  },
   "sms": {
     "placeholder": "Bandika ujumbe ghafi wa miamala ya M-Pesa hapa...",
     "analyze": "Chambua data",

@@ -6,6 +6,7 @@ import { demoProfiles, type FinancialProfile } from "@pesasense/core";
 import { useProfile } from "../../contexts/profile-context";
 import { useFormat, useI18n } from "../../contexts/language-context";
 import { PdfImportForm } from "../../components/pdf-import-form";
+import { ShareImportHint } from "../../components/share-import-hint";
 import { SmsImportForm } from "../../components/sms-import-form";
 import { LanguageSwitcher } from "../../components/language-switcher";
 import { ThemeToggle } from "../../components/theme-toggle";
@@ -133,6 +134,7 @@ export default function OnboardPage() {
           <div className="grid items-start gap-6 xl:grid-cols-2">
             <section className="card space-y-4">
               <h2 className="font-semibold text-pine">{t("onboard.smsPaste")}</h2>
+              <ShareImportHint />
               <SmsImportForm onProfileReady={setParsedProfile} onDemoFallback={handleUseDemo} />
             </section>
 
