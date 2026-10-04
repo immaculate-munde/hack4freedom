@@ -12,12 +12,12 @@ import { useActiveProfile } from "../../lib/use-active-profile";
 
 function getCategoryColor(category: string) {
   const c = (category || "").toLowerCase();
-  if (c.includes("rent") || c.includes("housing")) return "var(--color-sky)";
-  if (c.includes("loan") || c.includes("debt")) return "var(--color-terracotta)";
-  if (c.includes("utilit")) return "var(--color-sunflower)";
-  if (c.includes("chama")) return "var(--color-lavender)";
-  if (c.includes("grocer")) return "var(--color-mint)";
-  return "var(--color-sand)";
+  if (c.includes("rent") || c.includes("housing")) return "var(--color-cat-housing)";
+  if (c.includes("loan") || c.includes("debt")) return "var(--color-cat-debt)";
+  if (c.includes("utilit")) return "var(--color-cat-utilities)";
+  if (c.includes("chama")) return "var(--color-cat-chama)";
+  if (c.includes("grocer")) return "var(--color-cat-groceries)";
+  return "var(--color-cat-default)";
 }
 
 const COMMITMENT_KEYS: Record<CommitmentCategory, string> = {
@@ -96,16 +96,16 @@ function SurplusContent() {
       </p>
 
       <div className="flex w-full max-w-6xl mx-auto flex-col gap-8 md:gap-6">
-        <section className="w-full rounded-[20px] bg-gradient-to-br from-pine to-moss p-5 text-paper shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+        <section className="w-full rounded-[20px] bg-gradient-to-br from-pine to-moss p-5 text-on-brand shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:to-[#163028]">
           <p className="text-[11px] font-semibold tracking-[0.12em] text-brass uppercase">
             {t("surplus.cushion")}
           </p>
-          <p className="mt-1 text-xl font-bold text-paper">{t("surplus.range")}</p>
-          <p className="mt-1 text-sm text-paper/80">{t("surplus.typicalMonthly", { amount: kes(typical) })}</p>
+          <p className="mt-1 text-xl font-bold text-on-brand">{t("surplus.range")}</p>
+          <p className="mt-1 text-sm text-on-brand/80">{t("surplus.typicalMonthly", { amount: kes(typical) })}</p>
           <dl className="mt-4 grid grid-cols-3 gap-2">
             <div className="rounded-2xl bg-mint/20 px-2 py-3 text-center">
-              <dt className="text-[11px] font-semibold text-paper/80">{t("surplus.floor")}</dt>
-              <dd className="mt-1 text-sm font-bold text-paper tabular-nums">
+              <dt className="text-[11px] font-semibold text-on-brand/80">{t("surplus.floor")}</dt>
+              <dd className="mt-1 text-sm font-bold text-on-brand tabular-nums">
                 <AnimatedNumber value={floor} />
               </dd>
             </div>
@@ -116,22 +116,22 @@ function SurplusContent() {
               </dd>
             </div>
             <div className="rounded-2xl bg-sky/20 px-2 py-3 text-center">
-              <dt className="text-[11px] font-semibold text-paper/80">{t("surplus.high")}</dt>
-              <dd className="mt-1 text-sm font-bold text-paper tabular-nums">
+              <dt className="text-[11px] font-semibold text-on-brand/80">{t("surplus.high")}</dt>
+              <dd className="mt-1 text-sm font-bold text-on-brand tabular-nums">
                 <AnimatedNumber value={ceiling} />
               </dd>
             </div>
           </dl>
           {habit ? (
-            <p className="mt-4 text-sm text-paper/90">
+            <p className="mt-4 text-sm text-on-brand/90">
               {t(habit.cadence === "weekly" ? "surplus.habitWeekly" : "surplus.habitMonthly", {
                 amount: kes(habit.amountKes),
               })}
             </p>
           ) : profile.surplus.bufferFirst || floor <= 0 ? (
-            <p className="mt-4 text-sm text-paper/90">{t("surplus.noHabitBuffer")}</p>
+            <p className="mt-4 text-sm text-on-brand/90">{t("surplus.noHabitBuffer")}</p>
           ) : (
-            <p className="mt-4 text-sm text-paper/90">{t("surplus.noHabitSet")}</p>
+            <p className="mt-4 text-sm text-on-brand/90">{t("surplus.noHabitSet")}</p>
           )}
           <Link
             href={`/habit${query}`}

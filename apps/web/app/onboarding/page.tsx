@@ -287,7 +287,7 @@ export default function OnboardingPage() {
                 >
                   <span
                     className={`mt-1 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] ${
-                      ready ? "bg-pine text-paper" : "border border-sand"
+                      ready ? "bg-pine text-on-brand" : "border border-sand"
                     }`}
                     aria-hidden="true"
                   >
@@ -606,7 +606,7 @@ function DebtStep({
           <label className="block text-sm text-ink">
             {t("onboarding.debt.balanceLabel")}
             <span className="mt-1 flex items-center gap-2">
-              <span className="text-xs font-semibold text-ink/50">KES</span>
+              <span className="text-xs font-semibold text-slate">KES</span>
               <input
                 className="field"
                 inputMode="numeric"
@@ -657,7 +657,7 @@ function ChamaStep({
           <label className="block text-sm text-ink">
             {t("onboarding.chama.contribution")}
             <span className="mt-1 flex items-center gap-2">
-              <span className="text-xs font-semibold text-ink/50">KES</span>
+              <span className="text-xs font-semibold text-slate">KES</span>
               <input
                 className="field"
                 inputMode="numeric"

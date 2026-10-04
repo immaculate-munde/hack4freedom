@@ -44,7 +44,7 @@ function SettingsContent() {
         <section className="card flex flex-wrap items-center justify-between gap-4">
           <div className="min-w-0">
             <h2 className="font-serif text-lg text-pine">{t("settings.language")}</h2>
-            <p className="mt-1 text-sm leading-6 text-ink/70">{t("settings.languageHint")}</p>
+            <p className="mt-1 text-sm leading-6 text-ink-soft">{t("settings.languageHint")}</p>
           </div>
           <LanguageSwitcher />
         </section>
@@ -54,7 +54,7 @@ function SettingsContent() {
         <section className="card flex flex-wrap items-center justify-between gap-4">
           <div className="min-w-0">
             <h2 className="font-serif text-lg text-pine">{t("settings.appearance")}</h2>
-            <p className="mt-1 text-sm leading-6 text-ink/70">{t("settings.appearanceHint")}</p>
+            <p className="mt-1 text-sm leading-6 text-ink-soft">{t("settings.appearanceHint")}</p>
           </div>
           <ThemeToggle />
         </section>
@@ -63,7 +63,7 @@ function SettingsContent() {
           <section className="card flex flex-wrap items-center justify-between gap-4">
             <div className="min-w-0">
               <h2 className="font-serif text-lg text-pine">{t("nav.habit")}</h2>
-              <p className="mt-1 text-sm leading-6 text-ink/70">
+              <p className="mt-1 text-sm leading-6 text-ink-soft">
                 {plan
                   ? t("settings.habitLine", {
                       amount: kes(plan.amountKes),
@@ -81,7 +81,7 @@ function SettingsContent() {
 
         <section className="card">
           <h2 className="font-serif text-lg text-pine">{t("nav.wallet")}</h2>
-          <p className="mt-1 text-sm leading-6 text-ink/70">{t("wallet.description")}</p>
+          <p className="mt-1 text-sm leading-6 text-ink-soft">{t("wallet.description")}</p>
           {walletReady ? (
             <>
               <p className="mt-3 break-all font-mono text-xs text-ink">{wallet.lightningAddress}</p>
@@ -101,7 +101,7 @@ function SettingsContent() {
               </button>
             </>
           ) : (
-            <p className="mt-2 text-sm leading-6 text-ink/70">{t("settings.walletClosed")}</p>
+            <p className="mt-2 text-sm leading-6 text-ink-soft">{t("settings.walletClosed")}</p>
           )}
           <Link href="/wallet" className="btn btn-secondary mt-4 inline-flex">
             {t("settings.openWallet")}
@@ -110,10 +110,10 @@ function SettingsContent() {
 
         <section className="card">
           <h2 className="font-serif text-lg text-pine">{t("settings.data")}</h2>
-          <p className="mt-1 text-sm leading-6 text-ink/70">{t("import.neverLeave")}</p>
+          <p className="mt-1 text-sm leading-6 text-ink-soft">{t("import.neverLeave")}</p>
           {active.ready && active.isDemo ? (
             <div className="mt-3 space-y-2">
-              <p className="text-sm leading-6 text-ink/70">{t("overview.importDemo")}</p>
+              <p className="text-sm leading-6 text-ink-soft">{t("overview.importDemo")}</p>
               <DemoProfileSwitch profileId={active.profileId} />
             </div>
           ) : null}
@@ -128,7 +128,7 @@ function SettingsContent() {
 
         <section className="card">
           <h2 className="font-serif text-lg text-pine">{t("settings.privacy")}</h2>
-          <ul className="mt-3 space-y-2 text-sm leading-6 text-ink/80">
+          <ul className="mt-3 space-y-2 text-sm leading-6 text-ink-soft">
             <li>{t("overview.trustNeverKeys")}</li>
             <li>{t("overview.trustNeverTrading")}</li>
             <li>{t("overview.trustNeverLeaves")}</li>

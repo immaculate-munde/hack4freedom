@@ -319,7 +319,7 @@ export function UssdAccess({ profileId }: { profileId: ProfileId }) {
             >
               <div>
                 <p className="font-semibold text-ink">{kes(purchase.amountKes)}</p>
-                <p className="mt-0.5 text-xs text-ink/55">
+                <p className="mt-0.5 text-xs text-slate">
                   {purchase.source === "ussd" ? t("wallet.ussd.kicker") : t("wallet.ussd.app")} · {purchase.purchaseId}
                 </p>
               </div>

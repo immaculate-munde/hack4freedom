@@ -451,7 +451,7 @@ export function InvestFlow({
     return (
       <section className="card">
         <h2 className="font-serif text-2xl text-pine">{t("invest.gotYou")}</h2>
-        <p className="mt-3 text-sm leading-6 text-ink/80">{t("invest.createWalletBody")}</p>
+        <p className="mt-3 text-sm leading-6 text-ink-soft">{t("invest.createWalletBody")}</p>
         <div className="mt-4">
           <BreezWalletSetup compact />
         </div>
@@ -480,7 +480,7 @@ export function InvestFlow({
       {step === "choose" && (
         <section className="card">
           <h2 className="font-serif text-2xl text-pine">{t("invest.investBitcoin")}</h2>
-          <p className="mt-2 text-sm text-ink/70">{t("invest.startFrom")}</p>
+          <p className="mt-2 text-sm text-ink-soft">{t("invest.startFrom")}</p>
           <div className="mt-6 flex flex-col gap-3">
             <button
               type="button"
@@ -506,7 +506,7 @@ export function InvestFlow({
       {step === "address" && (
         <section className="card">
           <h2 className="font-serif text-xl text-pine">{t("invest.yourAddress")}</h2>
-          <p className="mt-2 text-sm text-ink/70">{t("invest.pasteAddress")}</p>
+          <p className="mt-2 text-sm text-ink-soft">{t("invest.pasteAddress")}</p>
           <input
             className="field mt-4"
             placeholder={t("invest.addressPlaceholder")}
@@ -529,7 +529,7 @@ export function InvestFlow({
       {step === "amount" && (
         <section className="card">
           <h2 className="font-serif text-xl text-pine">{t("invest.howMuch")}</h2>
-          <p className="mt-2 text-sm text-ink/70">
+          <p className="mt-2 text-sm text-ink-soft">
             {t("invest.stayBelow", { amount: kes(surplusFloorKes) })}
           </p>
           <label className="mt-4 block text-xs text-moss uppercase">{t("invest.amountLabel")}</label>
@@ -585,8 +585,8 @@ export function InvestFlow({
 
       {step === "pending" && purchase && (
         <section className="card">
-          <p className="text-sm text-ink/80">{t("invest.pendingBody")}</p>
-          <p className="mt-2 text-xs text-ink/60">
+          <p className="text-sm text-ink-soft">{t("invest.pendingBody")}</p>
+          <p className="mt-2 text-xs text-slate">
             {t("invest.reference", { id: purchase.purchaseId })}
           </p>
           <button
@@ -606,7 +606,7 @@ export function InvestFlow({
             {describeStatus(purchase.status, purchase, amountKes)}
           </p>
           {satsBoughtTotal > 0 ? (
-            <p className="mt-3 text-sm text-ink/70">
+            <p className="mt-3 text-sm text-ink-soft">
               {t("invest.satsBought", { sats: number(satsBoughtTotal) })}
             </p>
           ) : null}

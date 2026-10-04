@@ -42,12 +42,12 @@ export function WalletActivity({ profileId }: { profileId: string }) {
         <h2 className="font-serif text-xl text-pine">{t("wallet.activity.title")}</h2>
         <ul className="mt-3 divide-y divide-sand text-sm animate-pulse">
           <li className="flex flex-col gap-2 py-3">
-            <div className="h-4 w-32 rounded-full bg-pearl" />
-            <div className="h-3 w-48 rounded-full bg-pearl" />
+            <div className="skeleton h-4 w-32 rounded-full" />
+            <div className="skeleton h-3 w-48 rounded-full" />
           </li>
           <li className="flex flex-col gap-2 py-3">
-            <div className="h-4 w-24 rounded-full bg-pearl" />
-            <div className="h-3 w-40 rounded-full bg-pearl" />
+            <div className="skeleton h-4 w-24 rounded-full" />
+            <div className="skeleton h-3 w-40 rounded-full" />
           </li>
         </ul>
       </section>
@@ -80,7 +80,7 @@ export function WalletActivity({ profileId }: { profileId: string }) {
                   : ""}
               </p>
               {event.destination ? (
-                <p className="mt-0.5 break-all text-xs text-ink/55">{event.destination}</p>
+                <p className="mt-0.5 break-all text-xs text-slate">{event.destination}</p>
               ) : null}
             </div>
             <p className="shrink-0 text-xs font-semibold text-pine">{t(STATUS_KEYS[event.status])}</p>

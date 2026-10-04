@@ -61,11 +61,11 @@ export function SmsImportForm({
     <div className="space-y-4 w-full">
       {loading ? (
         <div className="animate-pulse flex flex-col gap-3 min-h-[160px] rounded-xl border border-line bg-surface p-4">
-          <div className="h-5 w-1/3 rounded-full bg-pearl" />
-          <div className="h-3 w-3/4 rounded-full bg-pearl" />
-          <div className="h-3 w-5/6 rounded-full bg-pearl" />
-          <div className="mt-4 h-3 w-1/2 rounded-full bg-pearl" />
-          <div className="h-3 w-full rounded-full bg-pearl" />
+          <div className="skeleton h-5 w-1/3 rounded-full" />
+          <div className="skeleton h-3 w-3/4 rounded-full" />
+          <div className="skeleton h-3 w-5/6 rounded-full" />
+          <div className="skeleton mt-4 h-3 w-1/2 rounded-full" />
+          <div className="skeleton h-3 w-full rounded-full" />
         </div>
       ) : (
         <textarea

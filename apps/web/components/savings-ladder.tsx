@@ -88,7 +88,7 @@ export function SavingsLadder({ currentStep, bufferMonths }: SavingsLadderProps)
           >
             {t("learn.ladder.bufferTitle")}
           </h3>
-          <p className="mt-1 text-sm leading-6 text-ink/75">
+          <p className="mt-1 text-sm leading-6 text-ink-soft">
             {t("learn.ladder.bufferBody", { months: bufferTarget })}
           </p>
           {step1Status === "active" && (
@@ -123,7 +123,7 @@ export function SavingsLadder({ currentStep, bufferMonths }: SavingsLadderProps)
           aria-current={step2Status === "active" ? "step" : undefined}
         >
           <div className="flex items-center gap-2">
-            {step2Status === "locked" && <LockIcon className="h-4 w-4 text-ink/40" />}
+            {step2Status === "locked" && <LockIcon className="h-4 w-4 text-slate" />}
             <h3
               className={`font-semibold ${
                 step2Status === "active" ? "text-moss" : "text-ink"
@@ -132,7 +132,7 @@ export function SavingsLadder({ currentStep, bufferMonths }: SavingsLadderProps)
               {t("learn.ladder.everydayTitle")}
             </h3>
           </div>
-          <p className="mt-1 text-sm leading-6 text-ink/75">
+          <p className="mt-1 text-sm leading-6 text-ink-soft">
             {t("learn.ladder.everydayBody")}
           </p>
         </div>
@@ -150,7 +150,7 @@ export function SavingsLadder({ currentStep, bufferMonths }: SavingsLadderProps)
           aria-current={step3Status === "active" ? "step" : undefined}
         >
           <div className="flex items-center gap-2">
-            {step3Status === "locked" && <LockIcon className="h-4 w-4 text-ink/40" />}
+            {step3Status === "locked" && <LockIcon className="h-4 w-4 text-slate" />}
             <h3
               className={`font-semibold ${
                 step3Status === "active" ? "text-pine" : "text-ink"
@@ -159,7 +159,7 @@ export function SavingsLadder({ currentStep, bufferMonths }: SavingsLadderProps)
               {t("learn.ladder.bitcoinTitle")}
             </h3>
           </div>
-          <p className="mt-1 text-sm leading-6 text-ink/75">
+          <p className="mt-1 text-sm leading-6 text-ink-soft">
             {t("learn.ladder.bitcoinBody")}
           </p>
 
@@ -195,7 +195,7 @@ function StepMarker({
           ? "border-pine text-pine"
           : status === "active"
             ? "border-moss text-moss"
-            : "border-sand/80 text-ink/40"
+            : "border-sand/80 text-slate"
       }`}
     >
       {status === "complete" ? <CheckIcon className="h-3 w-3" /> : number}

@@ -83,7 +83,7 @@ export function PdfImportForm({
       />
       <button
         type="button"
-        className="flex w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-sand/80 bg-paper/50 py-10 transition hover:border-teal/40 hover:bg-mint/5"
+        className="flex w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-sand bg-paper/50 py-10 transition hover:border-moss hover:bg-mint/15"
         onClick={() => inputRef.current?.click()}
         disabled={loading}
       >
@@ -104,7 +104,7 @@ export function PdfImportForm({
         <p className="mt-3 text-sm font-semibold text-ink">
           {fileName ?? t("import.pdf.choose")}
         </p>
-        <p className="mt-1 text-xs text-ink/55">{t("import.pdf.onPhone")}</p>
+        <p className="mt-1 text-xs text-slate">{t("import.pdf.onPhone")}</p>
       </button>
 
       <label className="block text-sm">
@@ -128,7 +128,7 @@ export function PdfImportForm({
           </button>
         </span>
       </label>
-      <p className="text-[11px] leading-4 text-ink/55">{t("import.pdf.once")}</p>
+      <p className="text-[11px] leading-4 text-slate">{t("import.pdf.once")}</p>
 
       {error ? (
         <p className="rounded-xl bg-brass/10 px-3 py-2 text-xs font-medium text-brass">

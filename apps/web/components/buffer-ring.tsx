@@ -80,7 +80,7 @@ export function BufferRing({ monthsCovered, targetMonths = 3 }: BufferRingProps)
         <span className={`font-serif text-3xl font-bold tracking-tight ${isSafe ? "text-pine" : "text-brass"}`}>
           {monthsCovered}
         </span>
-        <span className="mt-1 text-[10px] font-semibold tracking-widest text-ink/50 uppercase">
+        <span className="mt-1 text-[10px] font-semibold tracking-widest text-slate uppercase">
           {t("overview.bufferRing.progress", { target: targetMonths })}
         </span>
       </div>

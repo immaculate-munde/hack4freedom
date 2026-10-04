@@ -132,7 +132,7 @@ export function ChamaFlow() {
   if (!circle) {
     return (
       <PageFrame title={t("chama.title")} description={t("chama.loadingCircle")}>
-        <section className="card text-sm text-ink/70">{t("chama.loading")}</section>
+        <section className="card text-sm text-ink-soft">{t("chama.loading")}</section>
       </PageFrame>
     );
   }
@@ -148,7 +148,7 @@ export function ChamaFlow() {
     return (
       <PageFrame title={t("chama.title")} description={t("chama.unreadable")}>
         <section className="card">
-          <p className="text-sm leading-6 text-ink/75">{t("chama.incomplete")}</p>
+          <p className="text-sm leading-6 text-ink-soft">{t("chama.incomplete")}</p>
           <button
             type="button"
             className="btn btn-primary mt-4"
@@ -280,20 +280,20 @@ export function ChamaFlow() {
     <section className="card text-sm">
       <p className="text-xs tracking-wide text-moss uppercase">{t("chama.thisRound")}</p>
       <p className="mt-1 font-semibold text-pine">{t("chama.receives", { name: view.recipient.name })}</p>
-      <p className="mt-2 leading-6 text-ink/70">
+      <p className="mt-2 leading-6 text-ink-soft">
         {t("chama.fromEachLead", { amount: contribution })}
         <span className="break-all">{view.payDestination}</span>
         {t("chama.fromEachEnd")}
         {view.payDestination !== view.recipient.lightningAddress ? t("chama.staysOnAddress") : null}
       </p>
-      <p className="mt-3 text-ink/70">
+      <p className="mt-3 text-ink-soft">
         {view.completedRounds === 0
           ? t("chama.noRoundFinished")
           : view.completedRounds === 1
             ? t("chama.roundsOne", { count: view.completedRounds })
             : t("chama.roundsMany", { count: view.completedRounds })}
       </p>
-      <p className="mt-3 text-xs leading-5 text-ink/55">{t("chama.custody")}</p>
+      <p className="mt-3 text-xs leading-5 text-slate">{t("chama.custody")}</p>
     </section>
   );
 
@@ -316,7 +316,7 @@ export function ChamaFlow() {
         <section className="card mb-6 md:mb-4">
           <p className="text-xs font-semibold tracking-wide text-moss uppercase">{t("chama.yourChama")}</p>
           <h2 className="mt-1 font-serif text-2xl text-pine">{onboardingChama.name}</h2>
-          <p className="mt-2 text-sm leading-6 text-ink/75">
+          <p className="mt-2 text-sm leading-6 text-ink-soft">
             {t("chama.entered", {
               amount: kes(onboardingChama.amountKes),
               cadence,
@@ -329,10 +329,10 @@ export function ChamaFlow() {
           <span className="inline-flex rounded-full bg-brass/15 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-brass uppercase">
             {t("chama.demoCircle")}
           </span>
-          <span className="text-xs text-ink/60">{t("chama.eachMonth", { amount: contribution })}</span>
+          <span className="text-xs text-slate">{t("chama.eachMonth", { amount: contribution })}</span>
         </div>
         <h2 className="font-serif text-2xl text-pine">{onboardingChama?.name ?? t("chama.demoRound")}</h2>
-        <p className="mt-2 text-sm leading-6 text-ink/75">
+        <p className="mt-2 text-sm leading-6 text-ink-soft">
           {t("chama.waiting", { amount: kes(view.waitingKes) })}
         </p>
 
@@ -355,7 +355,7 @@ export function ChamaFlow() {
             ))}
           </select>
         </label>
-        <p className="mt-2 text-xs leading-5 text-ink/55">{t("chama.switchHint")}</p>
+        <p className="mt-2 text-xs leading-5 text-slate">{t("chama.switchHint")}</p>
 
         <ul className="mt-5 divide-y divide-sand">
           {view.rows.map((row) => {
@@ -372,7 +372,7 @@ export function ChamaFlow() {
                     {row.member.name}
                     {row.member.id === actor?.id ? t("chama.thisPhone") : ""}
                   </p>
-                  <p className="mt-0.5 break-all text-xs text-ink/55">{row.member.lightningAddress}</p>
+                  <p className="mt-0.5 break-all text-xs text-slate">{row.member.lightningAddress}</p>
                 </div>
                 <p className="shrink-0 text-right text-xs font-semibold text-pine">
                   {roleText(row.role, sentSats)}
@@ -409,17 +409,17 @@ export function ChamaFlow() {
           </button>
         ) : null}
         {actor && actorRow?.role === "waiting" && !demoDestination && !ownsThisWallet ? (
-          <p className="mt-4 text-sm leading-6 text-ink/75">
+          <p className="mt-4 text-sm leading-6 text-ink-soft">
             {t("chama.payOwn", { address: view.payDestination })}
           </p>
         ) : null}
         {actor && actorRow?.role === "receives" ? (
-          <p className="mt-4 text-sm leading-6 text-ink/75">
+          <p className="mt-4 text-sm leading-6 text-ink-soft">
             {t("chama.othersPay", { address: actor.lightningAddress })}
           </p>
         ) : null}
         {actor && actorRow?.role === "recorded" ? (
-          <p className="mt-4 text-sm leading-6 text-ink/75">
+          <p className="mt-4 text-sm leading-6 text-ink-soft">
             {actorPayment?.settlement === "lightning" && actorPayment.amountSats
               ? t("chama.sentTo", {
                   name: actor.name,
@@ -435,7 +435,7 @@ export function ChamaFlow() {
 
       <section className="card mt-6 md:mt-4">
         <h2 className="font-serif text-xl text-pine">{t("chama.receiveTitle")}</h2>
-        <p className="mt-2 text-sm leading-6 text-ink/75">{t("chama.receiveBody")}</p>
+        <p className="mt-2 text-sm leading-6 text-ink-soft">{t("chama.receiveBody")}</p>
         <p className="mt-3 break-all text-sm font-medium text-pine">
           {actor?.lightningAddress}
         </p>
@@ -471,7 +471,7 @@ export function ChamaFlow() {
 
       <section className="card mt-6 md:mt-4">
         <h2 className="font-serif text-xl text-pine">{t("chama.reliabilityTitle")}</h2>
-        <p className="mt-2 text-sm leading-6 text-ink/75">{t("chama.reliabilityBody")}</p>
+        <p className="mt-2 text-sm leading-6 text-ink-soft">{t("chama.reliabilityBody")}</p>
         {badge ? (
           <p className="mt-3 text-sm font-medium text-pine">
             {t("chama.savedNote", { ref: badge.proof.ref ?? "" })}

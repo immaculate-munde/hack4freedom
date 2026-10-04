@@ -32,7 +32,7 @@ function CustomTooltip({
     return null;
   }
   return (
-    <div className="rounded-xl border border-sand bg-surface p-3 shadow-sm">
+    <div className="rounded-xl border border-sand bg-paper p-3 shadow-card">
       <p className="text-xs font-semibold text-pine">{data.name}</p>
       <p className="mt-1 text-sm font-bold text-pine">
         {t("learn.chart.range", {
@@ -40,7 +40,7 @@ function CustomTooltip({
           high: number(data.range[1]),
         })}
       </p>
-      <p className="mt-1 text-[10px] tracking-wider text-ink/60 uppercase">
+      <p className="mt-1 text-[10px] tracking-wider text-slate uppercase">
         {data.description}
       </p>
     </div>
@@ -72,7 +72,7 @@ export function ScenarioChart() {
   ];
 
   return (
-    <div className="flex w-full flex-col rounded-3xl border border-sand bg-paper p-5 shadow-sm">
+    <div className="flex w-full flex-col rounded-3xl border border-sand bg-surface p-5 shadow-card">
       <div className="mb-6">
         <div className="flex items-center justify-between">
           <h3 className="font-serif text-lg font-semibold text-pine">
@@ -82,7 +82,7 @@ export function ScenarioChart() {
             {t("learn.chart.illustrative")}
           </span>
         </div>
-        <p className="mt-2 text-sm leading-6 text-ink/60 md:text-xs md:leading-5">
+        <p className="mt-2 text-sm leading-6 text-slate md:text-xs md:leading-5">
           {t("learn.chart.body", { amount: kes(1000) })}
         </p>
       </div>
@@ -120,7 +120,7 @@ export function ScenarioChart() {
       </div>
 
       <div className="mt-6 rounded-xl bg-sand/30 p-3">
-        <p className="text-sm leading-6 text-ink/50 md:text-[10px] md:leading-4">
+        <p className="text-sm leading-6 text-slate md:text-[10px] md:leading-4">
           {t("learn.disclaimer")}
         </p>
       </div>

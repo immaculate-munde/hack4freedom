@@ -238,7 +238,7 @@ function LearnPageContent() {
         </h2>
         <p className="mt-1 text-sm text-slate">{t("learn.startBody")}</p>
         {!allowance.ok ? (
-          <div className="mt-5 space-y-4 rounded-2xl border border-warning/25 bg-[#FBF6EF] p-4">
+          <div className="mt-5 space-y-4 rounded-2xl border border-warning/40 bg-paper p-4">
             <p className="text-sm leading-6 text-ink">
               {t(blockedKey, {
                 floor: kes(surplusFloor),
@@ -296,7 +296,7 @@ function LearnPageContent() {
                   onClick={() => setCadence("weekly")}
                   className={`flex-1 rounded-xl border py-3 text-sm font-semibold transition-colors ${
                     cadence === "weekly"
-                      ? "border-brass bg-brass text-paper"
+                      ? "border-brass bg-brass text-on-accent"
                       : "border-sand bg-paper text-ink hover:bg-sand/30"
                   }`}
                 >
@@ -307,7 +307,7 @@ function LearnPageContent() {
                   onClick={() => setCadence("monthly")}
                   className={`flex-1 rounded-xl border py-3 text-sm font-semibold transition-colors ${
                     cadence === "monthly"
-                      ? "border-brass bg-brass text-paper"
+                      ? "border-brass bg-brass text-on-accent"
                       : "border-sand bg-paper text-ink hover:bg-sand/30"
                   }`}
                 >

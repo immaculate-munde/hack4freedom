@@ -194,12 +194,12 @@ export default function WelcomePage() {
               {t("welcome.getStarted")}
             </button>
           </div>
-          <article className="rounded-[28px] bg-pine p-6 text-paper shadow-card">
+          <article className="rounded-[28px] bg-pine p-6 text-on-brand shadow-card">
             <p className="text-[11px] font-semibold tracking-[0.14em] text-brass uppercase">
               {t("welcome.reminder")}
             </p>
             <p className="mt-4 text-2xl leading-snug font-bold">{t("welcome.reminderLead")}</p>
-            <ul className="mt-6 flex flex-col gap-3 text-sm leading-6 text-paper/80">
+            <ul className="mt-6 flex flex-col gap-3 text-sm leading-6 text-on-brand/80">
               <li>{t("welcome.reminderNothing")}</li>
               <li>{t("welcome.reminderWallet")}</li>
               <li>{t("welcome.reminderSkip")}</li>
@@ -233,11 +233,11 @@ export default function WelcomePage() {
         </div>
       </section>
 
-      <section className="bg-pine text-paper">
+      <section className="bg-pine text-on-brand">
         <div className="mx-auto flex w-full max-w-6xl flex-col items-start justify-between gap-6 px-5 py-12 sm:px-8 md:flex-row md:items-center">
           <div>
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">{t("welcome.readyTitle")}</h2>
-            <p className="mt-2 max-w-lg text-sm leading-6 text-paper/75">{t("welcome.readyBody")}</p>
+            <p className="mt-2 max-w-lg text-sm leading-6 text-on-brand/75">{t("welcome.readyBody")}</p>
           </div>
           <button type="button" onClick={getStarted} className="btn btn-accent rounded-full px-6">
             {t("welcome.getStarted")}
@@ -246,19 +246,19 @@ export default function WelcomePage() {
         <dl className="mx-auto grid w-full max-w-6xl grid-cols-2 gap-6 border-t border-white/10 px-5 py-8 sm:px-8 lg:grid-cols-4">
           <div>
             <dt className="text-lg font-bold">{t("welcome.encrypted")}</dt>
-            <dd className="mt-1 text-sm text-paper/75">{t("welcome.onDevice")}</dd>
+            <dd className="mt-1 text-sm text-on-brand/75">{t("welcome.onDevice")}</dd>
           </div>
           <div>
             <dt className="text-lg font-bold">{t("welcome.builtForKenya")}</dt>
-            <dd className="mt-1 text-sm text-paper/75">{t("welcome.mpesaShillings")}</dd>
+            <dd className="mt-1 text-sm text-on-brand/75">{t("welcome.mpesaShillings")}</dd>
           </div>
           <div>
             <dt className="text-lg font-bold">{t("common.monthly")}</dt>
-            <dd className="mt-1 text-sm text-paper/75">{t("welcome.weeklyOption")}</dd>
+            <dd className="mt-1 text-sm text-on-brand/75">{t("welcome.weeklyOption")}</dd>
           </div>
           <div>
             <dt className="text-lg font-bold">{t("welcome.youDecide")}</dt>
-            <dd className="mt-1 text-sm text-paper/75">{t("welcome.youApproveEach")}</dd>
+            <dd className="mt-1 text-sm text-on-brand/75">{t("welcome.youApproveEach")}</dd>
           </div>
         </dl>
       </section>

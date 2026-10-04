@@ -28,7 +28,7 @@ function InfoIcon() {
       strokeLinejoin="round"
       aria-hidden="true"
       focusable="false"
-      className="mt-0.5 h-4 w-4 shrink-0 text-ink/70"
+      className="mt-0.5 h-4 w-4 shrink-0 text-ink-soft"
     >
       <circle cx="12" cy="12" r="10" />
       <line x1="12" y1="16" x2="12" y2="12" />
