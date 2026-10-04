@@ -36,7 +36,7 @@ export function BitikaPurchaseModal({
       role="dialog"
       aria-modal="true"
       aria-label="Confirm Bitika purchase"
-      className="fixed inset-0 z-[25]"
+      className="fixed inset-0 z-[25] flex items-end justify-center p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:items-center sm:p-6"
     >
       <div
         className="absolute inset-0 bg-ink/60 backdrop-blur-sm"
@@ -44,13 +44,13 @@ export function BitikaPurchaseModal({
         onClick={status === "confirm" ? onClose : undefined}
       />
 
-      <div className="absolute inset-x-0 bottom-0 flex flex-col rounded-t-[28px] bg-paper p-6 shadow-[0_-8px_40px_rgb(0_0_0/0.18)] sm:inset-0 sm:m-auto sm:h-fit sm:max-w-sm sm:rounded-[28px]">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-teal text-on-primary text-xs font-bold tracking-tight">
+      <div className="relative flex w-full max-h-[min(90dvh,42rem)] max-w-lg flex-col overflow-y-auto rounded-[24px] bg-paper p-5 shadow-[0_12px_48px_rgb(0_0_0/0.22)] sm:rounded-[28px] sm:p-6">
+        <div className="flex shrink-0 items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-teal text-on-primary text-xs font-bold tracking-tight">
               ₿
             </span>
-            <div>
+            <div className="min-w-0">
               <p className="text-sm font-semibold text-ink">Bitika</p>
               <p className="text-[11px] text-slate">M-Pesa → Bitcoin</p>
             </div>
@@ -60,7 +60,7 @@ export function BitikaPurchaseModal({
               type="button"
               aria-label="Close"
               onClick={onClose}
-              className="btn flex h-8 w-8 items-center justify-center rounded-full bg-pearl text-slate"
+              className="btn flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-pearl text-slate"
             >
               <CloseIcon />
             </button>
@@ -69,7 +69,7 @@ export function BitikaPurchaseModal({
 
         {status === "confirm" && (
           <>
-            <div className="mt-6 space-y-3">
+            <div className="mt-5 space-y-3 sm:mt-6">
               <Row label="M-Pesa debit" value={`KES ${kesAmount.toLocaleString("en-KE")}`} bold />
               <Row
                 label="You receive (est.)"
@@ -80,8 +80,8 @@ export function BitikaPurchaseModal({
             </div>
 
             <p className="mt-4 rounded-xl bg-pearl px-3 py-2.5 text-[11px] leading-5 text-slate">
-              M-Pesa will prompt your phone. Enter your PIN to complete. Sats shown are an
-              estimate — live mode adds ~3% on Bitika.
+              M-Pesa will prompt your phone — enter your PIN to finish.
+              Sats are an estimate; live mode adds ~3% on Bitika.
             </p>
 
             <button
@@ -151,9 +151,9 @@ function Row({
 }) {
   return (
     <div className="flex items-baseline justify-between gap-3 border-b border-line pb-3 last:border-0 last:pb-0">
-      <span className="text-xs text-slate">{label}</span>
+      <span className="shrink-0 text-xs text-slate">{label}</span>
       <span
-        className={`text-right text-sm ${bold ? "font-bold text-ink" : "font-medium text-ink"} ${truncate ? "max-w-[160px] truncate" : ""}`}
+        className={`min-w-0 text-right text-sm ${bold ? "font-bold text-ink" : "font-medium text-ink"} ${truncate ? "max-w-[65%] truncate sm:max-w-[70%]" : ""}`}
       >
         {value}
       </span>
