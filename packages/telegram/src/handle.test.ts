@@ -89,6 +89,56 @@ describe("telegram handle", () => {
     expect(session?.profile?.investmentPlan?.amountKes).toBe(1500);
   });
 
+  it("asks for debt name and amount on Yes, then continues to chama", async () => {
+    const h = harness();
+    await h.send(8, { kind: "command", command: "/start", args: "" });
+    const yes = await h.send(8, { kind: "callback", data: "debt:yes" });
+    expect(yes.replies.map((r) => r.text).join("\n")).toMatch(/What do you call this debt/i);
+    expect(yes.replies.map((r) => r.text).join("\n")).not.toMatch(/web app/i);
+    expect(h.store.getSession(8)?.step).toBe("ask_debt_name");
+
+    const named = await h.send(8, { kind: "text", text: "Fuliza" });
+    expect(named.replies[0]?.text).toMatch(/Noted: Fuliza/i);
+    expect(named.replies[0]?.text).toMatch(/whole KES/i);
+    expect(h.store.getSession(8)?.onboarding.debts).toEqual([
+      { label: "Fuliza", balanceKes: 0 },
+    ]);
+    expect(h.store.getSession(8)?.step).toBe("ask_debt_amount");
+
+    const amount = await h.send(8, { kind: "text", text: "12000" });
+    expect(amount.replies.map((r) => r.text).join("\n")).toMatch(/Noted: Fuliza — KES 12,000/i);
+    expect(amount.replies.map((r) => r.text).join("\n")).toMatch(/chama/i);
+    expect(h.store.getSession(8)?.onboarding.debts).toEqual([
+      { label: "Fuliza", balanceKes: 12000 },
+    ]);
+    expect(h.store.getSession(8)?.step).toBe("ask_chama");
+  });
+
+  it("allows Skip on debt name without forcing the web app", async () => {
+    const h = harness();
+    await h.send(9, { kind: "command", command: "/start", args: "" });
+    await h.send(9, { kind: "callback", data: "debt:yes" });
+    const skipped = await h.send(9, { kind: "callback", data: "skip" });
+    const text = skipped.replies.map((r) => r.text).join("\n");
+    expect(text).not.toMatch(/web app/i);
+    expect(text).toMatch(/chama/i);
+    expect(h.store.getSession(9)?.onboarding.debts).toEqual([]);
+    expect(h.store.getSession(9)?.step).toBe("ask_chama");
+  });
+
+  it("allows Skip on debt amount and keeps the name with balance 0", async () => {
+    const h = harness();
+    await h.send(10, { kind: "command", command: "/start", args: "" });
+    await h.send(10, { kind: "callback", data: "debt:yes" });
+    await h.send(10, { kind: "text", text: "School fees" });
+    const skipped = await h.send(10, { kind: "callback", data: "skip" });
+    expect(skipped.replies.map((r) => r.text).join("\n")).toMatch(/chama/i);
+    expect(h.store.getSession(10)?.onboarding.debts).toEqual([
+      { label: "School fees", balanceKes: 0 },
+    ]);
+    expect(h.store.getSession(10)?.step).toBe("ask_chama");
+  });
+
   it("caps habit at the surplus floor and saves reminder without purchasing", async () => {
     const h = harness();
     await h.send(2, { kind: "command", command: "/start", args: "" });

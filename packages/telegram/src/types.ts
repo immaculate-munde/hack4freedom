@@ -12,6 +12,8 @@ import type {
 /** Conversation step for one Telegram chat. */
 export type TelegramStep =
   | "ask_debt"
+  | "ask_debt_name"
+  | "ask_debt_amount"
   | "ask_chama"
   | "ask_goal"
   | "awaiting_import"

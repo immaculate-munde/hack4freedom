@@ -90,6 +90,19 @@ function debtQuestion(): TelegramReply {
   ]);
 }
 
+function debtNameQuestion(): TelegramReply {
+  return reply("What do you call this debt?", [
+    [{ text: "Skip", callbackData: "skip" }],
+  ]);
+}
+
+function debtAmountQuestion(label: string): TelegramReply {
+  return reply(
+    `Noted: ${label}. About how much do you owe in whole KES? Tap Skip if you're not sure.`,
+    [[{ text: "Skip", callbackData: "skip" }]],
+  );
+}
+
 function chamaQuestion(): TelegramReply {
   return reply("Are you in a chama?", [
     [
@@ -218,6 +231,19 @@ async function advanceSkip(
     save(deps, { ...session, step: "ask_chama" }, config);
     return [chamaQuestion()];
   }
+  if (session.step === "ask_debt_name") {
+    const onboarding: OnboardingAnswers = {
+      ...session.onboarding,
+      debts: [],
+    };
+    save(deps, { ...session, onboarding, step: "ask_chama" }, config);
+    return [reply("No debt details noted."), chamaQuestion()];
+  }
+  if (session.step === "ask_debt_amount") {
+    // Name already stored with balance 0; Skip keeps that.
+    save(deps, { ...session, step: "ask_chama" }, config);
+    return [chamaQuestion()];
+  }
   if (session.step === "ask_chama") {
     save(deps, { ...session, step: "ask_goal" }, config);
     return [goalQuestion()];
@@ -240,18 +266,16 @@ async function onCallback(
   }
 
   if (data.startsWith("debt:")) {
-    const yes = data === "debt:yes";
+    if (data === "debt:yes") {
+      save(deps, { ...session, step: "ask_debt_name" }, config);
+      return [debtNameQuestion()];
+    }
     const onboarding: OnboardingAnswers = {
       ...session.onboarding,
-      debts: yes
-        ? [{ label: "Reported debt", balanceKes: 0 }]
-        : [],
+      debts: [],
     };
     save(deps, { ...session, onboarding, step: "ask_chama" }, config);
-    return [
-      reply(yes ? "Noted. You can refine debts later on the web app." : "No debts noted."),
-      chamaQuestion(),
-    ];
+    return [reply("No debts noted."), chamaQuestion()];
   }
 
   if (data.startsWith("chama:")) {
@@ -536,6 +560,41 @@ async function onText(
   deps: TelegramDeps,
   config: TelegramConfig,
 ): Promise<TelegramReply[]> {
+  if (session.step === "ask_debt_name") {
+    const label = text.trim();
+    if (!label) {
+      return [debtNameQuestion()];
+    }
+    const onboarding: OnboardingAnswers = {
+      ...session.onboarding,
+      debts: [{ label, balanceKes: 0 }],
+    };
+    save(deps, { ...session, onboarding, step: "ask_debt_amount" }, config);
+    return [debtAmountQuestion(label)];
+  }
+
+  if (session.step === "ask_debt_amount") {
+    const amount = parseWholeKes(text);
+    if (amount === null) {
+      return [
+        reply("Send a whole number of shillings, with no decimals. Or tap Skip.", [
+          [{ text: "Skip", callbackData: "skip" }],
+        ]),
+      ];
+    }
+    const existing = session.onboarding.debts[0];
+    const label = existing?.label ?? "Debt";
+    const onboarding: OnboardingAnswers = {
+      ...session.onboarding,
+      debts: [{ label, balanceKes: amount }],
+    };
+    save(deps, { ...session, onboarding, step: "ask_chama" }, config);
+    return [
+      reply(`Noted: ${label} — KES ${amount.toLocaleString("en-KE")}.`),
+      chamaQuestion(),
+    ];
+  }
+
   if (session.step === "awaiting_pdf_password") {
     if (!session.pendingPdfFileId) {
       save(deps, { ...session, step: "awaiting_import" }, config);
