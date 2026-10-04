@@ -31,6 +31,7 @@ export {
   breakdownText,
   habitPercentOfFloor,
   investReviewText,
+  largestPaymentsText,
   profileSummary,
   readyButtons,
 } from "./summary";

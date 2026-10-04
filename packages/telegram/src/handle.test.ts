@@ -2,7 +2,11 @@ import { demoProfiles } from "@pesasense/core";
 import { describe, expect, it } from "vitest";
 import { telegramConfigFromEnv } from "./config";
 import { handleTelegram, type TelegramDeps } from "./handle";
-import { habitPercentOfFloor, profileSummary } from "./summary";
+import {
+  habitPercentOfFloor,
+  largestPaymentsText,
+  profileSummary,
+} from "./summary";
 import { createMemoryTelegramStore } from "./store";
 import type { TelegramPurchaseInput } from "./types";
 
@@ -13,18 +17,25 @@ function config() {
   });
 }
 
-function harness() {
+function harness(options?: {
+  buildFromPdf?: TelegramDeps["buildFromPdf"];
+}) {
   const store = createMemoryTelegramStore();
   const purchases: TelegramPurchaseInput[] = [];
   let bitika = true;
   let now = 1_700_000_000_000;
+  const pdfPasswords: string[] = [];
   const deps: TelegramDeps = {
     now: () => now,
     store,
     buildFromSms() {
       return structuredClone(demoProfiles.amina);
     },
-    async buildFromPdf() {
+    async buildFromPdf(_bytes, password, _onboarding) {
+      pdfPasswords.push(password);
+      if (options?.buildFromPdf) {
+        return options.buildFromPdf(_bytes, password, _onboarding);
+      }
       return structuredClone(demoProfiles.amina);
     },
     async downloadFile() {
@@ -56,10 +67,19 @@ function harness() {
     return send(chatId, { kind: "callback", data: "path:habit" });
   }
 
+  async function reachImport(chatId: number) {
+    await startHabit(chatId);
+    for (let i = 0; i < 3; i += 1) {
+      await send(chatId, { kind: "callback", data: "skip" });
+    }
+  }
+
   return {
     send,
     startHabit,
+    reachImport,
     purchases,
+    pdfPasswords,
     store,
     setBitika(value: boolean) {
       bitika = value;
@@ -145,11 +165,79 @@ describe("telegram handle", () => {
     const result = await h.send(7, { kind: "callback", data: "demo:amina" });
     const text = allText(result);
     expect(text).toMatch(/You chose: Demo Amina/);
-    expect(text).toMatch(/Surplus floor/);
+    expect(text).toMatch(/Demo data/);
+    expect(text).toMatch(/Safe surplus/i);
     expect(text).toMatch(/1,500/);
     expect(text).toMatch(/75%/);
+    expect(text).toMatch(/Largest regular payments/i);
+    expect(text).toMatch(/Greenview Apartments/);
+    expect(buttonLabels(result)).toContain("Set habit");
     const session = h.store.getSession(7);
     expect(session?.profile?.investmentPlan?.amountKes).toBe(1500);
+  });
+
+  it("asks for PDF password, retries wrong PIN without re-upload, then opens", async () => {
+    let attempts = 0;
+    const h = harness({
+      async buildFromPdf(_bytes, password) {
+        attempts += 1;
+        if (password !== "demo-statement") {
+          throw new Error(
+            "Could not open the PDF. Check the statement password and try again.",
+          );
+        }
+        return structuredClone(demoProfiles.amina);
+      },
+    });
+    await h.reachImport(50);
+    const uploaded = await h.send(50, {
+      kind: "document",
+      fileId: "pdf-file-1",
+      fileName: "amina-statement.pdf",
+      mimeType: "application/pdf",
+    });
+    expect(allText(uploaded)).toMatch(
+      /Enter the password for this M-Pesa statement PDF/i,
+    );
+    expect(allText(uploaded)).toMatch(/demo-statement/);
+    expect(allText(uploaded)).toMatch(/never your national ID/i);
+    expect(buttonLabels(uploaded)).toContain("Skip (no password)");
+    expect(h.store.getSession(50)?.step).toBe("awaiting_pdf_password");
+    expect(h.store.getSession(50)?.pendingPdfFileId).toBe("pdf-file-1");
+
+    const wrong = await h.send(50, { kind: "text", text: "wrong-pin" });
+    expect(allText(wrong)).toMatch(/did not open the PDF/i);
+    expect(allText(wrong)).toMatch(
+      /Enter the password for this M-Pesa statement PDF/i,
+    );
+    expect(h.store.getSession(50)?.step).toBe("awaiting_pdf_password");
+    expect(h.store.getSession(50)?.pendingPdfFileId).toBe("pdf-file-1");
+    expect(attempts).toBe(1);
+
+    const ok = await h.send(50, { kind: "text", text: "demo-statement" });
+    expect(allText(ok)).toMatch(/Safe surplus/i);
+    expect(allText(ok)).toMatch(/Named commitments/i);
+    expect(h.store.getSession(50)?.step).toBe("ready");
+    expect(h.store.getSession(50)?.pendingPdfFileId).toBeNull();
+    expect(h.pdfPasswords).toEqual(["wrong-pin", "demo-statement"]);
+    expect(attempts).toBe(2);
+  });
+
+  it("SMS paste imports without asking for a PDF password", async () => {
+    const h = harness();
+    await h.reachImport(51);
+    const pasted = await h.send(51, {
+      kind: "text",
+      text: [
+        "ABC123 Confirmed. Ksh1,000.00 received from JOHN 07XXXXXXXX on 1/4/26.",
+        "",
+        "DEF456 Confirmed. Ksh500.00 sent to JANE 07XXXXXXXX on 2/4/26 at 10:00 AM. New M-Pesa balance is Ksh2,000.",
+      ].join("\n"),
+    });
+    expect(allText(pasted)).not.toMatch(/statement PDF/i);
+    expect(allText(pasted)).toMatch(/Safe surplus|Here is the picture/i);
+    expect(h.store.getSession(51)?.step).toBe("ready");
+    expect(h.pdfPasswords).toHaveLength(0);
   });
 
   it("Learn about Bitcoin educates without statement or purchase", async () => {
@@ -370,17 +458,35 @@ describe("telegram handle", () => {
 });
 
 describe("telegram summary", () => {
-  it("shows Amina habit as 75% of floor", () => {
+  it("shows Amina habit as 75% of floor with sectioned reading", () => {
     const profile = demoProfiles.amina;
     const floor = profile.surplus.monthlyKes.floor;
     const habit = profile.investmentPlan?.amountKes ?? 0;
     expect(habitPercentOfFloor(habit, floor)).toBe(75);
-    expect(profileSummary(profile)).toMatch(/75% of the safe floor/);
+    const text = profileSummary(profile, { isDemo: true });
+    expect(text).toMatch(/Demo data/);
+    expect(text).toMatch(/Statement period/);
+    expect(text).toMatch(/Income \(monthly\)/);
+    expect(text).toMatch(/Named commitments/);
+    expect(text).toMatch(/Greenview Apartments/);
+    expect(text).toMatch(/Chama Sisters/);
+    expect(text).toMatch(/Top spending/);
+    expect(text).toMatch(/groceries/);
+    expect(text).toMatch(/Safe surplus \(monthly\)/);
+    expect(text).toMatch(/Floor KES 2,000/);
+    expect(text).toMatch(/Resilience/);
+    expect(text).toMatch(/75% of the safe floor/);
+    expect(text).toMatch(/education, not financial advice/i);
+    expect(text).not.toMatch(/\d+\s*sats/i);
+    const largest = largestPaymentsText(profile);
+    expect(largest).toMatch(/Largest regular payments/);
+    expect(largest).toMatch(/Greenview Apartments — KES 15,000/);
   });
 
   it("says buffer-first for Brian with no invent invest", () => {
     const text = profileSummary(demoProfiles.brian);
     expect(text).toMatch(/buffer comes first/i);
+    expect(text).not.toMatch(/^Demo data/m);
     expect(demoProfiles.brian.investmentPlan).toBeUndefined();
   });
 });

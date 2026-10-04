@@ -21,6 +21,7 @@ import { newSession, touchSession } from "./session";
 import {
   breakdownText,
   investReviewText,
+  largestPaymentsText,
   profileSummary,
   readyButtons,
 } from "./summary";
@@ -251,8 +252,8 @@ function importPrompt(): TelegramReply {
   return reply(
     [
       "Send your M-Pesa history:",
-      "• Paste SMS messages (blank line between each), or",
-      "• Upload a statement PDF (we'll ask for the password you set — never your national ID).",
+      "• Paste SMS messages (blank line between each) — no password needed, or",
+      "• Upload a statement PDF — we will ask for the statement password next (never your national ID).",
       "",
       "Or try the labeled demo:",
     ].join("\n"),
@@ -260,16 +261,92 @@ function importPrompt(): TelegramReply {
   );
 }
 
+/** Clear ask after a PDF arrives. Password stays request-scoped only. */
+function pdfPasswordPrompt(): TelegramReply {
+  return reply(
+    [
+      "Enter the password for this M-Pesa statement PDF.",
+      "",
+      "Use the password you set when you requested the statement — never your national ID.",
+      "For the demo fixture, reply with: demo-statement",
+      "",
+      "We use it only to open the file and do not keep it.",
+      "If this PDF has no password, tap Skip.",
+    ].join("\n"),
+    [[{ text: "Skip (no password)", callbackData: "skip" }]],
+  );
+}
+
+function isPdfPasswordError(message: string): boolean {
+  return /password/i.test(message);
+}
+
 function afterProfile(
   session: TelegramSession,
   profile: FinancialProfile,
   deps: TelegramDeps,
   config: TelegramConfig,
+  options: { isDemo?: boolean } = {},
 ): TelegramReply[] {
   const next = save(deps, { ...session, profile, step: "ready", pendingPdfFileId: null }, config);
-  return [
-    reply(profileSummary(next.profile!), readyButtons(next.profile!)),
+  const ready = next.profile!;
+  const replies: TelegramReply[] = [
+    reply(profileSummary(ready, { isDemo: options.isDemo }), readyButtons(ready)),
   ];
+  const largest = largestPaymentsText(ready);
+  if (largest) {
+    replies.push(reply(largest));
+  }
+  return replies;
+}
+
+async function tryOpenPendingPdf(
+  session: TelegramSession,
+  password: string,
+  deps: TelegramDeps,
+  config: TelegramConfig,
+): Promise<TelegramReply[]> {
+  if (!session.pendingPdfFileId) {
+    save(deps, { ...session, step: "awaiting_import" }, config);
+    return [reply("Upload the PDF again."), importPrompt()];
+  }
+  const fileId = session.pendingPdfFileId;
+  try {
+    const bytes = await deps.downloadFile(fileId);
+    const profile = await deps.buildFromPdf(bytes, password, session.onboarding);
+    return afterProfile(
+      { ...session, pendingPdfFileId: null },
+      profile,
+      deps,
+      config,
+    );
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Could not read that PDF.";
+    if (isPdfPasswordError(message)) {
+      // Keep pendingPdfFileId so they can retry the PIN without re-uploading.
+      save(
+        deps,
+        { ...session, step: "awaiting_pdf_password", pendingPdfFileId: fileId },
+        config,
+      );
+      return [
+        reply(
+          "That password did not open the PDF. Enter the statement password again (or tap Skip if it has none).",
+        ),
+        pdfPasswordPrompt(),
+      ];
+    }
+    save(
+      deps,
+      { ...session, step: "awaiting_import", pendingPdfFileId: null },
+      config,
+    );
+    return [
+      reply(`${message}\n\nTry again, paste SMS, or use the labeled demo.`),
+      importPrompt(),
+    ];
+  }
 }
 
 export async function handleTelegram(
@@ -402,6 +479,10 @@ async function advanceSkip(
     save(deps, { ...session, step: "awaiting_import" }, config);
     return [importPrompt()];
   }
+  if (session.step === "awaiting_pdf_password") {
+    // Unprotected PDFs: try opening with an empty password (never persist it).
+    return tryOpenPendingPdf(session, "", deps, config);
+  }
   return [reply("Nothing to skip here. Send /start to begin again.")];
 }
 
@@ -486,7 +567,7 @@ async function onCallback(
       ];
     }
     const profile = structuredClone(demoProfiles.amina);
-    return afterProfile(session, profile, deps, config);
+    return afterProfile(session, profile, deps, config, { isDemo: true });
   }
 
   if (!session.profile) {
@@ -735,9 +816,8 @@ async function onDocument(
     config,
   );
   return [
-    reply(
-      "PDF received. Reply with the statement password (the one you set — for the demo fixture use demo-statement). We use it only to open the file and do not keep it.",
-    ),
+    reply("PDF received."),
+    pdfPasswordPrompt(),
   ];
 }
 
@@ -831,35 +911,8 @@ async function onText(
   }
 
   if (session.step === "awaiting_pdf_password") {
-    if (!session.pendingPdfFileId) {
-      save(deps, { ...session, step: "awaiting_import" }, config);
-      return [reply("Upload the PDF again."), importPrompt()];
-    }
-    const password = text;
     // Password is only in this request scope — never written to the session.
-    const fileId = session.pendingPdfFileId;
-    try {
-      const bytes = await deps.downloadFile(fileId);
-      const profile = await deps.buildFromPdf(bytes, password, session.onboarding);
-      return afterProfile(
-        { ...session, pendingPdfFileId: null },
-        profile,
-        deps,
-        config,
-      );
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Could not read that PDF.";
-      save(
-        deps,
-        { ...session, step: "awaiting_import", pendingPdfFileId: null },
-        config,
-      );
-      return [
-        reply(`${message}\n\nTry again, paste SMS, or use the labeled demo.`),
-        importPrompt(),
-      ];
-    }
+    return tryOpenPendingPdf(session, text, deps, config);
   }
 
   if (session.step === "awaiting_import" || (session.step === "ready" && looksLikeSms(text))) {
@@ -967,6 +1020,7 @@ export const __testOnly = {
   LEARN_PAGES,
   debtQuestion,
   importPrompt,
+  pdfPasswordPrompt,
   afterProfile,
   pathMenuButtons,
 };
