@@ -8,6 +8,7 @@
 
 import {
   assertInvestAmount,
+  DEMO_STATEMENT_PASSWORD,
   demoProfiles,
   investAllowance,
   type FinancialProfile,
@@ -61,17 +62,18 @@ export type TelegramHandleResult = {
 };
 
 const START_COPY = [
-  "PesaSense helps you read your M-Pesa history and start a small Bitcoin habit.",
+  "PesaSense helps you read your M-Pesa history.",
+  "Then you can plan a small amount to put in Bitcoin — we call that a habit.",
   "",
-  "If you share a statement here (PDF or SMS paste), that file leaves your phone and reaches this bot.",
-  "You approve every purchase. We'll remind you on the 1st — we never auto-send M-Pesa or Bitcoin.",
+  "If you send a PDF or paste SMS here, that leaves your phone and reaches this bot.",
+  "You approve every purchase. We can remind you on the 1st. We never send M-Pesa or Bitcoin on our own.",
   "",
-  "Education, not financial advice. Bitcoin can lose value. Whole shillings only.",
+  "This is education, not financial advice. Bitcoin can lose value. Whole shillings only.",
 ].join("\n");
 
 /** Cadence choices after the habit amount — Monthly is the plan default until they tap. */
 const HABIT_CADENCE_COPY = [
-  "How often should this habit run?",
+  "How often do you want to put this money in?",
   "",
   "Monthly (default) — once a month.",
   "Weekly — once a week.",
@@ -84,22 +86,24 @@ const LEARN_PAGES: string[] = [
   [
     "What is a small Bitcoin habit?",
     "",
-    "A habit here means setting aside a whole-shilling amount you choose — often monthly by default, with weekly as an optional cadence.",
-    "It is not a licence, not a fund, and not an automatic buy. You decide the amount after we help you read your money picture.",
+    "A habit here means a small amount you plan to put in Bitcoin.",
+    "You choose whole shillings. Monthly is the default. Weekly is optional.",
+    "It is not a fund and not an automatic buy. You pick the amount after we help you see your money picture.",
   ].join("\n"),
   [
-    "How Lightning and reminders work",
+    "How buying and reminders work",
     "",
-    "When you later buy, sats go to a Lightning address you control (your own wallet).",
-    "A reminder on the 1st only nudges you to review — it does not send M-Pesa or Bitcoin.",
-    "You approve each purchase yourself. Nothing auto-sends.",
+    "When you buy later, Bitcoin goes to a Lightning address you control — your own wallet.",
+    "A reminder on the 1st only asks you to check. It does not send M-Pesa or Bitcoin.",
+    "You approve each purchase yourself. Nothing sends on its own.",
   ].join("\n"),
   [
-    "Risk and the surplus floor (high level)",
+    "Risk and money left after bills",
     "",
-    "Bitcoin can lose value. This chat is education, not financial advice.",
-    "When you use the habit path, we look at a surplus floor — a cautious reading of what might be left after commitments — and cap a habit at that floor.",
-    "Learning here does not start a purchase and does not need a statement upload.",
+    "Bitcoin can lose value. This is education, not financial advice.",
+    "On the habit path, we look at money left after bills — a careful guess of what may remain after rent, chama, and other costs.",
+    "Your plan cannot go above that careful number.",
+    "Learning here does not start a purchase. You do not need to upload a statement.",
   ].join("\n"),
 ];
 
@@ -154,7 +158,7 @@ function beginHabitPath(
   save(deps, { ...session, step: "ask_debt", learnPage: null }, config);
   return [
     reply(
-      "Let's set up a small habit. A few optional questions first — choose Skip anytime, or /skip.",
+      "Let's plan a small amount for Bitcoin. A few optional questions first — tap Skip anytime, or send /skip.",
       { removeKeyboard: true },
     ),
     debtQuestion(),
@@ -172,14 +176,14 @@ function showMenu(
     config,
   );
   return [
-    reply("Pick a path — habit setup or learning. No purchase starts from this menu.", {
+    reply("Choose one: start a small plan, or learn first. No purchase starts from this menu.", {
       replyKeyboard: pathMenuKeyboard(),
     }),
   ];
 }
 
 function debtQuestion(): TelegramReply {
-  return reply("Do you have debts we should keep in mind? (rent loans, Fuliza, school…)", {
+  return reply("Do you have debts we should keep in mind? (rent loans, Fuliza, school fees…)", {
     replyKeyboard: [["Yes", "No", "Skip"]],
   });
 }
@@ -192,7 +196,7 @@ function debtNameQuestion(): TelegramReply {
 
 function debtAmountQuestion(label: string): TelegramReply {
   return reply(
-    `Noted: ${label}. About how much do you owe in whole KES? Choose Skip if you're not sure.`,
+    `Noted: ${label}. About how much do you owe? Whole shillings only. Tap Skip if you are not sure.`,
     { replyKeyboard: [["Skip"]] },
   );
 }
@@ -211,7 +215,7 @@ function chamaNameQuestion(): TelegramReply {
 
 function chamaAmountQuestion(label: string): TelegramReply {
   return reply(
-    `Noted: ${label}. About how much do you contribute monthly in whole KES? Choose Skip if you're not sure.`,
+    `Noted: ${label}. About how much do you contribute monthly? Whole shillings only. Tap Skip if you are not sure.`,
     { replyKeyboard: [["Skip"]] },
   );
 }
@@ -226,8 +230,8 @@ function importPrompt(): TelegramReply {
   return reply(
     [
       "Send your M-Pesa history:",
-      "• Paste SMS messages (blank line between each) — no password needed, or",
-      "• Upload a statement PDF — we will ask for the statement password next (never your national ID).",
+      "• Paste SMS (put a blank line between each) — no password needed, or",
+      "• Send a statement PDF — we will ask for the password for this PDF next (never your national ID).",
       "",
       "Or try the labeled demo:",
     ].join("\n"),
@@ -239,13 +243,13 @@ function importPrompt(): TelegramReply {
 function pdfPasswordPrompt(): TelegramReply {
   return reply(
     [
-      "Enter the password for this M-Pesa statement PDF.",
+      "Enter the password for this PDF.",
       "",
-      "Use the password you set when you requested the statement — never your national ID.",
-      "For the demo fixture, reply with: demo-statement",
+      "Use the password you set when you asked for the statement — never your national ID.",
+      `For the demo file (amina-statement.pdf), reply with: ${DEMO_STATEMENT_PASSWORD}`,
       "",
-      "We use it only to open the file and do not keep it.",
-      "If this PDF has no password, choose Skip (no password).",
+      "We use it only to open the file. We do not keep it.",
+      "If this PDF has no password, tap Skip (no password).",
     ].join("\n"),
     { replyKeyboard: [["Skip (no password)"]] },
   );
@@ -288,7 +292,7 @@ async function tryOpenPendingPdf(
 ): Promise<TelegramReply[]> {
   if (!session.pendingPdfFileId) {
     save(deps, { ...session, step: "awaiting_import" }, config);
-    return [reply("Upload the PDF again.", { removeKeyboard: true }), importPrompt()];
+    return [reply("Please send the PDF again.", { removeKeyboard: true }), importPrompt()];
   }
   const fileId = session.pendingPdfFileId;
   try {
@@ -312,7 +316,7 @@ async function tryOpenPendingPdf(
       );
       return [
         reply(
-          "That password did not open the PDF. Enter the statement password again (or choose Skip if it has none).",
+          "That password did not open the PDF. Try the password for this PDF again (or tap Skip if it has none).",
           { removeKeyboard: true },
         ),
         pdfPasswordPrompt(),
@@ -426,11 +430,11 @@ export async function handleTelegram(
           [
             "Commands: /start, /skip, /help.",
             "",
-            "Paths after /start:",
-            "• Start a small habit — optional questions → statement → summary → habit → reminder → first transaction / approve.",
-            "• Learn about Bitcoin — short education in chat (no statement, no purchase).",
+            "After /start you can:",
+            "• Start a small habit — optional questions → statement → money picture → set amount → reminder → first buy (you Approve).",
+            "• Learn about Bitcoin — short lessons in chat (no statement, no purchase).",
             "",
-            "Choices appear as your own messages (reply buttons). Send SMS paste or a PDF only when the habit path asks. You approve every purchase.",
+            "Reply buttons send your choice as a normal message. Paste SMS or send a PDF only when the habit path asks. You approve every purchase.",
           ].join("\n"),
         ),
       ],
@@ -466,7 +470,7 @@ export async function handleTelegram(
 
   return {
     replies: [
-      reply("Send /start to begin, or use the reply buttons.", {
+      reply("Send /start to begin, or tap a button below.", {
         replyKeyboard: pathMenuKeyboard(),
       }),
     ],
@@ -489,7 +493,7 @@ async function advanceSkip(
       debts: [],
     };
     save(deps, { ...session, onboarding, step: "ask_chama" }, config);
-    return [reply("No debt details noted."), chamaQuestion()];
+    return [reply("Okay — no debt details saved."), chamaQuestion()];
   }
   if (session.step === "ask_debt_amount") {
     // Name already stored with balance 0; Skip keeps that.
@@ -506,7 +510,7 @@ async function advanceSkip(
       chamaMemberships: [],
     };
     save(deps, { ...session, onboarding, step: "ask_goal" }, config);
-    return [reply("No chama details noted."), goalQuestion()];
+    return [reply("Okay — no chama details noted."), goalQuestion()];
   }
   if (session.step === "ask_chama_amount") {
     // Name already stored with contribution 0; Skip keeps that.
@@ -521,7 +525,7 @@ async function advanceSkip(
     // Unprotected PDFs: try opening with an empty password (never persist it).
     return tryOpenPendingPdf(session, "", deps, config);
   }
-  return [reply("Nothing to skip here. Send /start to begin again.")];
+  return [reply("Nothing to skip here. Send /start to start again.")];
 }
 
 async function onCallback(
@@ -566,7 +570,7 @@ async function onCallback(
       debts: [],
     };
     save(deps, { ...session, onboarding, step: "ask_chama" }, config);
-    return [reply("No debts noted."), chamaQuestion()];
+    return [reply("Okay — no debts noted."), chamaQuestion()];
   }
 
   if (data.startsWith("chama:")) {
@@ -579,7 +583,7 @@ async function onCallback(
       chamaMemberships: [],
     };
     save(deps, { ...session, onboarding, step: "ask_goal" }, config);
-    return [reply("No chama noted."), goalQuestion()];
+    return [reply("Okay — no chama noted."), goalQuestion()];
   }
 
   if (data.startsWith("goal:")) {
@@ -600,7 +604,7 @@ async function onCallback(
   if (data === "demo:amina") {
     if (session.step === "menu" || session.step === "learn") {
       return [
-        reply("Demo statements are part of the habit path. Pick Start a small habit first."),
+        reply("Demo is for the habit path. Tap Start a small habit first."),
         ...showMenu(session, deps, config),
       ];
     }
@@ -613,7 +617,7 @@ async function onCallback(
       return showMenu(session, deps, config);
     }
     return [
-      reply("Import a statement first, or choose Demo Amina."),
+      reply("Send a statement first, or tap Demo Amina."),
       importPrompt(),
     ];
   }
@@ -637,9 +641,10 @@ async function onCallback(
     return [
       reply(
         [
-          `How much each time? Whole KES, up to ${offer.maxKes.toLocaleString("en-KE")} (the safe floor).`,
+          `How much each time? Whole shillings, up to KES ${offer.maxKes.toLocaleString("en-KE")}.`,
+          "That limit is the careful reading of money left after bills.",
           "",
-          "Next you'll choose Monthly (default) or Weekly.",
+          "Next you will choose Monthly (default) or Weekly.",
         ].join("\n"),
         { removeKeyboard: true },
       ),
@@ -649,7 +654,7 @@ async function onCallback(
   if (data === "cadence:monthly" || data === "cadence:weekly") {
     if (session.step !== "habit_cadence" || !session.profile?.investmentPlan) {
       return [
-        reply("Set the habit amount first."),
+        reply("Set the amount first."),
         ...(session.profile
           ? [
               reply(profileSummary(session.profile), {
@@ -665,7 +670,7 @@ async function onCallback(
     save(deps, { ...session, profile, step: "ready" }, config);
     return [
       reply(
-        `Habit saved: KES ${amount.toLocaleString("en-KE")} / ${cadence}. Nothing is sent until you approve a purchase.`,
+        `Saved: KES ${amount.toLocaleString("en-KE")} / ${cadence}. Nothing is sent until you Approve a purchase.`,
         { replyKeyboard: readyButtons(profile) },
       ),
     ];
@@ -675,7 +680,7 @@ async function onCallback(
     const plan = session.profile.investmentPlan;
     if (!plan) {
       return [
-        reply("Save the habit first. The reminder uses that saved amount.", {
+        reply("Save the amount first. The reminder uses that saved amount.", {
           replyKeyboard: readyButtons(session.profile),
         }),
       ];
@@ -690,7 +695,7 @@ async function onCallback(
     save(deps, { ...session, reminder, step: "ready" }, config);
     return [
       reply(
-        `Reminder set for the 1st: review KES ${plan.amountKes.toLocaleString("en-KE")}. You approve each purchase. Nothing is sent on its own.`,
+        `Reminder set for the 1st: review KES ${plan.amountKes.toLocaleString("en-KE")}. You still Approve each purchase. Nothing is sent on its own.`,
         { replyKeyboard: readyButtons(session.profile) },
       ),
     ];
@@ -705,7 +710,7 @@ async function onCallback(
     }
     if (!session.profile.investmentPlan?.amountKes) {
       return [
-        reply("Save a habit amount first.", {
+        reply("Save an amount first (tap Set habit).", {
           replyKeyboard: readyButtons(session.profile),
         }),
       ];
@@ -761,7 +766,7 @@ async function onCallback(
     ];
   }
 
-  return [reply("Unknown action. Send /start or use the reply buttons.")];
+  return [reply("That button is not for this step. Send /start or tap a reply button.")];
 }
 
 function confirmButtons(
@@ -773,11 +778,11 @@ function confirmButtons(
   return [
     reply(
       [
-        `Confirm purchase: KES ${amount.toLocaleString("en-KE")}`,
-        `M-Pesa: ${phone}`,
-        `Lightning: ${destination}`,
+        `Please confirm this buy: KES ${amount.toLocaleString("en-KE")}`,
+        `M-Pesa phone: ${phone}`,
+        `Lightning address: ${destination}`,
         "",
-        "Bitcoin can lose value. Send Approve only if you want to start this buy.",
+        "Bitcoin can lose value. Tap Approve only if you want to start this buy. Tap Cancel to stop.",
       ].join("\n"),
       { replyKeyboard: [["Approve", "Cancel"]] },
     ),
@@ -790,10 +795,10 @@ async function runApprovedPurchase(
   config: TelegramConfig,
 ): Promise<TelegramReply[]> {
   if (!session.profile || !session.purchasePhone || !session.purchaseDestination) {
-    return [reply("Missing purchase details. Tap Make your first transaction today again.")];
+    return [reply("Buy details are incomplete. Tap Make your first transaction today again.")];
   }
   if (session.step !== "invest_confirm") {
-    return [reply("Approve only from the confirm step. Nothing was sent.")];
+    return [reply("Approve only when we ask you to confirm. Nothing was sent.")];
   }
   if (!deps.bitikaConfigured()) {
     return [
@@ -806,7 +811,7 @@ async function runApprovedPurchase(
   const amountKes = session.profile.investmentPlan?.amountKes;
   if (!amountKes) {
     return [
-      reply("Save a habit amount first.", {
+      reply("Save an amount first (tap Set habit).", {
         replyKeyboard: readyButtons(session.profile),
       }),
     ];
@@ -836,11 +841,11 @@ async function runApprovedPurchase(
     );
     const sats =
       typeof purchase.amountSats === "number"
-        ? ` Estimated ${purchase.amountSats} sats.`
+        ? ` About ${purchase.amountSats} sats (from the provider — we do not invent this number).`
         : "";
     return [
       reply(
-        `Purchase started (${purchase.purchaseId}). Status: ${purchase.status}.${sats} Check your phone for M-Pesa if live.`,
+        `Purchase started (${purchase.purchaseId}). Status: ${purchase.status}.${sats} Check your phone for M-Pesa if this is live.`,
         { replyKeyboard: readyButtons(session.profile) },
       ),
     ];
@@ -862,13 +867,13 @@ async function onDocument(
   if (session.step === "menu" || session.step === "learn") {
     return [
       reply(
-        "Learning and the menu do not need a statement. Choose Start a small habit when you want to import.",
+        "Learning and the menu do not need a statement. Tap Start a small habit when you want to send one.",
         { replyKeyboard: pathMenuKeyboard() },
       ),
     ];
   }
   if (session.step !== "awaiting_import" && session.step !== "awaiting_pdf_password" && session.step !== "ready") {
-    return [reply("Send /start first, then upload when asked for your statement.")];
+    return [reply("Send /start first. Then upload when we ask for your statement.")];
   }
   const name = inbound.fileName.toLowerCase();
   const mime = inbound.mimeType ?? "";
@@ -885,7 +890,7 @@ async function onDocument(
     config,
   );
   return [
-    reply("PDF received.", { removeKeyboard: true }),
+    reply("Got the PDF.", { removeKeyboard: true }),
     pdfPasswordPrompt(),
   ];
 }
@@ -908,7 +913,7 @@ async function onText(
   if (session.step === "learn") {
     return [
       reply(
-        "You're in the learning path — no statement or purchase from here. Choose Next, or use the buttons below.",
+        "You are learning now — no statement or purchase from here. Tap Next, or use the buttons below.",
         { replyKeyboard: learnEndKeyboard() },
       ),
     ];
@@ -943,7 +948,7 @@ async function onText(
     const amount = parseWholeKes(text);
     if (amount === null) {
       return [
-        reply("Send a whole number of shillings, with no decimals. Or choose Skip.", {
+        reply("Send a whole number of shillings (no decimals). Or tap Skip.", {
           replyKeyboard: [["Skip"]],
         }),
       ];
@@ -978,7 +983,7 @@ async function onText(
     const amount = parseWholeKes(text);
     if (amount === null) {
       return [
-        reply("Send a whole number of shillings, with no decimals. Or choose Skip.", {
+        reply("Send a whole number of shillings (no decimals). Or tap Skip.", {
           replyKeyboard: [["Skip"]],
         }),
       ];
@@ -998,7 +1003,7 @@ async function onText(
 
   if (session.step === "awaiting_pdf_password") {
     // Password is only in this request scope — never written to the session.
-    return tryOpenPendingPdf(session, text, deps, config);
+    return tryOpenPendingPdf(session, text.trim(), deps, config);
   }
 
   if (session.step === "awaiting_import" || (session.step === "ready" && looksLikeSms(text))) {
@@ -1019,7 +1024,7 @@ async function onText(
 
   if (session.step === "habit_amount") {
     if (!session.profile) {
-      return [reply("Import a statement first."), importPrompt()];
+      return [reply("Send a statement first."), importPrompt()];
     }
     const offer = habitOffer(session.profile);
     if (!offer.ok) {
@@ -1030,12 +1035,12 @@ async function onText(
     }
     const amount = parseWholeKes(text);
     if (amount === null) {
-      return [reply("Send a whole number of shillings, with no decimals.")];
+      return [reply("Send a whole number of shillings (no decimals).")];
     }
     if (amount > offer.maxKes) {
       return [
         reply(
-          `That is above the safe floor (${offer.maxKes.toLocaleString("en-KE")} KES). Pick a smaller amount.`,
+          `That is above money left after bills (KES ${offer.maxKes.toLocaleString("en-KE")}). Pick a smaller amount.`,
         ),
       ];
     }
@@ -1061,13 +1066,16 @@ async function onText(
       const phone = toBitikaPhone(text);
       save(deps, { ...session, purchasePhone: phone, step: "invest_destination" }, config);
       return [
-        reply("Send a Lightning address (you@host), or use bitcoin.co.ke from this phone.", {
-          replyKeyboard: [["Use 07…@bitcoin.co.ke"], ["Cancel"]],
-        }),
+        reply(
+          "Send a Lightning address you control (like you@host), or tap Use 07…@bitcoin.co.ke for this phone.",
+          {
+            replyKeyboard: [["Use 07…@bitcoin.co.ke"], ["Cancel"]],
+          },
+        ),
       ];
     } catch (error) {
       return [
-        reply(error instanceof Error ? error.message : "That phone does not look valid."),
+        reply(error instanceof Error ? error.message : "That phone number does not look valid."),
       ];
     }
   }
@@ -1084,7 +1092,7 @@ async function onText(
       return confirmButtons(session.profile, session.purchasePhone ?? "", destination);
     } catch (error) {
       return [
-        reply(error instanceof Error ? error.message : "Enter a Lightning address.", {
+        reply(error instanceof Error ? error.message : "Send a Lightning address you control.", {
           replyKeyboard: [["Use 07…@bitcoin.co.ke"], ["Cancel"]],
         }),
       ];

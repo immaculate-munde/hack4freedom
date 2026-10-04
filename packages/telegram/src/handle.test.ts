@@ -1,4 +1,4 @@
-import { demoProfiles } from "@pesasense/core";
+import { DEMO_STATEMENT_PASSWORD, demoProfiles } from "@pesasense/core";
 import { describe, expect, it } from "vitest";
 import { telegramConfigFromEnv } from "./config";
 import { handleTelegram, type TelegramDeps } from "./handle";
@@ -169,10 +169,10 @@ describe("telegram handle", () => {
     const text = allText(result);
     expect(text).not.toMatch(/You chose:/);
     expect(text).toMatch(/Demo data/);
-    expect(text).toMatch(/Safe surplus/i);
+    expect(text).toMatch(/Money left after bills/i);
     expect(text).toMatch(/1,500/);
     expect(text).toMatch(/75%/);
-    expect(text).toMatch(/Largest regular payments/i);
+    expect(text).toMatch(/Biggest regular payments/i);
     expect(text).toMatch(/Greenview Apartments/);
     expect(buttonLabels(result)).toContain("Set habit");
     expect(buttonLabels(result)).toContain("Make your first transaction today");
@@ -188,7 +188,7 @@ describe("telegram handle", () => {
     const h = harness({
       async buildFromPdf(_bytes, password) {
         attempts += 1;
-        if (password !== "demo-statement") {
+        if (password !== DEMO_STATEMENT_PASSWORD) {
           throw new Error(
             "Could not open the PDF. Check the statement password and try again.",
           );
@@ -203,10 +203,9 @@ describe("telegram handle", () => {
       fileName: "amina-statement.pdf",
       mimeType: "application/pdf",
     });
-    expect(allText(uploaded)).toMatch(
-      /Enter the password for this M-Pesa statement PDF/i,
-    );
-    expect(allText(uploaded)).toMatch(/demo-statement/);
+    expect(allText(uploaded)).toMatch(/Enter the password for this PDF/i);
+    expect(allText(uploaded)).toContain(DEMO_STATEMENT_PASSWORD);
+    expect(DEMO_STATEMENT_PASSWORD).toBe("demo-statement");
     expect(allText(uploaded)).toMatch(/never your national ID/i);
     expect(buttonLabels(uploaded)).toContain("Skip (no password)");
     expect(h.store.getSession(50)?.step).toBe("awaiting_pdf_password");
@@ -214,19 +213,20 @@ describe("telegram handle", () => {
 
     const wrong = await h.send(50, { kind: "text", text: "wrong-pin" });
     expect(allText(wrong)).toMatch(/did not open the PDF/i);
-    expect(allText(wrong)).toMatch(
-      /Enter the password for this M-Pesa statement PDF/i,
-    );
+    expect(allText(wrong)).toMatch(/Enter the password for this PDF/i);
     expect(h.store.getSession(50)?.step).toBe("awaiting_pdf_password");
     expect(h.store.getSession(50)?.pendingPdfFileId).toBe("pdf-file-1");
     expect(attempts).toBe(1);
 
-    const ok = await h.send(50, { kind: "text", text: "demo-statement" });
-    expect(allText(ok)).toMatch(/Safe surplus/i);
-    expect(allText(ok)).toMatch(/Named commitments/i);
+    const ok = await h.send(50, {
+      kind: "text",
+      text: DEMO_STATEMENT_PASSWORD,
+    });
+    expect(allText(ok)).toMatch(/Money left after bills/i);
+    expect(allText(ok)).toMatch(/Named bills and commitments/i);
     expect(h.store.getSession(50)?.step).toBe("ready");
     expect(h.store.getSession(50)?.pendingPdfFileId).toBeNull();
-    expect(h.pdfPasswords).toEqual(["wrong-pin", "demo-statement"]);
+    expect(h.pdfPasswords).toEqual(["wrong-pin", DEMO_STATEMENT_PASSWORD]);
     expect(attempts).toBe(2);
   });
 
@@ -242,7 +242,7 @@ describe("telegram handle", () => {
       ].join("\n"),
     });
     expect(allText(pasted)).not.toMatch(/statement PDF/i);
-    expect(allText(pasted)).toMatch(/Safe surplus|Here is the picture/i);
+    expect(allText(pasted)).toMatch(/Money left after bills|Here is a simple picture/i);
     expect(h.store.getSession(51)?.step).toBe("ready");
     expect(h.pdfPasswords).toHaveLength(0);
   });
@@ -255,6 +255,7 @@ describe("telegram handle", () => {
     expect(h.store.getSession(20)?.learnPage).toBe(0);
     expect(allText(page0)).not.toMatch(/You chose:/);
     expect(firstBody(page0)).toMatch(/small Bitcoin habit/i);
+    expect(firstBody(page0)).toMatch(/small amount you plan to put in Bitcoin/i);
     expect(firstBody(page0)).toMatch(/monthly/i);
     expect(firstBody(page0)).not.toMatch(/\d+\s*sats/i);
     expect(buttonLabels(page0)).toContain("Next");
@@ -269,7 +270,7 @@ describe("telegram handle", () => {
     const page2 = await h.send(20, { kind: "text", text: "Next" });
     expect(firstBody(page2)).toMatch(/lose value/i);
     expect(firstBody(page2)).toMatch(/not financial advice/i);
-    expect(firstBody(page2)).toMatch(/surplus floor/i);
+    expect(firstBody(page2)).toMatch(/money left after bills/i);
     expect(buttonLabels(page2)).toEqual([
       "Start a small habit",
       "Ask something else",
@@ -315,7 +316,7 @@ describe("telegram handle", () => {
 
     const named = await h.send(8, { kind: "text", text: "Fuliza" });
     expect(named.replies[0]?.text).toMatch(/Noted: Fuliza/i);
-    expect(named.replies[0]?.text).toMatch(/whole KES/i);
+    expect(named.replies[0]?.text).toMatch(/whole shillings/i);
     expect(h.store.getSession(8)?.onboarding.debts).toEqual([
       { label: "Fuliza", balanceKes: 0 },
     ]);
@@ -418,7 +419,7 @@ describe("telegram handle", () => {
     await h.send(2, { kind: "text", text: "Demo Amina (labeled demo)" });
     await h.send(2, { kind: "text", text: "Set habit" });
     const tooHigh = await h.send(2, { kind: "text", text: "2500" });
-    expect(tooHigh.replies[0]?.text).toMatch(/above the safe floor/i);
+    expect(tooHigh.replies[0]?.text).toMatch(/above money left after bills/i);
     const amountOk = await h.send(2, { kind: "text", text: "1500" });
     expect(firstBody(amountOk)).toMatch(/Monthly \(default\)/i);
     expect(firstBody(amountOk)).toMatch(/Weekly/i);
@@ -493,26 +494,26 @@ describe("telegram summary", () => {
     const text = profileSummary(profile, { isDemo: true });
     expect(text).toMatch(/Demo data/);
     expect(text).toMatch(/Statement period/);
-    expect(text).toMatch(/Income \(monthly\)/);
-    expect(text).toMatch(/Named commitments/);
+    expect(text).toMatch(/Income each month/);
+    expect(text).toMatch(/Named bills and commitments/);
     expect(text).toMatch(/Greenview Apartments/);
     expect(text).toMatch(/Chama Sisters/);
-    expect(text).toMatch(/Top spending/);
+    expect(text).toMatch(/Where money often goes/);
     expect(text).toMatch(/groceries/);
-    expect(text).toMatch(/Safe surplus \(monthly\)/);
-    expect(text).toMatch(/Floor KES 2,000/);
-    expect(text).toMatch(/Resilience/);
-    expect(text).toMatch(/75% of the safe floor/);
+    expect(text).toMatch(/Money left after bills \(each month\)/);
+    expect(text).toMatch(/Careful \(low\): KES 2,000/);
+    expect(text).toMatch(/How long savings might last/);
+    expect(text).toMatch(/75% of money left after bills/);
     expect(text).toMatch(/education, not financial advice/i);
     expect(text).not.toMatch(/\d+\s*sats/i);
     const largest = largestPaymentsText(profile);
-    expect(largest).toMatch(/Largest regular payments/);
+    expect(largest).toMatch(/Biggest regular payments/);
     expect(largest).toMatch(/Greenview Apartments — KES 15,000/);
   });
 
   it("says buffer-first for Brian with no invent invest", () => {
     const text = profileSummary(demoProfiles.brian);
-    expect(text).toMatch(/buffer comes first/i);
+    expect(text).toMatch(/buffer first/i);
     expect(text).not.toMatch(/^Demo data/m);
     expect(demoProfiles.brian.investmentPlan).toBeUndefined();
   });

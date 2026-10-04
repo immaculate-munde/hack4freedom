@@ -19,10 +19,12 @@ const nextConfig: NextConfig = {
   transpilePackages: [
     "@pesasense/core",
     "@pesasense/nostr",
+    "@pesasense/telegram",
     "@pesasense/ussd",
     "@pesasense/wallet",
   ],
-  serverExternalPackages: ["@breeztech/breez-sdk-spark"],
+  // Keep pdf.js unbundled so Node can resolve its worker + wasm from disk.
+  serverExternalPackages: ["@breeztech/breez-sdk-spark", "pdfjs-dist"],
   webpack: (config, { isServer }) => {
     config.experiments = {
       ...config.experiments,

@@ -11,7 +11,7 @@ A first visit in a fresh browser opens `/welcome`, because `hasSeenWelcome` is n
 | Action | What it proves | If it breaks |
 | --- | --- | --- |
 | Open `/welcome` and tap **Get started** | The first screen states three promises: data stays on the phone, the app never holds the money, and there is no trading pressure. | Open `/overview` after the flag is set. A blank linen screen means the redirect has not finished. |
-| Open `/import`, type any password, and ask it to read a statement or pasted SMS | Parsing is honest. `parseStatement` and `parseSmsBatch` throw `Not implemented`. The screen says reading a statement is coming soon and opens the demo profile. The password is not saved. | Read the notice. Do not claim a statement was parsed. The demo password on the fixture PDF is `demo-statement`. |
+| Open `/import` (or `/onboard`), upload `amina-statement.pdf`, password `demo-statement` | PDF decrypts in the browser, `parseStatement` builds a profile from the fixture rows. The password is not saved. | Wrong password: clear error, try again. Demo fixture password is always `demo-statement` (see `DEMO_STATEMENT_PASSWORD`). SMS paste also works without a password. |
 | Open `/overview` | Amina (invented). **Demo data** badge. Safe monthly surplus **KES 2,000 – KES 15,500**. Typical KES 11,500. Habit **KES 1,500 / month**. The numbers come from `packages/core/src/fixtures/profiles/amina.profile.json`. | If the page says no profile, `PROFILE_SOURCE=parsed` is on. Unset it, or set `PROFILE_SOURCE=demo`, and restart `pnpm dev`. |
 | Open `/overview?profile=brian` | Brian (invented). Copy says the buffer comes first. Surplus floor is KES 0. | The query is ignored in parsed mode. Use demo mode. |
 | Open `/invest?profile=brian` | The buy screen refuses. Title: **Not ready yet.** | If a buy form appears, the URL lost `?profile=brian`. |
@@ -35,7 +35,7 @@ A first visit in a fresh browser opens `/welcome`, because `hasSeenWelcome` is n
 
 ## What to leave unsaid
 
-- Do not say a statement was parsed. Import falls through to Amina on purpose.
+- Do not invent a different demo password. The fixture opens with `demo-statement` only.
 - Do not say the sandbox funded a wallet unless the balance on `/wallet` changed.
 - Do not call Bitika or bitcoin.co.ke licensed. See [regulation.md](regulation.md).
 - Do not describe eCash. This demo does not use it.

@@ -3,19 +3,38 @@
  * Password is caller-supplied for this call only — do not persist it.
  */
 
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
+import { pathToFileURL } from "node:url";
+
+const require = createRequire(import.meta.url);
+
+function pdfjsAssetUrls(): { workerSrc: string; wasmUrl: string } {
+  const pdfjsRoot = dirname(require.resolve("pdfjs-dist/package.json"));
+  return {
+    workerSrc: pathToFileURL(
+      join(pdfjsRoot, "legacy/build/pdf.worker.min.mjs"),
+    ).href,
+    // Trailing slash required by pdf.js BinaryDataFactory.
+    wasmUrl: pathToFileURL(join(pdfjsRoot, "wasm")).href + "/",
+  };
+}
+
 export async function extractTextFromMpesaPdfBytes(
   data: Uint8Array,
   password: string,
 ): Promise<string> {
   const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
-  // Node API route: run without a separate worker thread.
-  if (!pdfjs.GlobalWorkerOptions.workerSrc) {
-    pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/legacy/build/pdf.worker.min.mjs`;
-  }
+  const { workerSrc, wasmUrl } = pdfjsAssetUrls();
+  // pdf.js ships a default of "./pdf.worker.mjs" which is truthy but broken in
+  // Node/Next API routes — always override it with a resolvable file URL.
+  pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
+
   const loadingTask = pdfjs.getDocument({
     data: data.slice(),
     password: password.trim(),
     useSystemFonts: true,
+    wasmUrl,
   });
 
   let doc;
