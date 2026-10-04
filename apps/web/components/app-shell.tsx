@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useState, type ReactNode } from "react";
 import { CustomerRail } from "./customer-rail";
+import { HabitReminderBanner } from "./habit-reminder-banner";
 import { SensiAvatar } from "./sensi-avatar";
 import { SensiBubble } from "./sensi-bubble";
 import { ThemeToggle } from "./theme-toggle";
@@ -286,7 +287,14 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         )}
 
-        <div className={quiet ? "app-content app-content-landing" : "app-content"}>{children}</div>
+        <div className={quiet ? "app-content app-content-landing" : "app-content"}>
+          {quiet ? null : (
+            <div className="mb-4">
+              <HabitReminderBanner />
+            </div>
+          )}
+          {children}
+        </div>
 
         {quiet ? null : (
           <nav className="app-mobile-nav safe-bottom lg:hidden" aria-label={t.nav}>
@@ -342,21 +350,24 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </button>
               </div>
               <SensiBubble tailPosition="bottom">
-                Ask me anything as you explore PesaSense. I&apos;ll keep it simple.
+                I can walk through your surplus and habit with voice when Quinn and
+                ElevenLabs keys are set. Education only — Bitcoin can lose value.
               </SensiBubble>
               <div className="mt-3 grid gap-2">
-                <button
-                  type="button"
+                <Link
+                  href="/sensi"
                   className="btn rounded-2xl border border-sand bg-surface px-3 py-2 text-left text-xs font-semibold text-ink"
+                  onClick={() => setIsSensiOpen(false)}
                 >
-                  Ask me about your surplus
-                </button>
-                <button
-                  type="button"
+                  Voice money picture
+                </Link>
+                <Link
+                  href="/learn"
                   className="btn rounded-2xl border border-sand bg-surface px-3 py-2 text-left text-xs font-semibold text-ink"
+                  onClick={() => setIsSensiOpen(false)}
                 >
                   How does Bitcoin work?
-                </button>
+                </Link>
               </div>
             </div>
           ) : null}

@@ -24,6 +24,7 @@ function HabitContent() {
   const [cadence, setCadence] = useState<BuyCadence>("monthly");
   const [error, setError] = useState<string | null>(null);
   const [savedNote, setSavedNote] = useState<string | null>(null);
+  const [reminderNote, setReminderNote] = useState<string | null>(null);
   const [reminder, setReminder] = useState<HabitReminder | null>(null);
 
   const planAmount = active.ready ? active.profile.investmentPlan?.amountKes : undefined;
@@ -72,7 +73,16 @@ function HabitContent() {
       return;
     }
     try {
-      setProfile(planWithAmount(profile, nextAmount, cadence));
+      const nextProfile = planWithAmount(profile, nextAmount, cadence);
+      setProfile(nextProfile);
+      const raw = localStorage.getItem("pesasense.profile");
+      if (!raw) {
+        throw new Error("missing profile storage");
+      }
+      const stored = JSON.parse(raw) as { investmentPlan?: { amountKes?: number } };
+      if (stored.investmentPlan?.amountKes !== nextAmount) {
+        throw new Error("habit not persisted");
+      }
       const existing = readHabitReminder();
       if (existing) {
         setReminder(writeHabitReminder({ amountKes: nextAmount, cadence }));
@@ -83,7 +93,10 @@ function HabitContent() {
       return;
     }
     setError(null);
-    setSavedNote("Habit saved on this phone. Nothing is sent until you approve a purchase.");
+    setReminderNote(null);
+    setSavedNote(
+      "Habit saved on this phone (localStorage pesasense.profile). Reload to confirm. Nothing is sent until you approve a purchase.",
+    );
   }
 
   async function onRemind() {
@@ -100,7 +113,8 @@ function HabitContent() {
       setError("Could not save the reminder on this phone.");
       return;
     }
-    await requestReminderNotification(plan.amountKes);
+    const arm = await requestReminderNotification(plan.amountKes);
+    setReminderNote(arm.note);
   }
 
   return (
@@ -216,14 +230,18 @@ function HabitContent() {
           >
             Remind me on the 1st
           </button>
-          {reminder ? (
+          {reminderNote ? (
+            <p className="mt-3 text-sm leading-6 text-teal">{reminderNote}</p>
+          ) : reminder ? (
             <p className="mt-3 text-sm leading-6 text-slate">
-              We&apos;ll remind you on the 1st. You approve each purchase.
+              Reminder saved on this phone. On/after the 1st you get an in-app
+              banner; a browser notification fires when permission and timing allow.
+              You approve each purchase.
             </p>
           ) : (
             <p className="mt-3 text-sm leading-6 text-slate">
               {draftMatches
-                ? "A reminder stays on this phone. It does not send money."
+                ? "A reminder stays on this phone. It does not send money or SMS."
                 : "Save the habit first. The reminder uses that saved amount."}
             </p>
           )}
