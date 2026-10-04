@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { LogoMark } from "../../components/brand/LogoMark";
 import { RegulatoryDisclosure } from "../../components/regulatory-disclosure";
-import { TelegramCta, telegramBotConfigured } from "../../components/telegram-cta";
+import { TelegramCta } from "../../components/telegram-cta";
 import { ThemeToggle } from "../../components/theme-toggle";
 
 const WELCOME_FLAG = "hasSeenWelcome";
@@ -124,10 +124,12 @@ export default function WelcomePage() {
               A patient guide for your M-Pesa history, and a small monthly habit that goes to your
               own wallet.
             </p>
-            <button type="button" onClick={getStarted} className="btn btn-accent rounded-full px-6">
-              Get started
-            </button>
-            <TelegramCta />
+            <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+              <button type="button" onClick={getStarted} className="btn btn-accent rounded-full px-6">
+                Get started
+              </button>
+              <TelegramCta />
+            </div>
             <button
               type="button"
               onClick={() => setShowHow(true)}
@@ -229,11 +231,11 @@ export default function WelcomePage() {
             </article>
           ))}
         </div>
-        <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+        <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:flex-wrap">
           <button type="button" onClick={getStarted} className="btn btn-accent rounded-full px-6">
             Get started
           </button>
-          {telegramBotConfigured() ? <TelegramCta /> : null}
+          <TelegramCta />
           <Link href="/trust" className="btn btn-secondary rounded-full px-6">
             How we handle your data
           </Link>
@@ -254,9 +256,7 @@ export default function WelcomePage() {
             <button type="button" onClick={getStarted} className="btn btn-accent rounded-full px-6">
               Get started
             </button>
-            {telegramBotConfigured() ? (
-              <TelegramCta className="btn btn-secondary rounded-full px-6 border-paper/30 text-paper" />
-            ) : null}
+            <TelegramCta className="btn btn-secondary rounded-full px-6 border-paper/30 text-paper" />
           </div>
         </div>
         <dl className="mx-auto grid w-full max-w-6xl grid-cols-2 gap-6 border-t border-white/10 px-5 py-8 sm:px-8 lg:grid-cols-4">
