@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useFormat, useI18n } from "../contexts/language-context";
 import { messageFromApi, type ApiErrorBody } from "../lib/api-message";
+import { isOnline } from "../lib/network";
 
 type ProfileId = "amina" | "brian";
 
@@ -176,6 +177,10 @@ export function UssdAccess({ profileId }: { profileId: ProfileId }) {
   }, [activity, loadActivity, phone]);
 
   async function linkPhone() {
+    if (!isOnline()) {
+      setError(t("common.offlineAction"));
+      return;
+    }
     setBusy(true);
     setError(null);
     setCode(null);
@@ -205,6 +210,10 @@ export function UssdAccess({ profileId }: { profileId: ProfileId }) {
   }
 
   async function createCode() {
+    if (!isOnline()) {
+      setError(t("common.offlineAction"));
+      return;
+    }
     setBusy(true);
     setError(null);
     try {

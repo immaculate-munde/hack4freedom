@@ -5,6 +5,7 @@ import { Suspense, useState } from "react";
 import { CustomerRail } from "../../components/customer-rail";
 import { DemoProfileSwitch } from "../../components/demo-profile-switch";
 import { ImportTrigger } from "../../components/import-trigger";
+import { InstallAppCard } from "../../components/pwa-experience";
 import { LanguageSwitcher } from "../../components/language-switcher";
 import { PageFrame } from "../../components/page-frame";
 import { ProfileSync } from "../../components/profile-sync";
@@ -47,6 +48,8 @@ function SettingsContent() {
           </div>
           <LanguageSwitcher />
         </section>
+
+        <InstallAppCard />
 
         <section className="card flex flex-wrap items-center justify-between gap-4">
           <div className="min-w-0">

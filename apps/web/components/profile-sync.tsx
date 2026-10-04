@@ -12,6 +12,7 @@ import {
 } from "@pesasense/nostr";
 import { useState } from "react";
 import { useFormat, useI18n } from "../contexts/language-context";
+import { isOnline } from "../lib/network";
 import { loadWalletEvents, replaceWalletEvents } from "../lib/wallet-events";
 
 const SECRET_KEY = "pesasense.nostr-secret.v1";
@@ -76,6 +77,10 @@ export function ProfileSync({
   }
 
   async function onSave() {
+    if (!isOnline()) {
+      setMessage(t("common.offlineAction"));
+      return;
+    }
     setBusy(true);
     setMessage(null);
     try {
@@ -94,6 +99,10 @@ export function ProfileSync({
   }
 
   async function onLoad() {
+    if (!isOnline()) {
+      setMessage(t("common.offlineAction"));
+      return;
+    }
     setBusy(true);
     setMessage(null);
     try {
@@ -113,6 +122,10 @@ export function ProfileSync({
   }
 
   async function onShare() {
+    if (!isOnline()) {
+      setMessage(t("common.offlineAction"));
+      return;
+    }
     setBusy(true);
     setMessage(null);
     try {

@@ -24,6 +24,7 @@ const files = [
   "apps/web/app/settings/page.tsx",
   "apps/web/app/chama/chama-flow.tsx",
   "apps/web/components/app-shell.tsx",
+  "apps/web/components/pwa-experience.tsx",
   "apps/web/components/bitika-purchase-modal.tsx",
   "apps/web/components/withdraw-modal.tsx",
   "apps/web/components/wallet-activity.tsx",

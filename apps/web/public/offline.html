@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0D7A73" />
+    <title>PesaSense</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --canvas: #f3efe4;
+        --ink: #1a1f1c;
+        --pine: #1e3a32;
+        --paper: #fdfbf7;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        padding: max(1.5rem, env(safe-area-inset-top)) 1.25rem max(1.5rem, env(safe-area-inset-bottom));
+        background: var(--canvas);
+        color: var(--ink);
+        font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+      }
+      main {
+        width: min(100%, 28rem);
+        background: var(--paper);
+        border-radius: 1.5rem;
+        padding: 1.5rem;
+        box-shadow: 0 4px 20px -2px rgb(31 74 63 / 0.08);
+      }
+      h1 {
+        margin: 0.75rem 0 0;
+        font-size: 1.5rem;
+        color: var(--pine);
+      }
+      p { line-height: 1.6; }
+      .sw { color: #3d4b43; }
+      button {
+        margin-top: 0.5rem;
+        min-height: 3rem;
+        border: 0;
+        border-radius: 999px;
+        padding: 0.75rem 1.25rem;
+        background: var(--pine);
+        color: #fdfbf7;
+        font: inherit;
+        font-weight: 700;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <svg width="40" height="40" viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="10" fill="#0D7A73" />
+        <ellipse cx="12.2" cy="13.4" rx="3.1" ry="4.8" transform="rotate(-42 12.2 13.4)" fill="#FAF8F5" />
+        <ellipse cx="19.8" cy="13.4" rx="3.1" ry="4.8" transform="rotate(42 19.8 13.4)" fill="#FAF8F5" />
+        <rect x="15.15" y="14.2" width="1.7" height="9" rx="0.85" fill="#FAF8F5" />
+      </svg>
+      <h1 id="title">You are offline</h1>
+      <p id="body">
+        PesaSense could not reach the network. Pages you already opened can still show what is saved on this phone.
+        Buying, the wallet, and sync wait until you are back online.
+      </p>
+      <p class="sw" id="alt">
+        Huna mtandao. Kurasa ulizofungua bado zinaweza kuonyesha kilichohifadhiwa kwenye simu hii.
+        Malipo, mkoba, na usawazishaji vinasubiri muunganisho.
+      </p>
+      <button id="retry" type="button">Try again</button>
+    </main>
+    <script>
+      (function () {
+        var swahili = false;
+        try {
+          swahili = localStorage.getItem("pesasense.language") === "sw";
+        } catch (e) {}
+        if (swahili) {
+          document.documentElement.lang = "sw";
+          document.getElementById("title").textContent = "Huna mtandao";
+          document.getElementById("body").textContent =
+            "PesaSense haikuweza kufikia mtandao. Kurasa ulizofungua bado zinaweza kuonyesha kilichohifadhiwa kwenye simu hii. Malipo, mkoba, na usawazishaji vinasubiri muunganisho.";
+          document.getElementById("alt").textContent =
+            "You are offline. Pages you already opened can still show what is saved on this phone.";
+          document.getElementById("retry").textContent = "Jaribu tena";
+        }
+        document.getElementById("retry").addEventListener("click", function () {
+          window.location.reload();
+        });
+      })();
+    </script>
+  </body>
+</html>

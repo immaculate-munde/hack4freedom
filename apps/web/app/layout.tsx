@@ -27,7 +27,14 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: "PesaSense",
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
+  },
+  icons: {
+    icon: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
   },
 };
 
@@ -35,6 +42,7 @@ export const viewport: Viewport = {
   themeColor: "#0D7A73",
   width: "device-width",
   initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default async function RootLayout({
