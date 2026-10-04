@@ -67,6 +67,11 @@ export function RegulatoryDisclosure({ variant = "card" }: { variant?: "card" | 
         The on-ramp partner&apos;s licence status is to be confirmed. We do not call a partner licensed until
         that is checked.
       </p>
+      <p className="mt-3 text-xs leading-5 text-slate">
+        On the web app, M-Pesa statements are read on your phone and stay there. If you use the
+        Telegram bot, you send the statement to the bot so it can build your picture — that path
+        leaves your phone. Either way, you approve every purchase; nothing is sent on its own.
+      </p>
     </>
   );
 

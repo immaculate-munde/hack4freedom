@@ -64,7 +64,7 @@ Bitika is the on-ramp. bitcoin.co.ke is the off-ramp. The chama screen never hol
 - **Non-custodial.** PesaSense never holds funds or private keys. The person holds their keys.
 - **Accumulate, do not trade.** Scheduled small buys only. No price alerts, candlestick charts, sell prompts, order books, or leverage.
 - **Manual approval.** Every purchase needs an explicit yes.
-- **Privacy by design.** Raw statements and transactions stay on the device. The platform stores no raw file and no password. A profile is encrypted before it is published to Nostr.
+- **Privacy by design.** On the web app, raw statements stay on the device. The Telegram bot path is different: you send the statement to the bot so it can build your picture. PDF passwords are used only to decrypt and are not kept. A profile is encrypted before it is published to Nostr.
 - **Explicit, user-initiated access only.** No background scraping of SMS. Kenya's Data Protection Act 2019 applies.
 - **No model sees raw transactions.** Categories start from deterministic rules. If a model is ever used, it may see merchant name strings only, never amounts or identifiers.
 - **Education, not advice.** The wording is "here is how Bitcoin has behaved historically", not "here is what we project for you".
@@ -83,6 +83,7 @@ TypeScript end to end. Sensitive data stays on the device. The server is a thin 
 | Parser and profile | `packages/core`. Vitest. No UI imports. Parser and `buildProfile()` still throw. |
 | On-ramp | `BitcoinOnRamp` in `packages/wallet`, with a Bitika adapter. Next.js routes under `apps/web/app/api/onramp/`. |
 | USSD | `packages/ussd`. `POST /api/ussd` is the handset callback. It uses the same surplus rules and the same Bitika collect. See [docs/ussd.md](docs/ussd.md). |
+| Telegram | `packages/telegram`. `POST /api/telegram/webhook` runs the habit → remind → approve loop. Statements sent to the bot leave the phone. See [docs/telegram.md](docs/telegram.md). |
 | In-app wallet | Breez SDK Spark in the browser. |
 | Profile encryption | `packages/nostr` with `nostr-tools`. NIP-44, kind `30078`, one anonymous kind `5910` job. |
 | Chama | `packages/nostr/src/chama-ledger.ts`. Rules are tested. The screen persists the demo circle in `localStorage`. |
@@ -93,6 +94,7 @@ apps/web/          PWA: overview, surplus, habit, learn, invest, wallet, chama
 packages/core/     profile contract, parser stubs, demo profiles, fixtures
 packages/wallet/   on-ramp interface, Bitika, webhook verify, phone and Lightning helpers
 packages/ussd/     handset menu, sessions, phone links, shared purchase index
+packages/telegram/ bot conversation, sessions, same profile and approve rules
 packages/nostr/    encrypted profile store, chama ledger
 ```
 
@@ -121,6 +123,8 @@ Open [http://localhost:3000](http://localhost:3000).
 Without those keys the surplus, learn, habit, and chama screens still load. Invest shows that the Bitika key is missing. Wallet create fails until the Breez key is set. Save and load need a relay the browser can reach.
 
 USSD is the same app on a handset. Link a number on `/overview`, then post sample menus to `POST /api/ussd`. Steps and curl examples: [docs/ussd.md](docs/ussd.md).
+
+Telegram is optional. Set `TELEGRAM_BOT_TOKEN` (and optionally `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME`) then point BotFather's webhook at `/api/telegram/webhook`. Setup: [docs/telegram.md](docs/telegram.md).
 
 Set `PROFILE_SOURCE=parsed` to turn the demo profiles off. That path calls the parser and does not fall back to the hand-written numbers.
 
@@ -152,6 +156,7 @@ PesaSense is advisory and non-custodial. Partner licence claims are marked **to 
 | [docs/architecture.md](docs/architecture.md) | How data and money are separated, and where the stubs are. |
 | [docs/bitika-api.md](docs/bitika-api.md) | The on-ramp calls this app actually makes. |
 | [docs/ussd.md](docs/ussd.md) | Handset menu, callback, and local curl steps. |
+| [docs/telegram.md](docs/telegram.md) | Bot webhook, env, and the approve-only purchase loop. |
 | [docs/contributing.md](docs/contributing.md) | Where to extend the stubs without breaking the contract. |
 | [docs/regulation.md](docs/regulation.md) | Licence notes that are still marked to verify. |
 

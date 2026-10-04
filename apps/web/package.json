@@ -12,6 +12,7 @@
     "@breeztech/breez-sdk-spark": "^0.26.0",
     "@pesasense/core": "workspace:*",
     "@pesasense/nostr": "workspace:*",
+    "@pesasense/telegram": "workspace:*",
     "@pesasense/ussd": "workspace:*",
     "@pesasense/wallet": "workspace:*",
     "@scure/bip39": "^2.4.0",
