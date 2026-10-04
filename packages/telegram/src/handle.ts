@@ -69,6 +69,16 @@ const START_COPY = [
   "Education, not financial advice. Bitcoin can lose value. Whole shillings only.",
 ].join("\n");
 
+/** Cadence choices after the habit amount — Monthly is the plan default until they tap. */
+const HABIT_CADENCE_COPY = [
+  "How often should this habit run?",
+  "",
+  "Monthly (default) — once a month.",
+  "Weekly — once a week.",
+  "",
+  "Tap Monthly or Weekly.",
+].join("\n");
+
 /** Short education pages — no statement, no purchase, no invented sats. */
 const LEARN_PAGES: string[] = [
   [
@@ -337,7 +347,7 @@ function choiceToCallback(session: TelegramSession, text: string): string | null
   if (t === "Emergency buffer") return "goal:buffer";
   if (t === "Long-term saving") return "goal:long";
   if (t === "Set habit") return "habit";
-  if (t === "Review investment") return "invest";
+  if (t === "Make your first transaction today") return "invest";
   if (t === "Show breakdown") return "breakdown";
   if (t === "Remind me on the 1st") return "remind";
   if (t === "Use 07…@bitcoin.co.ke") return "dest:bitcoincke";
@@ -417,7 +427,7 @@ export async function handleTelegram(
             "Commands: /start, /skip, /help.",
             "",
             "Paths after /start:",
-            "• Start a small habit — optional questions → statement → summary → habit → reminder → review/approve.",
+            "• Start a small habit — optional questions → statement → summary → habit → reminder → first transaction / approve.",
             "• Learn about Bitcoin — short education in chat (no statement, no purchase).",
             "",
             "Choices appear as your own messages (reply buttons). Send SMS paste or a PDF only when the habit path asks. You approve every purchase.",
@@ -626,7 +636,11 @@ async function onCallback(
     save(deps, { ...session, step: "habit_amount" }, config);
     return [
       reply(
-        `How much each time? Whole KES, up to ${offer.maxKes.toLocaleString("en-KE")} (the safe floor).`,
+        [
+          `How much each time? Whole KES, up to ${offer.maxKes.toLocaleString("en-KE")} (the safe floor).`,
+          "",
+          "Next you'll choose Monthly (default) or Weekly.",
+        ].join("\n"),
         { removeKeyboard: true },
       ),
     ];
@@ -713,7 +727,7 @@ async function onCallback(
 
   if (data === "dest:bitcoincke") {
     if (session.step !== "invest_destination" || !session.purchasePhone) {
-      return [reply("Start Review investment again.")];
+      return [reply("Tap Make your first transaction today again.")];
     }
     try {
       const destination = toBitcoinCoKeLightningAddress(session.purchasePhone);
@@ -776,7 +790,7 @@ async function runApprovedPurchase(
   config: TelegramConfig,
 ): Promise<TelegramReply[]> {
   if (!session.profile || !session.purchasePhone || !session.purchaseDestination) {
-    return [reply("Missing purchase details. Choose Review investment again.")];
+    return [reply("Missing purchase details. Tap Make your first transaction today again.")];
   }
   if (session.step !== "invest_confirm") {
     return [reply("Approve only from the confirm step. Nothing was sent.")];
@@ -1028,7 +1042,7 @@ async function onText(
     const profile = planWithAmount(session.profile, amount, "monthly");
     save(deps, { ...session, profile, step: "habit_cadence" }, config);
     return [
-      reply("Monthly is the default. Weekly is optional.", {
+      reply(HABIT_CADENCE_COPY, {
         replyKeyboard: [["Monthly", "Weekly"]],
       }),
     ];
@@ -1036,7 +1050,7 @@ async function onText(
 
   if (session.step === "habit_cadence") {
     return [
-      reply("Monthly is the default. Weekly is optional.", {
+      reply(HABIT_CADENCE_COPY, {
         replyKeyboard: [["Monthly", "Weekly"]],
       }),
     ];

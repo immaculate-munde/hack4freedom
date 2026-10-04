@@ -1,6 +1,6 @@
 # Telegram bot
 
-Telegram is another way into the same PesaSense loop: optional questions, import/parse, financial reading, save a habit, remind on the 1st, and review/approve a purchase. It is not a pixel clone of every web screen.
+Telegram is another way into the same PesaSense loop: optional questions, import/parse, financial reading, save a habit, remind on the 1st, and make your first transaction (approve to buy). It is not a pixel clone of every web screen.
 
 **Honest privacy:** when someone uploads a statement or pastes SMS to the bot, that content leaves their phone and is processed by the server. The web import path still reads statements on the device. Do not claim "never leaves your phone" for the Telegram path.
 
@@ -20,9 +20,9 @@ Primary choices use **reply keyboards** (not inline callbacks). Tapping a choice
 2. Habit path: optional questions (debt / chama / goal) — skip allowed
 3. Import — SMS paste or PDF (password asked only when needed; demo fixture password `demo-statement`)
 4. Summary — income range, commitments, surplus floor/typical/ceiling, habit %, resilience
-5. Set habit — whole KES, capped at surplus floor; monthly default, weekly optional
+5. Set habit — whole KES, capped at surplus floor; then Monthly (default) or Weekly on the reply keyboard
 6. Remind me on the 1st — stores preference; does not purchase
-7. Review investment — risk line, phone, Lightning destination, explicit **Approve** only then calls Bitika
+7. Make your first transaction today — risk line, phone, Lightning destination, explicit **Approve** only then calls Bitika
 
 **Learn path** (stays in chat): short pages on what a small habit is, Lightning to your own wallet, reminders vs auto-send, approve-each-purchase, Bitcoin can lose value, education not advice, surplus floor at a high level. Ends with **Start a small habit** or **Ask something else** (back to menu). `/start` always resets to the menu. `/help` lists both paths.
 

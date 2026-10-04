@@ -175,6 +175,10 @@ describe("telegram handle", () => {
     expect(text).toMatch(/Largest regular payments/i);
     expect(text).toMatch(/Greenview Apartments/);
     expect(buttonLabels(result)).toContain("Set habit");
+    expect(buttonLabels(result)).toContain("Make your first transaction today");
+    expect(buttonLabels(result)).toContain("Remind me on the 1st");
+    expect(buttonLabels(result)).toContain("Show breakdown");
+    expect(buttonLabels(result)).not.toContain("Review investment");
     const session = h.store.getSession(7);
     expect(session?.profile?.investmentPlan?.amountKes).toBe(1500);
   });
@@ -415,7 +419,12 @@ describe("telegram handle", () => {
     await h.send(2, { kind: "text", text: "Set habit" });
     const tooHigh = await h.send(2, { kind: "text", text: "2500" });
     expect(tooHigh.replies[0]?.text).toMatch(/above the safe floor/i);
-    await h.send(2, { kind: "text", text: "1500" });
+    const amountOk = await h.send(2, { kind: "text", text: "1500" });
+    expect(firstBody(amountOk)).toMatch(/Monthly \(default\)/i);
+    expect(firstBody(amountOk)).toMatch(/Weekly/i);
+    expect(buttonLabels(amountOk)).toEqual(
+      expect.arrayContaining(["Monthly", "Weekly"]),
+    );
     await h.send(2, { kind: "text", text: "Monthly" });
     const remind = await h.send(2, { kind: "text", text: "Remind me on the 1st" });
     expect(allText(remind)).not.toMatch(/You chose:/);
@@ -432,12 +441,15 @@ describe("telegram handle", () => {
     }
     await h.send(3, { kind: "text", text: "Demo Amina (labeled demo)" });
     h.setBitika(false);
-    const missing = await h.send(3, { kind: "text", text: "Review investment" });
+    const missing = await h.send(3, {
+      kind: "text",
+      text: "Make your first transaction today",
+    });
     expect(firstBody(missing)).toMatch(/BITIKA_API_KEY/);
     expect(h.purchases).toHaveLength(0);
 
     h.setBitika(true);
-    await h.send(3, { kind: "text", text: "Review investment" });
+    await h.send(3, { kind: "text", text: "Make your first transaction today" });
     await h.send(3, { kind: "text", text: "0712345678" });
     await h.send(3, { kind: "text", text: "Use 07…@bitcoin.co.ke" });
     expect(h.purchases).toHaveLength(0);

@@ -200,7 +200,7 @@ export function readyButtons(profile: FinancialProfile): string[][] {
   }
   const allowance = investAllowance(profile);
   if (allowance.ok && profile.investmentPlan?.amountKes) {
-    rows.push(["Review investment"]);
+    rows.push(["Make your first transaction today"]);
   }
   rows.push(["Show breakdown"]);
   rows.push(["Remind me on the 1st"]);
