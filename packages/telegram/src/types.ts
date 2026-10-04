@@ -37,6 +37,8 @@ export type TelegramSession = {
   profile: FinancialProfile | null;
   /** Pending PDF file_id while waiting for the user-supplied password. */
   pendingPdfFileId: string | null;
+  /** Current Learn-about-Bitcoin page index while step is "learn". */
+  learnPage: number | null;
   reminder: {
     dayOfMonth: 1;
     amountKes: number;
@@ -50,13 +52,24 @@ export type TelegramSession = {
   expiresAt: number;
 };
 
+/** Inline keyboard under a bot message (does not create a user bubble). */
 export type InlineButton = {
   text: string;
   callbackData: string;
 };
 
+/**
+ * Bot reply. Prefer `replyKeyboard` for Q&A choices — tapping sends that
+ * label as a normal user message (user bubble). Inline `buttons` are optional
+ * for awkward cases; they never appear as the user's chat bubble.
+ */
 export type TelegramReply = {
   text: string;
+  /** ReplyKeyboardMarkup rows — each string is the exact text the user "sends". */
+  replyKeyboard?: string[][];
+  /** Hide the custom keyboard (free-text steps). */
+  removeKeyboard?: boolean;
+  /** Optional inline keyboard (callback); prefer replyKeyboard for primary choices. */
   buttons?: InlineButton[][];
 };
 

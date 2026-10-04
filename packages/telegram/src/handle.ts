@@ -1,6 +1,9 @@
 /**
  * Telegram conversation → profile rules and the on-ramp.
  * Reminder preference is stored. Purchases never auto-send.
+ *
+ * Primary Q&A choices use ReplyKeyboardMarkup so the user's answer appears
+ * as their own chat bubble. Inline callbacks never create a user message.
  */
 
 import {
@@ -27,7 +30,6 @@ import {
 } from "./summary";
 import type { TelegramStore } from "./store";
 import type {
-  InlineButton,
   TelegramInbound,
   TelegramPurchaseInput,
   TelegramPurchaseResult,
@@ -54,45 +56,9 @@ export type TelegramHandleResult = {
   replies: TelegramReply[];
   /** Answer callback_query so Telegram stops the loading spinner. */
   callbackQueryId: string | null;
-  /** Optional toast text for answerCallbackQuery (also echoed in chat). */
+  /** Optional toast for answerCallbackQuery (no chat echo). */
   callbackAnswerText?: string | null;
 };
-
-/** Human label for an inline button so chat history shows what was tapped. */
-function callbackChoiceLabel(data: string): string | null {
-  const exact: Record<string, string> = {
-    "path:habit": "Start a small habit",
-    "path:learn": "Learn about Bitcoin",
-    "learn:0": "Learn about Bitcoin",
-    menu: "Back to menu",
-    skip: "Skip",
-    "debt:yes": "Yes",
-    "debt:no": "No",
-    "chama:yes": "Yes",
-    "chama:no": "No",
-    "goal:buffer": "Emergency buffer",
-    "goal:long": "Long-term saving",
-    "demo:amina": "Demo Amina (labeled demo)",
-    breakdown: "Show breakdown",
-    habit: "Set habit",
-    "cadence:monthly": "Monthly",
-    "cadence:weekly": "Weekly",
-    remind: "Remind me on the 1st",
-    invest: "Review investment",
-    "dest:bitcoincke": "Use 07…@bitcoin.co.ke",
-    approve: "Approve",
-    cancel_invest: "Cancel",
-  };
-  if (exact[data]) return exact[data]!;
-  if (data.startsWith("learn:")) return "Next";
-  return null;
-}
-
-function withChoiceEcho(data: string, replies: TelegramReply[]): TelegramReply[] {
-  const label = callbackChoiceLabel(data);
-  if (!label) return replies;
-  return [reply(`You chose: ${label}`), ...replies];
-}
 
 const START_COPY = [
   "PesaSense helps you read your M-Pesa history and start a small Bitcoin habit.",
@@ -127,38 +93,37 @@ const LEARN_PAGES: string[] = [
   ].join("\n"),
 ];
 
-function reply(text: string, buttons?: TelegramReply["buttons"]): TelegramReply {
-  return buttons ? { text, buttons } : { text };
+type ReplyOptions = {
+  replyKeyboard?: string[][];
+  removeKeyboard?: boolean;
+};
+
+function reply(text: string, options?: ReplyOptions): TelegramReply {
+  if (!options) return { text };
+  return { text, ...options };
 }
 
-function pathMenuButtons(): InlineButton[][] {
-  return [
-    [{ text: "Start a small habit", callbackData: "path:habit" }],
-    [{ text: "Learn about Bitcoin", callbackData: "path:learn" }],
-  ];
+function pathMenuKeyboard(): string[][] {
+  return [["Start a small habit"], ["Learn about Bitcoin"]];
 }
 
 function startMenuReply(): TelegramReply {
-  return reply(START_COPY, pathMenuButtons());
+  return reply(START_COPY, { replyKeyboard: pathMenuKeyboard() });
 }
 
-function learnEndButtons(): InlineButton[][] {
-  return [
-    [{ text: "Start a small habit", callbackData: "path:habit" }],
-    [{ text: "Ask something else", callbackData: "menu" }],
-  ];
+function learnEndKeyboard(): string[][] {
+  return [["Start a small habit"], ["Ask something else"]];
 }
 
 function learnPageReply(pageIndex: number): TelegramReply {
   const text = LEARN_PAGES[pageIndex] ?? LEARN_PAGES[LEARN_PAGES.length - 1]!;
   const isLast = pageIndex >= LEARN_PAGES.length - 1;
   if (isLast) {
-    return reply(text, learnEndButtons());
+    return reply(text, { replyKeyboard: learnEndKeyboard() });
   }
-  return reply(text, [
-    [{ text: "Next", callbackData: `learn:${pageIndex + 1}` }],
-    [{ text: "Back to menu", callbackData: "menu" }],
-  ]);
+  return reply(text, {
+    replyKeyboard: [["Next"], ["Back to menu"]],
+  });
 }
 
 function save(
@@ -176,9 +141,12 @@ function beginHabitPath(
   deps: TelegramDeps,
   config: TelegramConfig,
 ): TelegramReply[] {
-  save(deps, { ...session, step: "ask_debt" }, config);
+  save(deps, { ...session, step: "ask_debt", learnPage: null }, config);
   return [
-    reply("Let's set up a small habit. A few optional questions first — tap Skip anytime, or /skip."),
+    reply(
+      "Let's set up a small habit. A few optional questions first — choose Skip anytime, or /skip.",
+      { removeKeyboard: true },
+    ),
     debtQuestion(),
   ];
 }
@@ -188,64 +156,60 @@ function showMenu(
   deps: TelegramDeps,
   config: TelegramConfig,
 ): TelegramReply[] {
-  save(deps, { ...session, step: "menu", pendingPdfFileId: null }, config);
+  save(
+    deps,
+    { ...session, step: "menu", pendingPdfFileId: null, learnPage: null },
+    config,
+  );
   return [
-    reply("Pick a path — habit setup or learning. No purchase starts from this menu.", pathMenuButtons()),
+    reply("Pick a path — habit setup or learning. No purchase starts from this menu.", {
+      replyKeyboard: pathMenuKeyboard(),
+    }),
   ];
 }
 
 function debtQuestion(): TelegramReply {
-  return reply("Do you have debts we should keep in mind? (rent loans, Fuliza, school…)", [
-    [
-      { text: "Yes", callbackData: "debt:yes" },
-      { text: "No", callbackData: "debt:no" },
-      { text: "Skip", callbackData: "skip" },
-    ],
-  ]);
+  return reply("Do you have debts we should keep in mind? (rent loans, Fuliza, school…)", {
+    replyKeyboard: [["Yes", "No", "Skip"]],
+  });
 }
 
 function debtNameQuestion(): TelegramReply {
-  return reply("What do you call this debt?", [
-    [{ text: "Skip", callbackData: "skip" }],
-  ]);
+  return reply("What do you call this debt?", {
+    replyKeyboard: [["Skip"]],
+  });
 }
 
 function debtAmountQuestion(label: string): TelegramReply {
   return reply(
-    `Noted: ${label}. About how much do you owe in whole KES? Tap Skip if you're not sure.`,
-    [[{ text: "Skip", callbackData: "skip" }]],
+    `Noted: ${label}. About how much do you owe in whole KES? Choose Skip if you're not sure.`,
+    { replyKeyboard: [["Skip"]] },
   );
 }
 
 function chamaQuestion(): TelegramReply {
-  return reply("Are you in a chama?", [
-    [
-      { text: "Yes", callbackData: "chama:yes" },
-      { text: "No", callbackData: "chama:no" },
-      { text: "Skip", callbackData: "skip" },
-    ],
-  ]);
+  return reply("Are you in a chama?", {
+    replyKeyboard: [["Yes", "No", "Skip"]],
+  });
 }
 
 function chamaNameQuestion(): TelegramReply {
-  return reply("What do you call this chama?", [
-    [{ text: "Skip", callbackData: "skip" }],
-  ]);
+  return reply("What do you call this chama?", {
+    replyKeyboard: [["Skip"]],
+  });
 }
 
 function chamaAmountQuestion(label: string): TelegramReply {
   return reply(
-    `Noted: ${label}. About how much do you contribute monthly in whole KES? Tap Skip if you're not sure.`,
-    [[{ text: "Skip", callbackData: "skip" }]],
+    `Noted: ${label}. About how much do you contribute monthly in whole KES? Choose Skip if you're not sure.`,
+    { replyKeyboard: [["Skip"]] },
   );
 }
 
 function goalQuestion(): TelegramReply {
-  return reply("What matters most right now?", [
-    [{ text: "Emergency buffer", callbackData: "goal:buffer" }],
-    [{ text: "Long-term saving", callbackData: "goal:long" }],
-    [{ text: "Skip", callbackData: "skip" }],
-  ]);
+  return reply("What matters most right now?", {
+    replyKeyboard: [["Emergency buffer"], ["Long-term saving"], ["Skip"]],
+  });
 }
 
 function importPrompt(): TelegramReply {
@@ -257,7 +221,7 @@ function importPrompt(): TelegramReply {
       "",
       "Or try the labeled demo:",
     ].join("\n"),
-    [[{ text: "Demo Amina (labeled demo)", callbackData: "demo:amina" }]],
+    { replyKeyboard: [["Demo Amina (labeled demo)"]] },
   );
 }
 
@@ -271,9 +235,9 @@ function pdfPasswordPrompt(): TelegramReply {
       "For the demo fixture, reply with: demo-statement",
       "",
       "We use it only to open the file and do not keep it.",
-      "If this PDF has no password, tap Skip.",
+      "If this PDF has no password, choose Skip (no password).",
     ].join("\n"),
-    [[{ text: "Skip (no password)", callbackData: "skip" }]],
+    { replyKeyboard: [["Skip (no password)"]] },
   );
 }
 
@@ -288,10 +252,16 @@ function afterProfile(
   config: TelegramConfig,
   options: { isDemo?: boolean } = {},
 ): TelegramReply[] {
-  const next = save(deps, { ...session, profile, step: "ready", pendingPdfFileId: null }, config);
+  const next = save(
+    deps,
+    { ...session, profile, step: "ready", pendingPdfFileId: null, learnPage: null },
+    config,
+  );
   const ready = next.profile!;
   const replies: TelegramReply[] = [
-    reply(profileSummary(ready, { isDemo: options.isDemo }), readyButtons(ready)),
+    reply(profileSummary(ready, { isDemo: options.isDemo }), {
+      replyKeyboard: readyButtons(ready),
+    }),
   ];
   const largest = largestPaymentsText(ready);
   if (largest) {
@@ -308,7 +278,7 @@ async function tryOpenPendingPdf(
 ): Promise<TelegramReply[]> {
   if (!session.pendingPdfFileId) {
     save(deps, { ...session, step: "awaiting_import" }, config);
-    return [reply("Upload the PDF again."), importPrompt()];
+    return [reply("Upload the PDF again.", { removeKeyboard: true }), importPrompt()];
   }
   const fileId = session.pendingPdfFileId;
   try {
@@ -332,7 +302,8 @@ async function tryOpenPendingPdf(
       );
       return [
         reply(
-          "That password did not open the PDF. Enter the statement password again (or tap Skip if it has none).",
+          "That password did not open the PDF. Enter the statement password again (or choose Skip if it has none).",
+          { removeKeyboard: true },
         ),
         pdfPasswordPrompt(),
       ];
@@ -343,10 +314,63 @@ async function tryOpenPendingPdf(
       config,
     );
     return [
-      reply(`${message}\n\nTry again, paste SMS, or use the labeled demo.`),
+      reply(`${message}\n\nTry again, paste SMS, or use the labeled demo.`, {
+        removeKeyboard: true,
+      }),
       importPrompt(),
     ];
   }
+}
+
+/**
+ * Map reply-keyboard labels (and typed equivalents) to the same callback ids
+ * the state machine already understands.
+ */
+function choiceToCallback(session: TelegramSession, text: string): string | null {
+  const t = text.trim();
+
+  if (t === "Start a small habit") return "path:habit";
+  if (t === "Learn about Bitcoin") return "path:learn";
+  if (t === "Ask something else" || t === "Back to menu") return "menu";
+  if (t === "Skip" || t === "Skip (no password)") return "skip";
+  if (t === "Demo Amina (labeled demo)") return "demo:amina";
+  if (t === "Emergency buffer") return "goal:buffer";
+  if (t === "Long-term saving") return "goal:long";
+  if (t === "Set habit") return "habit";
+  if (t === "Review investment") return "invest";
+  if (t === "Show breakdown") return "breakdown";
+  if (t === "Remind me on the 1st") return "remind";
+  if (t === "Use 07…@bitcoin.co.ke") return "dest:bitcoincke";
+
+  if (t === "Next" && session.step === "learn") {
+    const next = (session.learnPage ?? 0) + 1;
+    return `learn:${next}`;
+  }
+
+  if (t === "Yes") {
+    if (session.step === "ask_debt") return "debt:yes";
+    if (session.step === "ask_chama") return "chama:yes";
+  }
+  if (t === "No") {
+    if (session.step === "ask_debt") return "debt:no";
+    if (session.step === "ask_chama") return "chama:no";
+  }
+
+  if (session.step === "habit_cadence") {
+    if (t === "Monthly") return "cadence:monthly";
+    if (t === "Weekly") return "cadence:weekly";
+  }
+
+  if (session.step === "invest_confirm") {
+    if (t === "Approve") return "approve";
+    if (t === "Cancel") return "cancel_invest";
+  }
+
+  if (session.step === "invest_destination" && t === "Cancel") {
+    return "cancel_invest";
+  }
+
+  return null;
 }
 
 export async function handleTelegram(
@@ -371,7 +395,7 @@ export async function handleTelegram(
     session = save(deps, newSession(chatId, deps.now(), config.sessionTtlMs, "menu"), config);
     return {
       replies: [
-        reply("Session started."),
+        reply("Session started.", { removeKeyboard: true }),
         startMenuReply(),
       ],
       callbackQueryId,
@@ -396,7 +420,7 @@ export async function handleTelegram(
             "• Start a small habit — optional questions → statement → summary → habit → reminder → review/approve.",
             "• Learn about Bitcoin — short education in chat (no statement, no purchase).",
             "",
-            "Send SMS paste or a PDF only when the habit path asks. You approve every purchase.",
+            "Choices appear as your own messages (reply buttons). Send SMS paste or a PDF only when the habit path asks. You approve every purchase.",
           ].join("\n"),
         ),
       ],
@@ -405,12 +429,12 @@ export async function handleTelegram(
   }
 
   if (inbound.kind === "callback") {
+    // Legacy inline buttons still in chat history — no bot "You chose" echo.
     const replies = await onCallback(session, inbound.data, deps, config);
-    const choice = callbackChoiceLabel(inbound.data);
     return {
-      replies: withChoiceEcho(inbound.data, replies),
+      replies,
       callbackQueryId,
-      callbackAnswerText: choice ? `You chose: ${choice}` : null,
+      callbackAnswerText: null,
     };
   }
 
@@ -431,7 +455,11 @@ export async function handleTelegram(
   }
 
   return {
-    replies: [reply("Send /start to begin, or use the menu buttons.")],
+    replies: [
+      reply("Send /start to begin, or use the reply buttons.", {
+        replyKeyboard: pathMenuKeyboard(),
+      }),
+    ],
     callbackQueryId,
   };
 }
@@ -501,7 +529,7 @@ async function onCallback(
   }
 
   if (data === "path:learn" || data === "learn:0") {
-    save(deps, { ...session, step: "learn", pendingPdfFileId: null }, config);
+    save(deps, { ...session, step: "learn", pendingPdfFileId: null, learnPage: 0 }, config);
     return [learnPageReply(0)];
   }
 
@@ -510,7 +538,7 @@ async function onCallback(
     if (!Number.isInteger(page) || page < 0 || page >= LEARN_PAGES.length) {
       return showMenu(session, deps, config);
     }
-    save(deps, { ...session, step: "learn" }, config);
+    save(deps, { ...session, step: "learn", learnPage: page }, config);
     return [learnPageReply(page)];
   }
 
@@ -574,29 +602,48 @@ async function onCallback(
     if (session.step === "menu" || session.step === "learn") {
       return showMenu(session, deps, config);
     }
-    return [reply("Import a statement first, or tap Demo Amina."), importPrompt()];
+    return [
+      reply("Import a statement first, or choose Demo Amina."),
+      importPrompt(),
+    ];
   }
 
   if (data === "breakdown") {
-    return [reply(breakdownText(session.profile), readyButtons(session.profile))];
+    return [
+      reply(breakdownText(session.profile), {
+        replyKeyboard: readyButtons(session.profile),
+      }),
+    ];
   }
 
   if (data === "habit") {
     const offer = habitOffer(session.profile);
     if (!offer.ok) {
-      return [reply(offer.reason, readyButtons(session.profile))];
+      return [
+        reply(offer.reason, { replyKeyboard: readyButtons(session.profile) }),
+      ];
     }
     save(deps, { ...session, step: "habit_amount" }, config);
     return [
       reply(
         `How much each time? Whole KES, up to ${offer.maxKes.toLocaleString("en-KE")} (the safe floor).`,
+        { removeKeyboard: true },
       ),
     ];
   }
 
   if (data === "cadence:monthly" || data === "cadence:weekly") {
     if (session.step !== "habit_cadence" || !session.profile?.investmentPlan) {
-      return [reply("Set the habit amount first."), ...(session.profile ? [reply(profileSummary(session.profile), readyButtons(session.profile))] : [])];
+      return [
+        reply("Set the habit amount first."),
+        ...(session.profile
+          ? [
+              reply(profileSummary(session.profile), {
+                replyKeyboard: readyButtons(session.profile),
+              }),
+            ]
+          : []),
+      ];
     }
     const cadence = data === "cadence:weekly" ? "weekly" : "monthly";
     const amount = session.profile.investmentPlan.amountKes;
@@ -605,7 +652,7 @@ async function onCallback(
     return [
       reply(
         `Habit saved: KES ${amount.toLocaleString("en-KE")} / ${cadence}. Nothing is sent until you approve a purchase.`,
-        readyButtons(profile),
+        { replyKeyboard: readyButtons(profile) },
       ),
     ];
   }
@@ -614,7 +661,9 @@ async function onCallback(
     const plan = session.profile.investmentPlan;
     if (!plan) {
       return [
-        reply("Save the habit first. The reminder uses that saved amount.", readyButtons(session.profile)),
+        reply("Save the habit first. The reminder uses that saved amount.", {
+          replyKeyboard: readyButtons(session.profile),
+        }),
       ];
     }
     const reminder = {
@@ -628,7 +677,7 @@ async function onCallback(
     return [
       reply(
         `Reminder set for the 1st: review KES ${plan.amountKes.toLocaleString("en-KE")}. You approve each purchase. Nothing is sent on its own.`,
-        readyButtons(session.profile),
+        { replyKeyboard: readyButtons(session.profile) },
       ),
     ];
   }
@@ -636,24 +685,28 @@ async function onCallback(
   if (data === "invest") {
     const allowance = investAllowance(session.profile);
     if (!allowance.ok) {
-      return [reply(allowance.reason, readyButtons(session.profile))];
+      return [
+        reply(allowance.reason, { replyKeyboard: readyButtons(session.profile) }),
+      ];
     }
     if (!session.profile.investmentPlan?.amountKes) {
       return [
-        reply("Save a habit amount first.", readyButtons(session.profile)),
+        reply("Save a habit amount first.", {
+          replyKeyboard: readyButtons(session.profile),
+        }),
       ];
     }
     if (!deps.bitikaConfigured()) {
       return [
         reply(
           "BITIKA_API_KEY is not configured on the server. Purchases stop here — same as the web app.",
-          readyButtons(session.profile),
+          { replyKeyboard: readyButtons(session.profile) },
         ),
       ];
     }
     save(deps, { ...session, step: "invest_phone", purchasePhone: null, purchaseDestination: null }, config);
     return [
-      reply(investReviewText(session.profile)),
+      reply(investReviewText(session.profile), { removeKeyboard: true }),
       reply("Send the M-Pesa phone that will pay (07… or 254…)."),
     ];
   }
@@ -688,11 +741,13 @@ async function onCallback(
   if (data === "cancel_invest") {
     save(deps, { ...session, step: "ready", purchasePhone: null, purchaseDestination: null }, config);
     return [
-      reply("Cancelled. Nothing was sent.", readyButtons(session.profile)),
+      reply("Cancelled. Nothing was sent.", {
+        replyKeyboard: readyButtons(session.profile),
+      }),
     ];
   }
 
-  return [reply("Unknown action. Send /start or use the buttons.")];
+  return [reply("Unknown action. Send /start or use the reply buttons.")];
 }
 
 function confirmButtons(
@@ -708,14 +763,9 @@ function confirmButtons(
         `M-Pesa: ${phone}`,
         `Lightning: ${destination}`,
         "",
-        "Bitcoin can lose value. Tap Approve only if you want to start this buy.",
+        "Bitcoin can lose value. Send Approve only if you want to start this buy.",
       ].join("\n"),
-      [
-        [
-          { text: "Approve", callbackData: "approve" },
-          { text: "Cancel", callbackData: "cancel_invest" },
-        ],
-      ],
+      { replyKeyboard: [["Approve", "Cancel"]] },
     ),
   ];
 }
@@ -726,23 +776,26 @@ async function runApprovedPurchase(
   config: TelegramConfig,
 ): Promise<TelegramReply[]> {
   if (!session.profile || !session.purchasePhone || !session.purchaseDestination) {
-    return [reply("Missing purchase details. Tap Review investment again.")];
+    return [reply("Missing purchase details. Choose Review investment again.")];
   }
   if (session.step !== "invest_confirm") {
     return [reply("Approve only from the confirm step. Nothing was sent.")];
   }
   if (!deps.bitikaConfigured()) {
     return [
-      reply(
-        "BITIKA_API_KEY is not configured. Purchase stopped.",
-        readyButtons(session.profile),
-      ),
+      reply("BITIKA_API_KEY is not configured. Purchase stopped.", {
+        replyKeyboard: readyButtons(session.profile),
+      }),
     ];
   }
 
   const amountKes = session.profile.investmentPlan?.amountKes;
   if (!amountKes) {
-    return [reply("Save a habit amount first.", readyButtons(session.profile))];
+    return [
+      reply("Save a habit amount first.", {
+        replyKeyboard: readyButtons(session.profile),
+      }),
+    ];
   }
 
   try {
@@ -774,13 +827,15 @@ async function runApprovedPurchase(
     return [
       reply(
         `Purchase started (${purchase.purchaseId}). Status: ${purchase.status}.${sats} Check your phone for M-Pesa if live.`,
-        readyButtons(session.profile),
+        { replyKeyboard: readyButtons(session.profile) },
       ),
     ];
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Could not start the purchase.";
-    return [reply(message, readyButtons(session.profile))];
+    return [
+      reply(message, { replyKeyboard: readyButtons(session.profile) }),
+    ];
   }
 }
 
@@ -793,8 +848,8 @@ async function onDocument(
   if (session.step === "menu" || session.step === "learn") {
     return [
       reply(
-        "Learning and the menu do not need a statement. Tap Start a small habit when you want to import.",
-        pathMenuButtons(),
+        "Learning and the menu do not need a statement. Choose Start a small habit when you want to import.",
+        { replyKeyboard: pathMenuKeyboard() },
       ),
     ];
   }
@@ -816,7 +871,7 @@ async function onDocument(
     config,
   );
   return [
-    reply("PDF received."),
+    reply("PDF received.", { removeKeyboard: true }),
     pdfPasswordPrompt(),
   ];
 }
@@ -827,6 +882,11 @@ async function onText(
   deps: TelegramDeps,
   config: TelegramConfig,
 ): Promise<TelegramReply[]> {
+  const choice = choiceToCallback(session, text);
+  if (choice) {
+    return onCallback(session, choice, deps, config);
+  }
+
   if (session.step === "menu") {
     return showMenu(session, deps, config);
   }
@@ -834,10 +894,22 @@ async function onText(
   if (session.step === "learn") {
     return [
       reply(
-        "You're in the learning path — no statement or purchase from here. Use Next, or the buttons below.",
-        learnEndButtons(),
+        "You're in the learning path — no statement or purchase from here. Choose Next, or use the buttons below.",
+        { replyKeyboard: learnEndKeyboard() },
       ),
     ];
+  }
+
+  if (session.step === "ask_debt") {
+    return [debtQuestion()];
+  }
+
+  if (session.step === "ask_chama") {
+    return [chamaQuestion()];
+  }
+
+  if (session.step === "ask_goal") {
+    return [goalQuestion()];
   }
 
   if (session.step === "ask_debt_name") {
@@ -857,9 +929,9 @@ async function onText(
     const amount = parseWholeKes(text);
     if (amount === null) {
       return [
-        reply("Send a whole number of shillings, with no decimals. Or tap Skip.", [
-          [{ text: "Skip", callbackData: "skip" }],
-        ]),
+        reply("Send a whole number of shillings, with no decimals. Or choose Skip.", {
+          replyKeyboard: [["Skip"]],
+        }),
       ];
     }
     const existing = session.onboarding.debts[0];
@@ -892,9 +964,9 @@ async function onText(
     const amount = parseWholeKes(text);
     if (amount === null) {
       return [
-        reply("Send a whole number of shillings, with no decimals. Or tap Skip.", [
-          [{ text: "Skip", callbackData: "skip" }],
-        ]),
+        reply("Send a whole number of shillings, with no decimals. Or choose Skip.", {
+          replyKeyboard: [["Skip"]],
+        }),
       ];
     }
     const existing = session.onboarding.chamaMemberships[0];
@@ -923,7 +995,9 @@ async function onText(
       const message =
         error instanceof Error ? error.message : "Could not read those messages.";
       return [
-        reply(`${message}\n\nTry a fuller paste, a PDF, or Demo Amina.`),
+        reply(`${message}\n\nTry a fuller paste, a PDF, or Demo Amina.`, {
+          removeKeyboard: true,
+        }),
         importPrompt(),
       ];
     }
@@ -936,7 +1010,9 @@ async function onText(
     const offer = habitOffer(session.profile);
     if (!offer.ok) {
       save(deps, { ...session, step: "ready" }, config);
-      return [reply(offer.reason, readyButtons(session.profile))];
+      return [
+        reply(offer.reason, { replyKeyboard: readyButtons(session.profile) }),
+      ];
     }
     const amount = parseWholeKes(text);
     if (amount === null) {
@@ -952,12 +1028,17 @@ async function onText(
     const profile = planWithAmount(session.profile, amount, "monthly");
     save(deps, { ...session, profile, step: "habit_cadence" }, config);
     return [
-      reply("Monthly is the default. Weekly is optional.", [
-        [
-          { text: "Monthly", callbackData: "cadence:monthly" },
-          { text: "Weekly", callbackData: "cadence:weekly" },
-        ],
-      ]),
+      reply("Monthly is the default. Weekly is optional.", {
+        replyKeyboard: [["Monthly", "Weekly"]],
+      }),
+    ];
+  }
+
+  if (session.step === "habit_cadence") {
+    return [
+      reply("Monthly is the default. Weekly is optional.", {
+        replyKeyboard: [["Monthly", "Weekly"]],
+      }),
     ];
   }
 
@@ -966,10 +1047,9 @@ async function onText(
       const phone = toBitikaPhone(text);
       save(deps, { ...session, purchasePhone: phone, step: "invest_destination" }, config);
       return [
-        reply("Send a Lightning address (you@host), or use bitcoin.co.ke from this phone.", [
-          [{ text: "Use 07…@bitcoin.co.ke", callbackData: "dest:bitcoincke" }],
-          [{ text: "Cancel", callbackData: "cancel_invest" }],
-        ]),
+        reply("Send a Lightning address (you@host), or use bitcoin.co.ke from this phone.", {
+          replyKeyboard: [["Use 07…@bitcoin.co.ke"], ["Cancel"]],
+        }),
       ];
     } catch (error) {
       return [
@@ -990,21 +1070,27 @@ async function onText(
       return confirmButtons(session.profile, session.purchasePhone ?? "", destination);
     } catch (error) {
       return [
-        reply(error instanceof Error ? error.message : "Enter a Lightning address."),
+        reply(error instanceof Error ? error.message : "Enter a Lightning address.", {
+          replyKeyboard: [["Use 07…@bitcoin.co.ke"], ["Cancel"]],
+        }),
       ];
     }
   }
 
-  if (
-    session.step === "ask_debt" ||
-    session.step === "ask_chama" ||
-    session.step === "ask_goal"
-  ) {
-    return advanceSkip(session, deps, config);
+  if (session.step === "invest_confirm") {
+    return confirmButtons(
+      session.profile,
+      session.purchasePhone ?? "",
+      session.purchaseDestination ?? "",
+    );
   }
 
   if (session.profile) {
-    return [reply(profileSummary(session.profile), readyButtons(session.profile))];
+    return [
+      reply(profileSummary(session.profile), {
+        replyKeyboard: readyButtons(session.profile),
+      }),
+    ];
   }
 
   return [importPrompt()];
@@ -1022,5 +1108,5 @@ export const __testOnly = {
   importPrompt,
   pdfPasswordPrompt,
   afterProfile,
-  pathMenuButtons,
+  pathMenuKeyboard,
 };

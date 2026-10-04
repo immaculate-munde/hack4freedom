@@ -21,6 +21,7 @@ export function newSession(
     onboarding: emptyOnboarding(),
     profile: null,
     pendingPdfFileId: null,
+    learnPage: null,
     reminder: null,
     purchasePhone: null,
     purchaseDestination: null,

@@ -9,7 +9,6 @@ import {
   investAllowance,
   type FinancialProfile,
 } from "@pesasense/core";
-import type { InlineButton } from "./types";
 
 function kes(amount: number): string {
   return `KES ${Math.round(amount).toLocaleString("en-KE")}`;
@@ -191,19 +190,20 @@ export function largestPaymentsText(profile: FinancialProfile): string | null {
   return lines.join("\n");
 }
 
-export function readyButtons(profile: FinancialProfile): InlineButton[][] {
+/** Reply-keyboard rows for the ready / post-import actions. */
+export function readyButtons(profile: FinancialProfile): string[][] {
   const bufferFirst = profile.resilience.bufferFirst || profile.surplus.bufferFirst;
   const floor = Math.round(profile.surplus.monthlyKes.floor);
-  const rows: InlineButton[][] = [];
+  const rows: string[][] = [];
   if (!bufferFirst && floor > 0) {
-    rows.push([{ text: "Set habit", callbackData: "habit" }]);
+    rows.push(["Set habit"]);
   }
   const allowance = investAllowance(profile);
   if (allowance.ok && profile.investmentPlan?.amountKes) {
-    rows.push([{ text: "Review investment", callbackData: "invest" }]);
+    rows.push(["Review investment"]);
   }
-  rows.push([{ text: "Show breakdown", callbackData: "breakdown" }]);
-  rows.push([{ text: "Remind me on the 1st", callbackData: "remind" }]);
+  rows.push(["Show breakdown"]);
+  rows.push(["Remind me on the 1st"]);
   return rows;
 }
 
@@ -239,6 +239,6 @@ export function investReviewText(profile: FinancialProfile): string {
     PAST_PERFORMANCE_DISCLAIMER,
     "",
     "We'll remind you on the 1st. You approve each purchase.",
-    "Nothing is sent until you tap Approve.",
+    "Nothing is sent until you send Approve.",
   ].join("\n");
 }

@@ -8,7 +8,7 @@ import {
   profileSummary,
 } from "./summary";
 import { createMemoryTelegramStore } from "./store";
-import type { TelegramPurchaseInput } from "./types";
+import type { TelegramPurchaseInput, TelegramReply } from "./types";
 
 function config() {
   return telegramConfigFromEnv({
@@ -61,16 +61,16 @@ function harness(options?: {
     return handleTelegram(chatId, inbound, deps, config());
   }
 
-  /** /start then choose the investment / habit path. */
+  /** /start then choose the investment / habit path via reply-keyboard label. */
   async function startHabit(chatId: number) {
     await send(chatId, { kind: "command", command: "/start", args: "" });
-    return send(chatId, { kind: "callback", data: "path:habit" });
+    return send(chatId, { kind: "text", text: "Start a small habit" });
   }
 
   async function reachImport(chatId: number) {
     await startHabit(chatId);
     for (let i = 0; i < 3; i += 1) {
-      await send(chatId, { kind: "callback", data: "skip" });
+      await send(chatId, { kind: "text", text: "Skip" });
     }
   }
 
@@ -90,19 +90,20 @@ function harness(options?: {
   };
 }
 
-function buttonLabels(result: { replies: { buttons?: { text: string }[][] }[] }) {
-  return result.replies.flatMap((r) =>
-    (r.buttons ?? []).flatMap((row) => row.map((b) => b.text)),
-  );
+/** Labels from reply keyboards (preferred) or legacy inline buttons. */
+function buttonLabels(result: { replies: TelegramReply[] }) {
+  return result.replies.flatMap((r) => {
+    if (r.replyKeyboard) return r.replyKeyboard.flat();
+    return (r.buttons ?? []).flatMap((row) => row.map((b) => b.text));
+  });
 }
 
 function allText(result: { replies: { text: string }[] }) {
   return result.replies.map((r) => r.text).join("\n");
 }
 
-/** First non-echo reply (skips "You chose: …" ack lines). */
 function firstBody(result: { replies: { text: string }[] }) {
-  return result.replies.find((r) => !r.text.startsWith("You chose:"))?.text ?? "";
+  return result.replies[0]?.text ?? "";
 }
 
 describe("telegram handle", () => {
@@ -118,6 +119,7 @@ describe("telegram handle", () => {
       "Start a small habit",
       "Learn about Bitcoin",
     ]);
+    expect(result.replies[0]?.replyKeyboard).toBeDefined();
     expect(h.store.getSession(1)?.step).toBe("menu");
     expect(h.purchases).toHaveLength(0);
   });
@@ -141,16 +143,17 @@ describe("telegram handle", () => {
     expect(text).toMatch(/no statement/i);
   });
 
-  it("echoes the tapped button as a chat message", async () => {
+  it("treats reply-keyboard labels as user text with no bot echo", async () => {
     const h = harness();
     await h.send(30, { kind: "command", command: "/start", args: "" });
-    const started = await h.send(30, { kind: "callback", data: "path:habit" });
-    expect(started.replies[0]?.text).toBe("You chose: Start a small habit");
-    expect(started.callbackAnswerText).toBe("You chose: Start a small habit");
+    const started = await h.send(30, { kind: "text", text: "Start a small habit" });
+    expect(allText(started)).not.toMatch(/You chose:/);
+    expect(started.callbackAnswerText).toBeUndefined();
     expect(allText(started)).toMatch(/optional questions/i);
+    expect(buttonLabels(started)).toEqual(["Yes", "No", "Skip"]);
 
-    const yes = await h.send(30, { kind: "callback", data: "debt:yes" });
-    expect(yes.replies[0]?.text).toBe("You chose: Yes");
+    const yes = await h.send(30, { kind: "text", text: "Yes" });
+    expect(allText(yes)).not.toMatch(/You chose:/);
     expect(firstBody(yes)).toMatch(/What do you call this debt/i);
   });
 
@@ -159,12 +162,12 @@ describe("telegram handle", () => {
     const started = await h.startHabit(7);
     expect(allText(started)).toMatch(/optional questions/i);
     expect(h.store.getSession(7)?.step).toBe("ask_debt");
-    await h.send(7, { kind: "callback", data: "skip" });
-    await h.send(7, { kind: "callback", data: "skip" });
-    await h.send(7, { kind: "callback", data: "skip" });
-    const result = await h.send(7, { kind: "callback", data: "demo:amina" });
+    await h.send(7, { kind: "text", text: "Skip" });
+    await h.send(7, { kind: "text", text: "Skip" });
+    await h.send(7, { kind: "text", text: "Skip" });
+    const result = await h.send(7, { kind: "text", text: "Demo Amina (labeled demo)" });
     const text = allText(result);
-    expect(text).toMatch(/You chose: Demo Amina/);
+    expect(text).not.toMatch(/You chose:/);
     expect(text).toMatch(/Demo data/);
     expect(text).toMatch(/Safe surplus/i);
     expect(text).toMatch(/1,500/);
@@ -243,21 +246,23 @@ describe("telegram handle", () => {
   it("Learn about Bitcoin educates without statement or purchase", async () => {
     const h = harness();
     await h.send(20, { kind: "command", command: "/start", args: "" });
-    const page0 = await h.send(20, { kind: "callback", data: "path:learn" });
+    const page0 = await h.send(20, { kind: "text", text: "Learn about Bitcoin" });
     expect(h.store.getSession(20)?.step).toBe("learn");
-    expect(page0.replies[0]?.text).toBe("You chose: Learn about Bitcoin");
+    expect(h.store.getSession(20)?.learnPage).toBe(0);
+    expect(allText(page0)).not.toMatch(/You chose:/);
     expect(firstBody(page0)).toMatch(/small Bitcoin habit/i);
     expect(firstBody(page0)).toMatch(/monthly/i);
     expect(firstBody(page0)).not.toMatch(/\d+\s*sats/i);
     expect(buttonLabels(page0)).toContain("Next");
 
-    const page1 = await h.send(20, { kind: "callback", data: "learn:1" });
-    expect(page1.replies[0]?.text).toBe("You chose: Next");
+    const page1 = await h.send(20, { kind: "text", text: "Next" });
+    expect(allText(page1)).not.toMatch(/You chose:/);
     expect(firstBody(page1)).toMatch(/Lightning/i);
     expect(firstBody(page1)).toMatch(/does not send/i);
     expect(firstBody(page1)).toMatch(/approve each purchase/i);
+    expect(h.store.getSession(20)?.learnPage).toBe(1);
 
-    const page2 = await h.send(20, { kind: "callback", data: "learn:2" });
+    const page2 = await h.send(20, { kind: "text", text: "Next" });
     expect(firstBody(page2)).toMatch(/lose value/i);
     expect(firstBody(page2)).toMatch(/not financial advice/i);
     expect(firstBody(page2)).toMatch(/surplus floor/i);
@@ -278,8 +283,8 @@ describe("telegram handle", () => {
     expect(h.store.getSession(20)?.step).toBe("learn");
     expect(h.purchases).toHaveLength(0);
 
-    const toHabit = await h.send(20, { kind: "callback", data: "path:habit" });
-    expect(allText(toHabit)).toMatch(/You chose: Start a small habit/);
+    const toHabit = await h.send(20, { kind: "text", text: "Start a small habit" });
+    expect(allText(toHabit)).not.toMatch(/You chose:/);
     expect(allText(toHabit)).toMatch(/optional questions/i);
     expect(h.store.getSession(20)?.step).toBe("ask_debt");
   });
@@ -287,10 +292,10 @@ describe("telegram handle", () => {
   it("Ask something else returns to the menu", async () => {
     const h = harness();
     await h.send(21, { kind: "command", command: "/start", args: "" });
-    await h.send(21, { kind: "callback", data: "path:learn" });
-    await h.send(21, { kind: "callback", data: "learn:1" });
-    await h.send(21, { kind: "callback", data: "learn:2" });
-    const menu = await h.send(21, { kind: "callback", data: "menu" });
+    await h.send(21, { kind: "text", text: "Learn about Bitcoin" });
+    await h.send(21, { kind: "text", text: "Next" });
+    await h.send(21, { kind: "text", text: "Next" });
+    const menu = await h.send(21, { kind: "text", text: "Ask something else" });
     expect(h.store.getSession(21)?.step).toBe("menu");
     expect(buttonLabels(menu)).toContain("Learn about Bitcoin");
   });
@@ -298,8 +303,8 @@ describe("telegram handle", () => {
   it("asks for debt name and amount on Yes, then continues to chama", async () => {
     const h = harness();
     await h.startHabit(8);
-    const yes = await h.send(8, { kind: "callback", data: "debt:yes" });
-    expect(allText(yes)).toMatch(/You chose: Yes/);
+    const yes = await h.send(8, { kind: "text", text: "Yes" });
+    expect(allText(yes)).not.toMatch(/You chose:/);
     expect(allText(yes)).toMatch(/What do you call this debt/i);
     expect(allText(yes)).not.toMatch(/web app/i);
     expect(h.store.getSession(8)?.step).toBe("ask_debt_name");
@@ -324,10 +329,10 @@ describe("telegram handle", () => {
   it("allows Skip on debt name without forcing the web app", async () => {
     const h = harness();
     await h.startHabit(9);
-    await h.send(9, { kind: "callback", data: "debt:yes" });
-    const skipped = await h.send(9, { kind: "callback", data: "skip" });
+    await h.send(9, { kind: "text", text: "Yes" });
+    const skipped = await h.send(9, { kind: "text", text: "Skip" });
     const text = allText(skipped);
-    expect(text).toMatch(/You chose: Skip/);
+    expect(text).not.toMatch(/You chose:/);
     expect(text).not.toMatch(/web app/i);
     expect(text).toMatch(/chama/i);
     expect(h.store.getSession(9)?.onboarding.debts).toEqual([]);
@@ -337,9 +342,9 @@ describe("telegram handle", () => {
   it("allows Skip on debt amount and keeps the name with balance 0", async () => {
     const h = harness();
     await h.startHabit(10);
-    await h.send(10, { kind: "callback", data: "debt:yes" });
+    await h.send(10, { kind: "text", text: "Yes" });
     await h.send(10, { kind: "text", text: "School fees" });
-    const skipped = await h.send(10, { kind: "callback", data: "skip" });
+    const skipped = await h.send(10, { kind: "text", text: "Skip" });
     expect(allText(skipped)).toMatch(/chama/i);
     expect(h.store.getSession(10)?.onboarding.debts).toEqual([
       { label: "School fees", balanceKes: 0 },
@@ -350,9 +355,9 @@ describe("telegram handle", () => {
   it("asks for chama name and monthly contribution on Yes, then continues to goal", async () => {
     const h = harness();
     await h.startHabit(40);
-    await h.send(40, { kind: "callback", data: "skip" }); // debt
-    const yes = await h.send(40, { kind: "callback", data: "chama:yes" });
-    expect(allText(yes)).toMatch(/You chose: Yes/);
+    await h.send(40, { kind: "text", text: "Skip" }); // debt
+    const yes = await h.send(40, { kind: "text", text: "Yes" });
+    expect(allText(yes)).not.toMatch(/You chose:/);
     expect(allText(yes)).toMatch(/What do you call this chama/i);
     expect(allText(yes)).not.toMatch(/web app|refine/i);
     expect(h.store.getSession(40)?.step).toBe("ask_chama_name");
@@ -377,9 +382,9 @@ describe("telegram handle", () => {
   it("allows Skip on chama name → empty memberships, then goal", async () => {
     const h = harness();
     await h.startHabit(41);
-    await h.send(41, { kind: "callback", data: "skip" });
-    await h.send(41, { kind: "callback", data: "chama:yes" });
-    const skipped = await h.send(41, { kind: "callback", data: "skip" });
+    await h.send(41, { kind: "text", text: "Skip" });
+    await h.send(41, { kind: "text", text: "Yes" });
+    const skipped = await h.send(41, { kind: "text", text: "Skip" });
     expect(allText(skipped)).toMatch(/No chama details noted/i);
     expect(allText(skipped)).toMatch(/What matters most/i);
     expect(h.store.getSession(41)?.onboarding.chamaMemberships).toEqual([]);
@@ -389,10 +394,10 @@ describe("telegram handle", () => {
   it("allows Skip on chama amount and keeps the name with contribution 0", async () => {
     const h = harness();
     await h.startHabit(42);
-    await h.send(42, { kind: "callback", data: "skip" });
-    await h.send(42, { kind: "callback", data: "chama:yes" });
+    await h.send(42, { kind: "text", text: "Skip" });
+    await h.send(42, { kind: "text", text: "Yes" });
     await h.send(42, { kind: "text", text: "Table banking" });
-    const skipped = await h.send(42, { kind: "callback", data: "skip" });
+    const skipped = await h.send(42, { kind: "text", text: "Skip" });
     expect(allText(skipped)).toMatch(/What matters most/i);
     expect(h.store.getSession(42)?.onboarding.chamaMemberships).toEqual([
       { name: "Table banking", monthlyContributionKes: 0, kind: "other" },
@@ -404,16 +409,16 @@ describe("telegram handle", () => {
     const h = harness();
     await h.startHabit(2);
     for (let i = 0; i < 3; i += 1) {
-      await h.send(2, { kind: "callback", data: "skip" });
+      await h.send(2, { kind: "text", text: "Skip" });
     }
-    await h.send(2, { kind: "callback", data: "demo:amina" });
-    await h.send(2, { kind: "callback", data: "habit" });
+    await h.send(2, { kind: "text", text: "Demo Amina (labeled demo)" });
+    await h.send(2, { kind: "text", text: "Set habit" });
     const tooHigh = await h.send(2, { kind: "text", text: "2500" });
     expect(tooHigh.replies[0]?.text).toMatch(/above the safe floor/i);
     await h.send(2, { kind: "text", text: "1500" });
-    await h.send(2, { kind: "callback", data: "cadence:monthly" });
-    const remind = await h.send(2, { kind: "callback", data: "remind" });
-    expect(allText(remind)).toMatch(/You chose: Remind me on the 1st/);
+    await h.send(2, { kind: "text", text: "Monthly" });
+    const remind = await h.send(2, { kind: "text", text: "Remind me on the 1st" });
+    expect(allText(remind)).not.toMatch(/You chose:/);
     expect(firstBody(remind)).toMatch(/Reminder set for the 1st/);
     expect(h.purchases).toHaveLength(0);
     expect(h.store.getSession(2)?.reminder?.amountKes).toBe(1500);
@@ -423,24 +428,24 @@ describe("telegram handle", () => {
     const h = harness();
     await h.startHabit(3);
     for (let i = 0; i < 3; i += 1) {
-      await h.send(3, { kind: "callback", data: "skip" });
+      await h.send(3, { kind: "text", text: "Skip" });
     }
-    await h.send(3, { kind: "callback", data: "demo:amina" });
+    await h.send(3, { kind: "text", text: "Demo Amina (labeled demo)" });
     h.setBitika(false);
-    const missing = await h.send(3, { kind: "callback", data: "invest" });
+    const missing = await h.send(3, { kind: "text", text: "Review investment" });
     expect(firstBody(missing)).toMatch(/BITIKA_API_KEY/);
     expect(h.purchases).toHaveLength(0);
 
     h.setBitika(true);
-    await h.send(3, { kind: "callback", data: "invest" });
+    await h.send(3, { kind: "text", text: "Review investment" });
     await h.send(3, { kind: "text", text: "0712345678" });
-    await h.send(3, { kind: "callback", data: "dest:bitcoincke" });
+    await h.send(3, { kind: "text", text: "Use 07…@bitcoin.co.ke" });
     expect(h.purchases).toHaveLength(0);
-    const approved = await h.send(3, { kind: "callback", data: "approve" });
+    const approved = await h.send(3, { kind: "text", text: "Approve" });
     expect(h.purchases).toHaveLength(1);
     expect(h.purchases[0]?.approvedByUser).toBe(true);
     expect(h.purchases[0]?.amountKes).toBe(1500);
-    expect(allText(approved)).toMatch(/You chose: Approve/);
+    expect(allText(approved)).not.toMatch(/You chose:/);
     expect(firstBody(approved)).toMatch(/Purchase started/);
   });
 
@@ -448,12 +453,22 @@ describe("telegram handle", () => {
     const h = harness();
     await h.startHabit(4);
     for (let i = 0; i < 3; i += 1) {
-      await h.send(4, { kind: "callback", data: "skip" });
+      await h.send(4, { kind: "text", text: "Skip" });
     }
-    await h.send(4, { kind: "callback", data: "demo:amina" });
-    const early = await h.send(4, { kind: "callback", data: "approve" });
-    expect(firstBody(early)).toMatch(/Approve only from the confirm step|Missing purchase/);
+    await h.send(4, { kind: "text", text: "Demo Amina (labeled demo)" });
+    const early = await h.send(4, { kind: "text", text: "Approve" });
+    // "Approve" is only wired at invest_confirm; otherwise summary / ready buttons.
+    expect(allText(early)).not.toMatch(/Purchase started/);
     expect(h.purchases).toHaveLength(0);
+  });
+
+  it("still accepts legacy inline callbacks without echoing You chose", async () => {
+    const h = harness();
+    await h.send(60, { kind: "command", command: "/start", args: "" });
+    const started = await h.send(60, { kind: "callback", data: "path:habit" });
+    expect(allText(started)).not.toMatch(/You chose:/);
+    expect(started.callbackAnswerText).toBeNull();
+    expect(h.store.getSession(60)?.step).toBe("ask_debt");
   });
 });
 

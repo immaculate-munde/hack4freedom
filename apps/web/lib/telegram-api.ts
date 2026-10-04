@@ -35,16 +35,38 @@ function inlineKeyboard(buttons: InlineButton[][]) {
   };
 }
 
+function replyKeyboard(rows: string[][]) {
+  return {
+    keyboard: rows.map((row) => row.map((text) => ({ text }))),
+    resize_keyboard: true,
+    one_time_keyboard: true,
+  };
+}
+
+function replyMarkup(reply: TelegramReply): Record<string, unknown> | undefined {
+  if (reply.replyKeyboard && reply.replyKeyboard.length > 0) {
+    return replyKeyboard(reply.replyKeyboard);
+  }
+  if (reply.removeKeyboard) {
+    return { remove_keyboard: true };
+  }
+  if (reply.buttons && reply.buttons.length > 0) {
+    return inlineKeyboard(reply.buttons);
+  }
+  return undefined;
+}
+
 export async function sendTelegramReplies(
   botToken: string,
   chatId: number,
   replies: TelegramReply[],
 ): Promise<void> {
   for (const reply of replies) {
+    const markup = replyMarkup(reply);
     await telegramCall(botToken, "sendMessage", {
       chat_id: chatId,
       text: reply.text,
-      reply_markup: reply.buttons ? inlineKeyboard(reply.buttons) : undefined,
+      ...(markup ? { reply_markup: markup } : {}),
     });
   }
 }

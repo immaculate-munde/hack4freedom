@@ -12,6 +12,8 @@ Telegram → POST /api/telegram/webhook → parseSmsBatch / parseStatement + bui
 
 ## Conversation
 
+Primary choices use **reply keyboards** (not inline callbacks). Tapping a choice sends that label as a normal user message, so it appears as the user's bubble in chat history. The bot then replies with the next question — no "You chose: …" echo.
+
 1. `/start` — what PesaSense does + upload honesty + approve-every-purchase, then a short path menu:
    - **Start a small habit** — investment path (below)
    - **Learn about Bitcoin** — education in Telegram only (no statement, no purchase)
