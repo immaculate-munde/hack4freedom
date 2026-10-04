@@ -50,8 +50,15 @@ function harness() {
     return handleTelegram(chatId, inbound, deps, config());
   }
 
+  /** /start then choose the investment / habit path. */
+  async function startHabit(chatId: number) {
+    await send(chatId, { kind: "command", command: "/start", args: "" });
+    return send(chatId, { kind: "callback", data: "path:habit" });
+  }
+
   return {
     send,
+    startHabit,
     purchases,
     store,
     setBitika(value: boolean) {
@@ -63,8 +70,14 @@ function harness() {
   };
 }
 
+function buttonLabels(result: { replies: { buttons?: { text: string }[][] }[] }) {
+  return result.replies.flatMap((r) =>
+    (r.buttons ?? []).flatMap((row) => row.map((b) => b.text)),
+  );
+}
+
 describe("telegram handle", () => {
-  it("explains honest upload privacy on /start", async () => {
+  it("shows path menu after /start with honest privacy", async () => {
     const h = harness();
     const result = await h.send(1, { kind: "command", command: "/start", args: "" });
     const text = result.replies.map((r) => r.text).join("\n");
@@ -72,11 +85,38 @@ describe("telegram handle", () => {
     expect(text).not.toMatch(/never leave your phone/i);
     expect(text).toMatch(/approve every purchase/i);
     expect(text).toMatch(/never auto-send/i);
+    expect(buttonLabels(result)).toEqual([
+      "Start a small habit",
+      "Learn about Bitcoin",
+    ]);
+    expect(h.store.getSession(1)?.step).toBe("menu");
+    expect(h.purchases).toHaveLength(0);
   });
 
-  it("skips questions and accepts demo Amina", async () => {
+  it("/start resets to the menu from mid-flow", async () => {
     const h = harness();
-    await h.send(7, { kind: "command", command: "/start", args: "" });
+    await h.startHabit(11);
+    expect(h.store.getSession(11)?.step).toBe("ask_debt");
+    const again = await h.send(11, { kind: "command", command: "/start", args: "" });
+    expect(h.store.getSession(11)?.step).toBe("menu");
+    expect(buttonLabels(again)).toContain("Learn about Bitcoin");
+  });
+
+  it("/help mentions both paths", async () => {
+    const h = harness();
+    await h.send(12, { kind: "command", command: "/start", args: "" });
+    const help = await h.send(12, { kind: "command", command: "/help", args: "" });
+    const text = help.replies.map((r) => r.text).join("\n");
+    expect(text).toMatch(/Start a small habit/i);
+    expect(text).toMatch(/Learn about Bitcoin/i);
+    expect(text).toMatch(/no statement/i);
+  });
+
+  it("Start a small habit enters the existing debt → import flow", async () => {
+    const h = harness();
+    const started = await h.startHabit(7);
+    expect(started.replies.map((r) => r.text).join("\n")).toMatch(/optional questions/i);
+    expect(h.store.getSession(7)?.step).toBe("ask_debt");
     await h.send(7, { kind: "callback", data: "skip" });
     await h.send(7, { kind: "callback", data: "skip" });
     await h.send(7, { kind: "callback", data: "skip" });
@@ -89,9 +129,61 @@ describe("telegram handle", () => {
     expect(session?.profile?.investmentPlan?.amountKes).toBe(1500);
   });
 
+  it("Learn about Bitcoin educates without statement or purchase", async () => {
+    const h = harness();
+    await h.send(20, { kind: "command", command: "/start", args: "" });
+    const page0 = await h.send(20, { kind: "callback", data: "path:learn" });
+    expect(h.store.getSession(20)?.step).toBe("learn");
+    expect(page0.replies[0]?.text).toMatch(/small Bitcoin habit/i);
+    expect(page0.replies[0]?.text).toMatch(/monthly/i);
+    expect(page0.replies[0]?.text).not.toMatch(/\d+\s*sats/i);
+    expect(buttonLabels(page0)).toContain("Next");
+
+    const page1 = await h.send(20, { kind: "callback", data: "learn:1" });
+    expect(page1.replies[0]?.text).toMatch(/Lightning/i);
+    expect(page1.replies[0]?.text).toMatch(/does not send/i);
+    expect(page1.replies[0]?.text).toMatch(/approve each purchase/i);
+
+    const page2 = await h.send(20, { kind: "callback", data: "learn:2" });
+    expect(page2.replies[0]?.text).toMatch(/lose value/i);
+    expect(page2.replies[0]?.text).toMatch(/not financial advice/i);
+    expect(page2.replies[0]?.text).toMatch(/surplus floor/i);
+    expect(buttonLabels(page2)).toEqual([
+      "Start a small habit",
+      "Ask something else",
+    ]);
+    expect(h.purchases).toHaveLength(0);
+    expect(h.store.getSession(20)?.profile).toBeNull();
+
+    const blocked = await h.send(20, {
+      kind: "document",
+      fileId: "f1",
+      fileName: "stmt.pdf",
+      mimeType: "application/pdf",
+    });
+    expect(blocked.replies.map((r) => r.text).join("\n")).toMatch(/do not need a statement/i);
+    expect(h.store.getSession(20)?.step).toBe("learn");
+    expect(h.purchases).toHaveLength(0);
+
+    const toHabit = await h.send(20, { kind: "callback", data: "path:habit" });
+    expect(toHabit.replies.map((r) => r.text).join("\n")).toMatch(/optional questions/i);
+    expect(h.store.getSession(20)?.step).toBe("ask_debt");
+  });
+
+  it("Ask something else returns to the menu", async () => {
+    const h = harness();
+    await h.send(21, { kind: "command", command: "/start", args: "" });
+    await h.send(21, { kind: "callback", data: "path:learn" });
+    await h.send(21, { kind: "callback", data: "learn:1" });
+    await h.send(21, { kind: "callback", data: "learn:2" });
+    const menu = await h.send(21, { kind: "callback", data: "menu" });
+    expect(h.store.getSession(21)?.step).toBe("menu");
+    expect(buttonLabels(menu)).toContain("Learn about Bitcoin");
+  });
+
   it("asks for debt name and amount on Yes, then continues to chama", async () => {
     const h = harness();
-    await h.send(8, { kind: "command", command: "/start", args: "" });
+    await h.startHabit(8);
     const yes = await h.send(8, { kind: "callback", data: "debt:yes" });
     expect(yes.replies.map((r) => r.text).join("\n")).toMatch(/What do you call this debt/i);
     expect(yes.replies.map((r) => r.text).join("\n")).not.toMatch(/web app/i);
@@ -116,7 +208,7 @@ describe("telegram handle", () => {
 
   it("allows Skip on debt name without forcing the web app", async () => {
     const h = harness();
-    await h.send(9, { kind: "command", command: "/start", args: "" });
+    await h.startHabit(9);
     await h.send(9, { kind: "callback", data: "debt:yes" });
     const skipped = await h.send(9, { kind: "callback", data: "skip" });
     const text = skipped.replies.map((r) => r.text).join("\n");
@@ -128,7 +220,7 @@ describe("telegram handle", () => {
 
   it("allows Skip on debt amount and keeps the name with balance 0", async () => {
     const h = harness();
-    await h.send(10, { kind: "command", command: "/start", args: "" });
+    await h.startHabit(10);
     await h.send(10, { kind: "callback", data: "debt:yes" });
     await h.send(10, { kind: "text", text: "School fees" });
     const skipped = await h.send(10, { kind: "callback", data: "skip" });
@@ -141,7 +233,7 @@ describe("telegram handle", () => {
 
   it("caps habit at the surplus floor and saves reminder without purchasing", async () => {
     const h = harness();
-    await h.send(2, { kind: "command", command: "/start", args: "" });
+    await h.startHabit(2);
     for (let i = 0; i < 3; i += 1) {
       await h.send(2, { kind: "callback", data: "skip" });
     }
@@ -159,7 +251,7 @@ describe("telegram handle", () => {
 
   it("never purchases without Approve and stops when Bitika is missing", async () => {
     const h = harness();
-    await h.send(3, { kind: "command", command: "/start", args: "" });
+    await h.startHabit(3);
     for (let i = 0; i < 3; i += 1) {
       await h.send(3, { kind: "callback", data: "skip" });
     }
@@ -183,7 +275,7 @@ describe("telegram handle", () => {
 
   it("refuses auto-approve before confirm step", async () => {
     const h = harness();
-    await h.send(4, { kind: "command", command: "/start", args: "" });
+    await h.startHabit(4);
     for (let i = 0; i < 3; i += 1) {
       await h.send(4, { kind: "callback", data: "skip" });
     }

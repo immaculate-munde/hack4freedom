@@ -12,13 +12,17 @@ Telegram → POST /api/telegram/webhook → parseSmsBatch / parseStatement + bui
 
 ## Conversation
 
-1. `/start` — what PesaSense does + upload honesty + approve-every-purchase
-2. Optional questions (debt / chama / goal) — skip allowed
+1. `/start` — what PesaSense does + upload honesty + approve-every-purchase, then a short path menu:
+   - **Start a small habit** — investment path (below)
+   - **Learn about Bitcoin** — education in Telegram only (no statement, no purchase)
+2. Habit path: optional questions (debt / chama / goal) — skip allowed
 3. Import — SMS paste or PDF (password asked only when needed; demo fixture password `demo-statement`)
 4. Summary — income range, commitments, surplus floor/typical/ceiling, habit %, resilience
 5. Set habit — whole KES, capped at surplus floor; monthly default, weekly optional
 6. Remind me on the 1st — stores preference; does not purchase
 7. Review investment — risk line, phone, Lightning destination, explicit **Approve** only then calls Bitika
+
+**Learn path** (stays in chat): short pages on what a small habit is, Lightning to your own wallet, reminders vs auto-send, approve-each-purchase, Bitcoin can lose value, education not advice, surplus floor at a high level. Ends with **Start a small habit** or **Ask something else** (back to menu). `/start` always resets to the menu. `/help` lists both paths.
 
 Never auto-send M-Pesa or Bitcoin. If `BITIKA_API_KEY` is missing, the bot says so and stops (same as web).
 

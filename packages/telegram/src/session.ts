@@ -13,7 +13,7 @@ export function newSession(
   chatId: number,
   now: number,
   ttlMs: number,
-  step: TelegramStep = "ask_debt",
+  step: TelegramStep = "menu",
 ): TelegramSession {
   return {
     chatId,

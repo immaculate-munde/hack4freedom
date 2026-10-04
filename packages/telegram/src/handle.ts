@@ -26,6 +26,7 @@ import {
 } from "./summary";
 import type { TelegramStore } from "./store";
 import type {
+  InlineButton,
   TelegramInbound,
   TelegramPurchaseInput,
   TelegramPurchaseResult,
@@ -57,17 +58,68 @@ export type TelegramHandleResult = {
 const START_COPY = [
   "PesaSense helps you read your M-Pesa history and start a small Bitcoin habit.",
   "",
-  "You send your statement here (PDF or SMS paste) so we can build your picture.",
-  "That means the file leaves your phone and reaches this bot.",
+  "If you share a statement here (PDF or SMS paste), that file leaves your phone and reaches this bot.",
   "You approve every purchase. We'll remind you on the 1st — we never auto-send M-Pesa or Bitcoin.",
   "",
   "Education, not financial advice. Bitcoin can lose value. Whole shillings only.",
-  "",
-  "A few optional questions next. Tap Skip anytime, or /skip.",
 ].join("\n");
+
+/** Short education pages — no statement, no purchase, no invented sats. */
+const LEARN_PAGES: string[] = [
+  [
+    "What is a small Bitcoin habit?",
+    "",
+    "A habit here means setting aside a whole-shilling amount you choose — often monthly by default, with weekly as an optional cadence.",
+    "It is not a licence, not a fund, and not an automatic buy. You decide the amount after we help you read your money picture.",
+  ].join("\n"),
+  [
+    "How Lightning and reminders work",
+    "",
+    "When you later buy, sats go to a Lightning address you control (your own wallet).",
+    "A reminder on the 1st only nudges you to review — it does not send M-Pesa or Bitcoin.",
+    "You approve each purchase yourself. Nothing auto-sends.",
+  ].join("\n"),
+  [
+    "Risk and the surplus floor (high level)",
+    "",
+    "Bitcoin can lose value. This chat is education, not financial advice.",
+    "When you use the habit path, we look at a surplus floor — a cautious reading of what might be left after commitments — and cap a habit at that floor.",
+    "Learning here does not start a purchase and does not need a statement upload.",
+  ].join("\n"),
+];
 
 function reply(text: string, buttons?: TelegramReply["buttons"]): TelegramReply {
   return buttons ? { text, buttons } : { text };
+}
+
+function pathMenuButtons(): InlineButton[][] {
+  return [
+    [{ text: "Start a small habit", callbackData: "path:habit" }],
+    [{ text: "Learn about Bitcoin", callbackData: "path:learn" }],
+  ];
+}
+
+function startMenuReply(): TelegramReply {
+  return reply(START_COPY, pathMenuButtons());
+}
+
+function learnEndButtons(): InlineButton[][] {
+  return [
+    [{ text: "Start a small habit", callbackData: "path:habit" }],
+    [{ text: "Ask something else", callbackData: "menu" }],
+  ];
+}
+
+function learnPageReply(pageIndex: number): TelegramReply {
+  const text = LEARN_PAGES[pageIndex] ?? LEARN_PAGES[LEARN_PAGES.length - 1]!;
+  const isLast = pageIndex >= LEARN_PAGES.length - 1;
+  if (isLast) {
+    return reply(text, learnEndButtons());
+  }
+  return reply(text, [
+    [{ text: "Next", callbackData: `learn:${pageIndex + 1}` }],
+    [{ text: "Back to menu", callbackData: "menu" }],
+  ]);
 }
 
 function save(
@@ -78,6 +130,29 @@ function save(
   const next = touchSession(session, deps.now(), config.sessionTtlMs);
   deps.store.saveSession(next);
   return next;
+}
+
+function beginHabitPath(
+  session: TelegramSession,
+  deps: TelegramDeps,
+  config: TelegramConfig,
+): TelegramReply[] {
+  save(deps, { ...session, step: "ask_debt" }, config);
+  return [
+    reply("Let's set up a small habit. A few optional questions first — tap Skip anytime, or /skip."),
+    debtQuestion(),
+  ];
+}
+
+function showMenu(
+  session: TelegramSession,
+  deps: TelegramDeps,
+  config: TelegramConfig,
+): TelegramReply[] {
+  save(deps, { ...session, step: "menu", pendingPdfFileId: null }, config);
+  return [
+    reply("Pick a path — habit setup or learning. No purchase starts from this menu.", pathMenuButtons()),
+  ];
 }
 
 function debtQuestion(): TelegramReply {
@@ -157,19 +232,19 @@ export async function handleTelegram(
   let session = deps.store.getSession(chatId);
 
   if (inbound.kind === "command" && inbound.command === "/start") {
-    session = save(deps, newSession(chatId, deps.now(), config.sessionTtlMs, "ask_debt"), config);
+    session = save(deps, newSession(chatId, deps.now(), config.sessionTtlMs, "menu"), config);
     return {
-      replies: [reply(START_COPY), debtQuestion()],
+      replies: [startMenuReply()],
       callbackQueryId,
     };
   }
 
   if (!session) {
-    session = save(deps, newSession(chatId, deps.now(), config.sessionTtlMs, "ask_debt"), config);
+    session = save(deps, newSession(chatId, deps.now(), config.sessionTtlMs, "menu"), config);
     return {
       replies: [
-        reply("Session started. " + START_COPY.split("\n\n")[0]),
-        debtQuestion(),
+        reply("Session started."),
+        startMenuReply(),
       ],
       callbackQueryId,
     };
@@ -186,7 +261,15 @@ export async function handleTelegram(
     return {
       replies: [
         reply(
-          "Commands: /start, /skip, /help.\nSend SMS paste or a PDF when asked. You approve every purchase.",
+          [
+            "Commands: /start, /skip, /help.",
+            "",
+            "Paths after /start:",
+            "• Start a small habit — optional questions → statement → summary → habit → reminder → review/approve.",
+            "• Learn about Bitcoin — short education in chat (no statement, no purchase).",
+            "",
+            "Send SMS paste or a PDF only when the habit path asks. You approve every purchase.",
+          ].join("\n"),
         ),
       ],
       callbackQueryId,
@@ -217,7 +300,7 @@ export async function handleTelegram(
   }
 
   return {
-    replies: [reply("Send /start to begin, or paste SMS / upload a PDF.")],
+    replies: [reply("Send /start to begin, or use the menu buttons.")],
     callbackQueryId,
   };
 }
@@ -261,6 +344,28 @@ async function onCallback(
   deps: TelegramDeps,
   config: TelegramConfig,
 ): Promise<TelegramReply[]> {
+  if (data === "menu") {
+    return showMenu(session, deps, config);
+  }
+
+  if (data === "path:habit") {
+    return beginHabitPath(session, deps, config);
+  }
+
+  if (data === "path:learn" || data === "learn:0") {
+    save(deps, { ...session, step: "learn", pendingPdfFileId: null }, config);
+    return [learnPageReply(0)];
+  }
+
+  if (data.startsWith("learn:")) {
+    const page = Number(data.slice("learn:".length));
+    if (!Number.isInteger(page) || page < 0 || page >= LEARN_PAGES.length) {
+      return showMenu(session, deps, config);
+    }
+    save(deps, { ...session, step: "learn" }, config);
+    return [learnPageReply(page)];
+  }
+
   if (data === "skip") {
     return advanceSkip(session, deps, config);
   }
@@ -309,11 +414,20 @@ async function onCallback(
   }
 
   if (data === "demo:amina") {
+    if (session.step === "menu" || session.step === "learn") {
+      return [
+        reply("Demo statements are part of the habit path. Pick Start a small habit first."),
+        ...showMenu(session, deps, config),
+      ];
+    }
     const profile = structuredClone(demoProfiles.amina);
     return afterProfile(session, profile, deps, config);
   }
 
   if (!session.profile) {
+    if (session.step === "menu" || session.step === "learn") {
+      return showMenu(session, deps, config);
+    }
     return [reply("Import a statement first, or tap Demo Amina."), importPrompt()];
   }
 
@@ -530,6 +644,14 @@ async function onDocument(
   deps: TelegramDeps,
   config: TelegramConfig,
 ): Promise<TelegramReply[]> {
+  if (session.step === "menu" || session.step === "learn") {
+    return [
+      reply(
+        "Learning and the menu do not need a statement. Tap Start a small habit when you want to import.",
+        pathMenuButtons(),
+      ),
+    ];
+  }
   if (session.step !== "awaiting_import" && session.step !== "awaiting_pdf_password" && session.step !== "ready") {
     return [reply("Send /start first, then upload when asked for your statement.")];
   }
@@ -560,6 +682,19 @@ async function onText(
   deps: TelegramDeps,
   config: TelegramConfig,
 ): Promise<TelegramReply[]> {
+  if (session.step === "menu") {
+    return showMenu(session, deps, config);
+  }
+
+  if (session.step === "learn") {
+    return [
+      reply(
+        "You're in the learning path — no statement or purchase from here. Use Next, or the buttons below.",
+        learnEndButtons(),
+      ),
+    ];
+  }
+
   if (session.step === "ask_debt_name") {
     const label = text.trim();
     if (!label) {
@@ -725,7 +860,9 @@ function looksLikeSms(text: string): boolean {
 /** Exported for unit tests that drive the state machine without Telegram HTTP. */
 export const __testOnly = {
   START_COPY,
+  LEARN_PAGES,
   debtQuestion,
   importPrompt,
   afterProfile,
+  pathMenuButtons,
 };
