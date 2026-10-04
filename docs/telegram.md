@@ -19,12 +19,12 @@ Primary choices use **reply keyboards** (not inline callbacks). Tapping a choice
    - **Learn about Bitcoin** — education in Telegram only (no statement, no purchase)
 2. Habit path: optional questions (debt / chama / goal) — skip allowed
 3. Import — SMS paste or PDF (password asked only when needed; demo fixture password `demo-statement`)
-4. Summary — income range, commitments, surplus floor/typical/ceiling, habit %, resilience
-5. Set habit — whole KES, capped at surplus floor; then Monthly (default) or Weekly on the reply keyboard
+4. Summary — income range, bills, money left after bills (careful / typical / high), plan %, how long savings might last
+5. Set habit — whole KES, capped at money left after bills; then Monthly (default) or Weekly on the reply keyboard
 6. Remind me on the 1st — stores preference; does not purchase
 7. Make your first transaction today — risk line, phone, Lightning destination, explicit **Approve** only then calls Bitika
 
-**Learn path** (stays in chat): short pages on what a small habit is, Lightning to your own wallet, reminders vs auto-send, approve-each-purchase, Bitcoin can lose value, education not advice, surplus floor at a high level. Ends with **Start a small habit** or **Ask something else** (back to menu). `/start` always resets to the menu. `/help` lists both paths.
+**Learn path** (stays in chat): short pages on what a small habit is (a small amount you plan to put in Bitcoin), Lightning to your own wallet, reminders vs auto-send, approve-each-purchase, Bitcoin can lose value, education not advice, money left after bills at a high level. Ends with **Start a small habit** or **Ask something else** (back to menu). `/start` always resets to the menu. `/help` lists both paths.
 
 Never auto-send M-Pesa or Bitcoin. If `BITIKA_API_KEY` is missing, the bot says so and stops (same as web).
 

@@ -114,7 +114,7 @@ describe("telegram handle", () => {
     expect(text).toMatch(/leaves your phone/i);
     expect(text).not.toMatch(/never leave your phone/i);
     expect(text).toMatch(/approve every purchase/i);
-    expect(text).toMatch(/never auto-send/i);
+    expect(text).toMatch(/never send M-Pesa or Bitcoin on our own/i);
     expect(buttonLabels(result)).toEqual([
       "Start a small habit",
       "Learn about Bitcoin",

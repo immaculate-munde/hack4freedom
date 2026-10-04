@@ -15,7 +15,7 @@ export function habitOffer(
     return {
       ok: false,
       reason:
-        "The buffer comes first. A habit waits until the safe surplus floor is above zero.",
+        "Build a buffer first. A Bitcoin plan waits until money left after bills is above zero.",
     };
   }
   return { ok: true, maxKes: floor };

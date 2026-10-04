@@ -63,7 +63,7 @@ export function profileSummary(
   if (options.isDemo) {
     sections.push("Demo data — invented person (Amina). Not a live statement.");
   } else {
-    sections.push("Here is the picture from what you sent.");
+    sections.push("Here is a simple picture from what you sent.");
   }
 
   const period = [
@@ -74,51 +74,59 @@ export function profileSummary(
 
   sections.push(
     "",
-    "Income (monthly)",
-    `${kes(income.floor)} – ${kes(income.ceiling)}`,
+    "Income each month",
+    `Low: ${kes(income.floor)}`,
     `Typical: ${kes(income.typical)}`,
+    `High: ${kes(income.ceiling)}`,
   );
 
   const commitmentLines = namedCommitmentLines(profile);
   if (commitmentLines.length > 0) {
-    sections.push("", "Named commitments", ...commitmentLines);
+    sections.push("", "Named bills and commitments", ...commitmentLines);
   } else {
-    sections.push("", "Named commitments", "None detected from this history.");
+    sections.push("", "Named bills and commitments", "None spotted from this history.");
   }
 
   const spendLines = topSpendingLines(profile, 4);
   if (spendLines.length > 0) {
-    sections.push("", "Top spending", ...spendLines);
+    sections.push("", "Where money often goes", ...spendLines);
   }
 
   sections.push(
     "",
-    "Safe surplus (monthly)",
-    `Floor ${kes(surplus.floor)} · Typical ${kes(surplus.typical)} · Ceiling ${kes(surplus.ceiling)}`,
+    "Money left after bills (each month)",
+    `Careful (low): ${kes(surplus.floor)}`,
+    `Typical: ${kes(surplus.typical)}`,
+    `Best case (high): ${kes(surplus.ceiling)}`,
+    "We use the careful number as your limit for a small Bitcoin plan.",
   );
 
   sections.push(
     "",
-    "Resilience",
-    `About ${formatMonths(months)} month(s) of expenses covered.`,
+    "How long savings might last",
+    `About ${formatMonths(months)} month(s) of expenses covered if income slowed.`,
   );
 
   if (bufferFirst || floor <= 0) {
     sections.push(
       "",
-      "Habit",
-      "The buffer comes first. This history is not ready for a Bitcoin habit yet.",
+      "Small Bitcoin plan",
+      "Build a buffer first. This history is not ready for a Bitcoin plan yet.",
     );
   } else if (plan) {
     const pct = habitPercentOfFloor(plan.amountKes, floor);
     sections.push(
       "",
-      "Habit",
-      `${kes(plan.amountKes)} / ${plan.cadence} (${pct}% of the safe floor).`,
-      "We'll remind you. You approve each purchase. Nothing is sent on its own.",
+      "Small Bitcoin plan",
+      `${kes(plan.amountKes)} / ${plan.cadence} (${pct}% of money left after bills).`,
+      "We can remind you. You Approve each purchase. Nothing is sent on its own.",
     );
   } else {
-    sections.push("", "Habit", "No habit yet. You can set one within the safe floor.");
+    sections.push(
+      "",
+      "Small Bitcoin plan",
+      "No plan yet. You can set one within money left after bills.",
+    );
   }
 
   sections.push(
@@ -183,7 +191,7 @@ export function largestPaymentsText(profile: FinancialProfile): string | null {
   if (ranked.length === 0) return null;
   const top = ranked.slice(0, 5);
   const lines = [
-    "Largest regular payments",
+    "Biggest regular payments",
     "",
     ...top.map((c, i) => `${i + 1}. ${c.label} — ${kes(c.amountKes)}/${c.cadence}`),
   ];
@@ -208,12 +216,12 @@ export function readyButtons(profile: FinancialProfile): string[][] {
 }
 
 export function breakdownText(profile: FinancialProfile): string {
-  const lines = ["Breakdown", ""];
+  const lines = ["Breakdown — more detail", ""];
   for (const c of profile.commitments.slice(0, 8)) {
     lines.push(`• ${c.label}: ${kes(c.amountKes)} (${c.cadence})`);
   }
   if (profile.commitments.length === 0) {
-    lines.push("No fixed commitments detected.");
+    lines.push("No fixed bills spotted.");
   }
   const flex = profile.spending.flexibleMonthlyKes;
   lines.push(
@@ -230,7 +238,7 @@ export function breakdownText(profile: FinancialProfile): string {
 export function investReviewText(profile: FinancialProfile): string {
   const plan = profile.investmentPlan;
   if (!plan) {
-    return "Save a habit amount first. A purchase waits until you review and approve it.";
+    return "Save an amount first. A purchase waits until you review and Approve it.";
   }
   return [
     `Review: ${kes(plan.amountKes)} (${plan.cadence}).`,
@@ -238,7 +246,7 @@ export function investReviewText(profile: FinancialProfile): string {
     "Bitcoin can lose value. This is education, not financial advice.",
     PAST_PERFORMANCE_DISCLAIMER,
     "",
-    "We'll remind you on the 1st. You approve each purchase.",
-    "Nothing is sent until you send Approve.",
+    "We can remind you on the 1st. You Approve each purchase.",
+    "Nothing is sent until you tap Approve.",
   ].join("\n");
 }
