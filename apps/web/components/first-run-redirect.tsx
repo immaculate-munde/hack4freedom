@@ -9,11 +9,12 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
+import { useI18n } from "../contexts/language-context";
 
 const WELCOME_FLAG = "hasSeenWelcome";
 
 /** Routes a first-time visitor may open before they tap Get started. */
-const OPEN_PREFIXES = ["/welcome", "/onboarding", "/onboard", "/trust"];
+const OPEN_PREFIXES = ["/welcome", "/onboarding", "/onboard", "/trust", "/share"];
 
 function isOpenPath(pathname: string): boolean {
   if (pathname === "/") return true;
@@ -26,6 +27,7 @@ function isOpenPath(pathname: string): boolean {
 export function FirstRunRedirect({ children }: { children: ReactNode }) {
   const pathname = usePathname() ?? "/";
   const router = useRouter();
+  const { t } = useI18n();
   const open = isOpenPath(pathname);
   const [ready, setReady] = useState(open);
 
@@ -44,7 +46,7 @@ export function FirstRunRedirect({ children }: { children: ReactNode }) {
   }, [open, router]);
 
   if (!ready) {
-    return <div className="min-h-screen bg-paper" aria-busy="true" />;
+    return <div className="min-h-screen bg-paper" aria-busy="true" aria-label={t("common.loading")} />;
   }
 
   return children;

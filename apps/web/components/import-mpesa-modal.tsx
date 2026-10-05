@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { demoProfiles, type FinancialProfile } from "@pesasense/core";
+import { useFormat, useI18n } from "../contexts/language-context";
 import { useProfile } from "../contexts/profile-context";
 import { PdfImportForm } from "./pdf-import-form";
+import { ShareImportHint } from "./share-import-hint";
 import { SmsImportForm } from "./sms-import-form";
 import { routeAfterImport } from "../lib/profile-from-import";
 
@@ -33,6 +35,8 @@ export interface ImportMpesaModalProps {
 }
 
 export function ImportMpesaModal({ isOpen, onClose }: ImportMpesaModalProps) {
+  const { t } = useI18n();
+  const { kes, number } = useFormat();
   const router = useRouter();
   const { setProfile } = useProfile();
   const [result, setResult] = useState<FinancialProfile | null>(null);
@@ -72,7 +76,7 @@ export function ImportMpesaModal({ isOpen, onClose }: ImportMpesaModalProps) {
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Import M-Pesa data"
+      aria-label={t("import.aria")}
       className="fixed inset-0 z-[25]"
     >
       <div
@@ -91,14 +95,14 @@ export function ImportMpesaModal({ isOpen, onClose }: ImportMpesaModalProps) {
           <div className="p-6">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h2 className="font-serif text-xl text-pine">Import M-Pesa data</h2>
-                <p className="mt-0.5 text-xs text-ink/55">Stays on your phone</p>
+                <h2 className="font-serif text-xl text-pine">{t("import.title")}</h2>
+                <p className="mt-0.5 text-xs text-slate">{t("import.stays")}</p>
               </div>
               <button
                 type="button"
-                aria-label="Close"
+                aria-label={t("common.close")}
                 onClick={handleClose}
-                className="btn btn-ghost -mr-1 -mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-sand/80 text-ink/50 hover:text-ink"
+                className="btn btn-ghost -mr-1 -mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-sand/80 text-slate hover:text-ink"
               >
                 <XIcon />
               </button>
@@ -119,52 +123,48 @@ export function ImportMpesaModal({ isOpen, onClose }: ImportMpesaModalProps) {
                 />
               </svg>
               <div className="flex flex-col gap-1">
-                <p className="text-xs leading-5 text-ink/70">
-                  Your statements never leave your phone. Backups are encrypted with
-                  your key.
-                </p>
-                <p className="text-[11px] leading-4 text-ink/55">
-                  If importing a PDF, the password is whatever you type. It is NOT your
-                  ID, and it is NOT saved.
-                </p>
+                <p className="text-xs leading-5 text-ink-soft">{t("import.neverLeave")}</p>
+                <p className="text-[11px] leading-4 text-slate">{t("import.passwordNote")}</p>
               </div>
             </div>
 
             {result ? (
               <div className="mt-5 space-y-3 rounded-2xl border border-mint/60 bg-mint/25 p-4">
-                <p className="text-sm font-semibold text-pine">Analysis complete</p>
+                <p className="text-sm font-semibold text-pine">{t("import.complete")}</p>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-ink/65">Safe surplus</span>
+                    <span className="text-ink-soft">{t("import.safeSurplus")}</span>
                     <span className="font-semibold text-ink">
-                      KES {result.surplus.monthlyKes.floor.toLocaleString()} –{" "}
-                      {result.surplus.monthlyKes.ceiling.toLocaleString()}
+                      {kes(result.surplus.monthlyKes.floor)} – {number(result.surplus.monthlyKes.ceiling)}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-ink/65">Resilience</span>
+                    <span className="text-ink-soft">{t("import.resilience")}</span>
                     <span className="font-semibold text-ink">
-                      {result.resilience.monthsOfExpensesCovered} months
+                      {t("import.months", { count: result.resilience.monthsOfExpensesCovered })}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-ink/65">Commitments</span>
-                    <span className="font-semibold text-ink">{result.commitments.length} detected</span>
-                  </div >
-                </div >
+                    <span className="text-ink-soft">{t("import.commitments")}</span>
+                    <span className="font-semibold text-ink">
+                      {t("import.detected", { count: result.commitments.length })}
+                    </span>
+                  </div>
+                </div>
                 <button onClick={handleCommit} className="btn btn-primary mt-2 w-full">
-                  {routeAfterImport(result) === "/habit" ? "Set the habit" : "Use this profile"}
+                  {routeAfterImport(result) === "/habit" ? t("import.setHabit") : t("import.useProfile")}
                 </button>
-              </div >
+              </div>
             ) : (
               <div className="mt-5 space-y-5">
+                <ShareImportHint />
                 <SmsImportForm
                   onProfileReady={setResult}
                   onDemoFallback={handleUseDemo}
                 />
                 <div className="border-t border-sand/50 pt-4">
                   <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate">
-                    Or upload PDF
+                    {t("import.orPdf")}
                   </p>
                   <PdfImportForm
                     onProfileReady={setResult}
@@ -174,21 +174,19 @@ export function ImportMpesaModal({ isOpen, onClose }: ImportMpesaModalProps) {
               </div>
             )}
 
-            {
-              !result && (
-                <div className="mt-4 border-t border-sand/50 pb-2 pt-4">
-                  <button
-                    onClick={handleUseDemo}
-                    className="btn btn-ghost w-full text-center"
-                  >
-                    Use demo profile (Amina)
-                  </button>
-                </div>
-              )
-            }
-          </div >
-        </div >
-      </div >
-    </div >
+            {!result && (
+              <div className="mt-4 border-t border-sand/50 pb-2 pt-4">
+                <button
+                  onClick={handleUseDemo}
+                  className="btn btn-ghost w-full text-center"
+                >
+                  {t("import.useDemo")}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

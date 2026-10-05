@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { useI18n } from "../contexts/language-context";
 
 /** Consistent page title block for Surplus, Invest, Wallet. */
 export function PageFrame({
@@ -17,12 +20,13 @@ export function PageFrame({
   children: ReactNode;
   aside?: ReactNode;
 }) {
+  const { t } = useI18n();
   return (
-    <main className="page-frame">
+    <main className="page-frame pb-24 md:pb-0">
       <div className="page-frame-primary">
         {backHref ? (
           <Link href={backHref} className="btn btn-ghost mb-2 inline-flex lg:hidden">
-            {backLabel ?? "Back"}
+            {backLabel ?? t("common.back")}
           </Link>
         ) : null}
         <h1 className="page-title">{title}</h1>

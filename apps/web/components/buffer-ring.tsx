@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useI18n } from "../contexts/language-context";
 
 export interface BufferRingProps {
   /** The actual number of months of expenses saved */
@@ -10,6 +11,7 @@ export interface BufferRingProps {
 }
 
 export function BufferRing({ monthsCovered, targetMonths = 3 }: BufferRingProps) {
+  const { t } = useI18n();
   const [mounted, setMounted] = useState(false);
   
   useEffect(() => {
@@ -35,7 +37,10 @@ export function BufferRing({ monthsCovered, targetMonths = 3 }: BufferRingProps)
     <div 
       className="relative flex aspect-square w-full max-w-[160px] items-center justify-center" 
       role="img"
-      aria-label={`Emergency buffer: ${monthsCovered} out of ${targetMonths} months covered`}
+      aria-label={t("overview.bufferRing.label", {
+        covered: monthsCovered,
+        target: targetMonths,
+      })}
     >
       <svg
         viewBox={`0 0 ${size} ${size}`}
@@ -75,8 +80,8 @@ export function BufferRing({ monthsCovered, targetMonths = 3 }: BufferRingProps)
         <span className={`font-serif text-3xl font-bold tracking-tight ${isSafe ? "text-pine" : "text-brass"}`}>
           {monthsCovered}
         </span>
-        <span className="mt-1 text-[10px] font-semibold tracking-widest text-ink/50 uppercase">
-          / {targetMonths} mo
+        <span className="mt-1 text-[10px] font-semibold tracking-widest text-slate uppercase">
+          {t("overview.bufferRing.progress", { target: targetMonths })}
         </span>
       </div>
     </div>

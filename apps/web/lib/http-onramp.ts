@@ -6,10 +6,12 @@ import type {
   QuoteRequest,
   StartPurchaseRequest,
 } from "@pesasense/wallet";
+import { assertOnline } from "./network";
 
 /** Browser client for on-ramp API routes. Keys never leave the server. */
 export class HttpOnRamp implements BitcoinOnRamp {
   async getQuote(request: QuoteRequest): Promise<OnRampQuote> {
+    assertOnline();
     const res = await fetch("/api/onramp/quote", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -28,6 +30,7 @@ export class HttpOnRamp implements BitcoinOnRamp {
       profile?: FinancialProfile;
     },
   ): Promise<OnRampPurchase> {
+    assertOnline();
     const res = await fetch("/api/onramp/purchase", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -41,6 +44,7 @@ export class HttpOnRamp implements BitcoinOnRamp {
   }
 
   async checkStatus(purchaseId: string): Promise<OnRampPurchase> {
+    assertOnline();
     const res = await fetch(`/api/onramp/status/${encodeURIComponent(purchaseId)}`);
     if (!res.ok) {
       const err = (await res.json().catch(() => ({}))) as { error?: string };

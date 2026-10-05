@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import type { BuyCadence } from "@pesasense/core";
+import { formatKes } from "./format";
+import { translate, type Locale } from "./i18n";
 
 const STORAGE_KEY = "pesasense.habit-reminder.v1";
 const LAST_FIRED_KEY = "pesasense.habit-reminder-fired.v1";
@@ -17,8 +19,8 @@ const MAX_TIMEOUT_MS = 2_147_483_647;
  * - Preference always lives in localStorage on this device.
  * - Browser Notification needs permission; denied still keeps the in-app banner.
  * - setTimeout can arm the next 1st only when it is within ~24 days.
- * - Month-ahead delivery without a service worker + push (or Notification Triggers)
- *   is not guaranteed. This repo has no service worker yet.
+ * - Month-ahead delivery without push (or Notification Triggers via the PWA
+ *   service worker) is not guaranteed.
  * - Prefer in-app banner when the app is open on/after the 1st. No SMS gateway.
  */
 export type HabitReminder = {
@@ -106,12 +108,13 @@ function nextFirst(from: Date): Date {
   return next;
 }
 
-function reminderTitle(): string {
-  return "PesaSense reminder";
+function reminderTitle(locale: Locale = "en"): string {
+  return translate(locale, "habit.reminder.title");
 }
 
-function dueBody(amountKes: number): string {
-  return `The 1st is a day to review KES ${amountKes}. You approve each purchase. Nothing is sent on its own.`;
+function dueBody(amountKes: number, locale: Locale = "en"): string {
+  const amount = formatKes(amountKes, locale);
+  return translate(locale, "habit.reminder.body", { amount });
 }
 
 function showNotification(title: string, body: string): boolean {
@@ -148,7 +151,11 @@ let scheduledTimer: ReturnType<typeof setTimeout> | null = null;
  * Arms a one-shot timer for the next 1st when the delay fits in setTimeout.
  * Returns whether a timer was scheduled.
  */
-export function scheduleReminderTimeout(amountKes: number, from = new Date()): boolean {
+export function scheduleReminderTimeout(
+  amountKes: number,
+  from = new Date(),
+  locale: Locale = "en",
+): boolean {
   if (typeof window === "undefined") return false;
   const when = nextFirst(from);
   const delay = when.getTime() - from.getTime();
@@ -163,7 +170,7 @@ export function scheduleReminderTimeout(amountKes: number, from = new Date()): b
     scheduledTimer = null;
     const reminder = readHabitReminder();
     if (!reminder || !isReminderDue(reminder)) return;
-    showNotification(reminderTitle(), dueBody(amountKes));
+    showNotification(reminderTitle(locale), dueBody(amountKes, locale));
     // Leave last-fired unset so the in-app banner still appears if the tab is open.
     window.dispatchEvent(new CustomEvent("pesasense:habit-reminder-due"));
   }, delay);
@@ -171,11 +178,40 @@ export function scheduleReminderTimeout(amountKes: number, from = new Date()): b
   return true;
 }
 
+async function tryTimestampTrigger(
+  amountKes: number,
+  locale: Locale,
+): Promise<boolean> {
+  const when = nextFirst(new Date());
+  const amount = formatKes(amountKes, locale);
+  const title = reminderTitle(locale);
+  const body = dueBody(amountKes, locale);
+  const host = globalThis as { TimestampTrigger?: new (timestamp: number) => unknown };
+  const TimestampTrigger = host.TimestampTrigger;
+
+  if (!TimestampTrigger || !("serviceWorker" in navigator)) return false;
+
+  try {
+    const registration = await navigator.serviceWorker.getRegistration();
+    if (!registration) return false;
+    await registration.showNotification(title, {
+      body,
+      showTrigger: new TimestampTrigger(when.getTime()),
+    } as NotificationOptions);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Asks for Notification permission, confirms save, and schedules when possible.
  * A missing API or a denied permission leaves the saved in-app reminder in place.
  */
-export async function requestReminderNotification(amountKes: number): Promise<ReminderArmResult> {
+export async function requestReminderNotification(
+  amountKes: number,
+  locale: Locale = "en",
+): Promise<ReminderArmResult> {
   if (typeof window === "undefined") {
     return {
       permission: "unsupported",
@@ -185,7 +221,7 @@ export async function requestReminderNotification(amountKes: number): Promise<Re
   }
 
   if (typeof Notification === "undefined") {
-    const scheduled = scheduleReminderTimeout(amountKes);
+    const scheduled = scheduleReminderTimeout(amountKes, new Date(), locale);
     return {
       permission: "unsupported",
       scheduled,
@@ -204,11 +240,18 @@ export async function requestReminderNotification(amountKes: number): Promise<Re
     }
   }
 
-  const scheduled = scheduleReminderTimeout(amountKes);
-  showNotification(
-    reminderTitle(),
-    `Reminder saved for the 1st (KES ${amountKes}). You approve each purchase.`,
-  );
+  const scheduled = scheduleReminderTimeout(amountKes, new Date(), locale);
+  const amount = formatKes(amountKes, locale);
+
+  if (permission === "granted") {
+    const triggered = await tryTimestampTrigger(amountKes, locale);
+    if (!triggered) {
+      showNotification(
+        reminderTitle(locale),
+        translate(locale, "habit.reminder.saved", { amount }),
+      );
+    }
+  }
 
   if (permission !== "granted") {
     return {
@@ -230,12 +273,12 @@ export async function requestReminderNotification(amountKes: number): Promise<Re
 }
 
 /** Re-arm timer + surface due state when the shell mounts. */
-export function armHabitReminderOnLoad(): void {
+export function armHabitReminderOnLoad(locale: Locale = "en"): void {
   const reminder = readHabitReminder();
   if (!reminder) return;
-  scheduleReminderTimeout(reminder.amountKes);
+  scheduleReminderTimeout(reminder.amountKes, new Date(), locale);
   if (isReminderDue(reminder)) {
-    showNotification(reminderTitle(), dueBody(reminder.amountKes));
+    showNotification(reminderTitle(locale), dueBody(reminder.amountKes, locale));
   }
 }
 

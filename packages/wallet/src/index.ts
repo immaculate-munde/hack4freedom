@@ -9,7 +9,7 @@ export type {
 
 export { MockBitcoinOnRamp } from "./mock-onramp";
 export { BitikaBitcoinOnRamp, BitikaLiquidityError } from "./bitika-onramp";
-export { clientSafeOnRampError } from "./bitika-public-error";
+export { clientSafeOnRampCode, clientSafeOnRampError } from "./bitika-public-error";
 export { verifyBitikaWebhook } from "./bitika-webhook";
 export {
   BITIKA_BASE_URL,

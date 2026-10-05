@@ -32,4 +32,4 @@ Not instead of the demo path:
 - WhatsApp or Telegram for SMS forwarding, only after the on-device profile works.
 - A multi-chain advisory layer, still without trading and still without holding funds.
 
-USSD is a second interface over the demo profiles and the on-ramp (`packages/ussd`, [ussd.md](ussd.md)). It does not read on-device statements. Telegram, and spending Bitcoin through other apps, stay out of this demo. Crypto history import remains a stretch.
+USSD is a second interface over the demo profiles and the on-ramp (`packages/ussd`, [ussd.md](ussd.md)). The live Africa's Talking callback is `https://pesasense.vercel.app/api/ussd`. It does not read on-device statements. Telegram, and spending Bitcoin through other apps, stay out of this demo. Crypto history import remains a stretch.

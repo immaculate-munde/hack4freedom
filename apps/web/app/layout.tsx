@@ -4,9 +4,11 @@
  */
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
+import { cookies } from "next/headers";
 import type { ReactNode } from "react";
 import { AppShell } from "../components/app-shell";
 import { FirstRunRedirect } from "../components/first-run-redirect";
+import { isLocale, LANGUAGE_STORAGE_KEY } from "../lib/i18n";
 import { Providers } from "./providers";
 import "./globals.css";
 
@@ -25,7 +27,14 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: "PesaSense",
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
+  },
+  icons: {
+    icon: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
   },
 };
 
@@ -33,25 +42,30 @@ export const viewport: Viewport = {
   themeColor: "#0D7A73",
   width: "device-width",
   initialScale: 1,
+  viewportFit: "cover",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: ReactNode;
 }>) {
+  const jar = await cookies();
+  const stored = jar.get(LANGUAGE_STORAGE_KEY)?.value;
+  const locale = isLocale(stored) ? stored : "en";
+
   return (
-    <html lang="en" className={`${jakarta.variable} h-full`} suppressHydrationWarning>
+    <html lang={locale} className={`${jakarta.variable} h-full`} suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
             __html:
-              "try{if(localStorage.getItem('pesasense.theme')==='dark')document.documentElement.classList.add('dark')}catch(e){}",
+              "try{var stored=localStorage.getItem('pesasense.theme');var dark=stored==='dark'||(stored!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches);if(dark)document.documentElement.classList.add('dark');var color=dark?'#0e1512':'#0D7A73';var meta=document.querySelector('meta[name=\"theme-color\"]');if(!meta){meta=document.createElement('meta');meta.setAttribute('name','theme-color');document.head.appendChild(meta);}meta.setAttribute('content',color);}catch(e){}try{var m=document.cookie.match(/(?:^|; )pesasense.language=(en|sw)/);if(m)document.documentElement.lang=m[1]}catch(e){}",
           }}
         />
       </head>
       <body className="min-h-full bg-canvas font-sans text-ink antialiased">
-        <Providers>
+        <Providers locale={locale}>
           <FirstRunRedirect>
             <AppShell>{children}</AppShell>
           </FirstRunRedirect>

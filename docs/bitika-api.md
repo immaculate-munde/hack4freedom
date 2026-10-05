@@ -40,6 +40,8 @@ States: `processing` → `processing_payment` → `fulfilled`, or `failed`, or `
 
 ## Webhooks
 
+Webhooks are **not** required for the M-Pesa STK prompt. The prompt is triggered only after `POST /api/v1/xwift/collect` returns **201** with a `transaction_code`. PesaSense polls `GET /api/onramp/status/:code` (and Bitika status) when no webhook is configured. Register a webhook on a **deployed** HTTPS URL when you want instant `fulfilled` / `failed` updates without polling.
+
 Bitika POSTs signed events to a URL you register in the developer dashboard (that registration uses a developer JWT, not `BITIKA_API_KEY`).
 
 `POST /api/onramp/webhook` checks `X-Bitika-Signature: t=<unix>,v1=<hex>` over `"<timestamp>.<raw body>"` with HMAC-SHA256 and `BITIKA_WEBHOOK_SECRET`. Signatures older than five minutes are rejected. A repeated event id is ignored. The purchase is kept in memory for this server process. `GET /api/onramp/status/:code` returns that record when it is already terminal, and otherwise still asks Bitika.
@@ -48,6 +50,6 @@ Events: `transaction.updated`, `payment.completed`, `payment.failed`.
 
 ## Keys in this repo
 
-- `BITIKA_API_KEY` in `apps/web/.env.local` (gitignored)
+- `BITIKA_API_KEY` in `apps/web/.env.local` (gitignored). The hackathon host uses a sandbox `bk_test_` key.
 - `BITIKA_WEBHOOK_SECRET` for `POST /api/onramp/webhook`
-- Live key only on Vercel with `BITIKA_ALLOW_LIVE=true`
+- A `bk_live_` key is refused unless `BITIKA_ALLOW_LIVE=true`. Leave that unset for the demo. Host and webhook URL: [deploy.md](deploy.md).

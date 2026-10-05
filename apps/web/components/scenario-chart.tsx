@@ -1,6 +1,5 @@
 "use client";
 
-import { PAST_PERFORMANCE_DISCLAIMER } from "@pesasense/core";
 import {
   Bar,
   BarChart,
@@ -10,6 +9,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { useFormat, useI18n } from "../contexts/language-context";
 
 type ScenarioRow = {
   name: string;
@@ -18,31 +18,6 @@ type ScenarioRow = {
   description: string;
 };
 
-const ILLUSTRATIVE_SCENARIO: ScenarioRow[] = [
-  {
-    name: "Lower",
-    range: [400, 800],
-    fill: "var(--color-slate)",
-    description: "The value can fall. You can lose money.",
-  },
-  {
-    name: "Middle",
-    range: [700, 1400],
-    fill: "var(--color-moss)",
-    description: "It might stay near where it started.",
-  },
-  {
-    name: "Higher",
-    range: [1200, 2200],
-    fill: "var(--color-brass)",
-    description: "It might be higher. This is not a forecast.",
-  },
-];
-
-function formatRange(range: [number, number]): string {
-  return `KES ${range[0].toLocaleString("en-KE")}–${range[1].toLocaleString("en-KE")}`;
-}
-
 function CustomTooltip({
   active,
   payload,
@@ -50,15 +25,22 @@ function CustomTooltip({
   active?: boolean;
   payload?: ReadonlyArray<{ payload: ScenarioRow }>;
 }) {
+  const { t } = useI18n();
+  const { number } = useFormat();
   const data = payload?.[0]?.payload;
   if (!active || !data) {
     return null;
   }
   return (
-    <div className="rounded-xl border border-sand bg-surface p-3 shadow-sm">
+    <div className="rounded-xl border border-sand bg-paper p-3 shadow-card">
       <p className="text-xs font-semibold text-pine">{data.name}</p>
-      <p className="mt-1 text-sm font-bold text-pine">{formatRange(data.range)}</p>
-      <p className="mt-1 text-[10px] tracking-wider text-ink/60 uppercase">
+      <p className="mt-1 text-sm font-bold text-pine">
+        {t("learn.chart.range", {
+          low: number(data.range[0]),
+          high: number(data.range[1]),
+        })}
+      </p>
+      <p className="mt-1 text-[10px] tracking-wider text-slate uppercase">
         {data.description}
       </p>
     </div>
@@ -66,27 +48,49 @@ function CustomTooltip({
 }
 
 export function ScenarioChart() {
+  const { t } = useI18n();
+  const { kes } = useFormat();
+  const rows: ScenarioRow[] = [
+    {
+      name: t("learn.chart.lower"),
+      range: [400, 800],
+      fill: "var(--color-slate)",
+      description: t("learn.chart.lowerBody"),
+    },
+    {
+      name: t("learn.chart.middle"),
+      range: [700, 1400],
+      fill: "var(--color-moss)",
+      description: t("learn.chart.middleBody"),
+    },
+    {
+      name: t("learn.chart.higher"),
+      range: [1200, 2200],
+      fill: "var(--color-brass)",
+      description: t("learn.chart.higherBody"),
+    },
+  ];
+
   return (
-    <div className="flex w-full flex-col rounded-3xl border border-sand bg-paper p-5 shadow-sm">
+    <div className="flex w-full flex-col rounded-3xl border border-sand bg-surface p-5 shadow-card">
       <div className="mb-6">
         <div className="flex items-center justify-between">
           <h3 className="font-serif text-lg font-semibold text-pine">
-            A sketch, not a forecast
+            {t("learn.chart.title")}
           </h3>
           <span className="rounded-full border border-line bg-pearl px-2.5 py-1 text-[11px] font-semibold text-slate uppercase tracking-wide">
-            Illustrative
+            {t("learn.chart.illustrative")}
           </span>
         </div>
-        <p className="mt-2 text-xs leading-5 text-ink/60">
-          Bitcoin's value goes up and down. Not a guarantee of future results. Based on
-          a hypothetical KES 1,000 held for 1 year.
+        <p className="mt-2 text-sm leading-6 text-slate md:text-xs md:leading-5">
+          {t("learn.chart.body", { amount: kes(1000) })}
         </p>
       </div>
 
-      <div className="h-64 w-full">
+      <div className="h-[220px] w-full md:h-64">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
-            data={ILLUSTRATIVE_SCENARIO}
+            data={rows}
             margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
           >
             <XAxis
@@ -100,14 +104,14 @@ export function ScenarioChart() {
               axisLine={false}
               tickLine={false}
               tick={{ fontSize: 11, fill: "var(--color-slate)" }}
-              tickFormatter={(value: number) => `KES ${value.toLocaleString("en-KE")}`}
+              tickFormatter={(value: number) => kes(value)}
             />
             <Tooltip
               content={<CustomTooltip />}
               cursor={{ fill: "var(--color-pearl)" }}
             />
             <Bar dataKey="range" radius={[8, 8, 0, 0]}>
-              {ILLUSTRATIVE_SCENARIO.map((entry, index) => (
+              {rows.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={entry.fill} />
               ))}
             </Bar>
@@ -116,8 +120,8 @@ export function ScenarioChart() {
       </div>
 
       <div className="mt-6 rounded-xl bg-sand/30 p-3">
-        <p className="text-[10px] leading-4 text-ink/50">
-          {PAST_PERFORMANCE_DISCLAIMER}
+        <p className="text-sm leading-6 text-slate md:text-[10px] md:leading-4">
+          {t("learn.disclaimer")}
         </p>
       </div>
     </div>

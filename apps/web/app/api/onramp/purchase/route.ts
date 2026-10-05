@@ -17,10 +17,11 @@ function isFinancialProfile(value: unknown): value is FinancialProfile {
   );
 }
 import {
-  clientSafeOnRampError,
+  clientSafeOnRampCode,
   parseDestination,
   toBitikaPhone,
 } from "@pesasense/wallet";
+import { apiError } from "../../../../lib/api-error";
 import type { ProfileId } from "@pesasense/ussd";
 import { getBitikaRamp } from "../../../../lib/bitika";
 import { rememberSharedPurchase } from "../../../../lib/shared-purchases";
@@ -38,18 +39,12 @@ export async function POST(req: Request) {
     };
 
     if (body.approvedByUser !== true) {
-      return Response.json(
-        { error: "Purchase must be approved by the user." },
-        { status: 400 },
-      );
+      return apiError("errors.notApproved", 400);
     }
 
     const amountKes = body.amountKes;
     if (typeof amountKes !== "number" || !Number.isInteger(amountKes)) {
-      return Response.json(
-        { error: "amountKes must be a whole number." },
-        { status: 400 },
-      );
+      return apiError("errors.wholeShillings", 400);
     }
 
     let allowanceProfile: FinancialProfile;
@@ -60,33 +55,33 @@ export async function POST(req: Request) {
       storeProfileId = "device";
     } else if (body.profileId === "amina" || body.profileId === "brian") {
       if (isParsedOnlyMode()) {
-        return Response.json(
-          {
-            error:
-              "Demo profiles are disabled. Import M-Pesa messages and try again.",
-          },
-          { status: 400 },
-        );
+        return apiError("errors.demoDisabled", 400);
       }
       allowanceProfile = demoProfiles[body.profileId];
       storeProfileId = body.profileId;
     } else {
-      return Response.json(
-        { error: "Missing profile. Import your M-Pesa history on this phone." },
-        { status: 400 },
-      );
+      return apiError("errors.missingProfile", 400);
     }
 
     try {
       assertAppInvestAmount(allowanceProfile, amountKes);
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "This amount is not allowed.";
-      return Response.json({ error: message }, { status: 400 });
+      const message = err instanceof Error ? err.message : "";
+      if (message === "Build a buffer before buying Bitcoin.") {
+        return apiError("invest.bufferFirst", 400);
+      }
+      if (message === "The surplus floor is too small for a buy.") {
+        return apiError("invest.floorTooSmall", 400);
+      }
+      if (/whole number/i.test(message)) return apiError("errors.wholeShillings", 400);
+      if (/between/i.test(message)) {
+        return Response.json({ error: message }, { status: 400 });
+      }
+      return apiError("errors.amountNotAllowed", 400);
     }
 
     if (!body.destination || !body.payerPhone || !body.idempotencyKey) {
-      return Response.json({ error: "Missing purchase fields." }, { status: 400 });
+      return apiError("errors.missingFields", 400);
     }
 
     parseDestination(body.destination);
@@ -111,11 +106,6 @@ export async function POST(req: Request) {
 
     return Response.json(purchase);
   } catch (e) {
-    const upstream =
-      e instanceof Error && e.message.startsWith("Bitika request failed");
-    return Response.json(
-      { error: clientSafeOnRampError(e, "Could not start the purchase.") },
-      { status: upstream ? 502 : 400 },
-    );
+    return apiError(clientSafeOnRampCode(e) ?? "errors.purchaseFailed", 400);
   }
 }

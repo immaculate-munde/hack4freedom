@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -23,6 +24,7 @@ import {
   getBalanceSats,
   sendToLightningAddress,
 } from "../lib/breez/sdk";
+import { isOnline } from "../lib/network";
 
 export type BreezWalletStatus =
   | "idle"
@@ -58,8 +60,14 @@ export function BreezWalletProvider({ children }: { children: ReactNode }) {
   const [balanceSats, setBalanceSats] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [pendingMnemonic, setPendingMnemonic] = useState<string | null>(null);
+  const statusRef = useRef(status);
+  statusRef.current = status;
 
   const refreshBalance = useCallback(async () => {
+    if (!isOnline()) {
+      setError("common.offlineAction");
+      return;
+    }
     if (!hasBreezApiKey()) {
       return;
     }
@@ -74,6 +82,11 @@ export function BreezWalletProvider({ children }: { children: ReactNode }) {
 
   const unlockWithMnemonic = useCallback(async (mnemonic: string) => {
     setError(null);
+    if (!isOnline()) {
+      setStatus("error");
+      setError("common.offlineAction");
+      return;
+    }
     setStatus("loading");
     try {
       if (!hasBreezApiKey()) {
@@ -88,7 +101,8 @@ export function BreezWalletProvider({ children }: { children: ReactNode }) {
       setStatus("ready");
     } catch (e) {
       setStatus("error");
-      setError(e instanceof Error ? e.message : "Could not open wallet.");
+      const message = e instanceof Error ? e.message.trim() : "";
+      setError(message && !/\s/.test(message) ? message : message || "walletSetup.openFailed");
     }
   }, []);
 
@@ -144,9 +158,12 @@ export function BreezWalletProvider({ children }: { children: ReactNode }) {
 
   const withdrawSats = useCallback(
     async (amountSats: number, lightningDestination: string) => {
+      if (!isOnline()) {
+        throw new Error("common.offlineAction");
+      }
       const mnemonic = loadStoredMnemonic();
       if (!mnemonic) {
-        throw new Error("Unlock your PesaSense wallet first.");
+        throw new Error("walletSetup.unlockFirst");
       }
       const sdk = await connectBreezWallet(mnemonic);
       await sendToLightningAddress(sdk, lightningDestination, amountSats);
@@ -164,6 +181,16 @@ export function BreezWalletProvider({ children }: { children: ReactNode }) {
     if (loadStoredMnemonic()) {
       void unlockStoredWallet();
     }
+  }, [unlockStoredWallet]);
+
+  useEffect(() => {
+    function onOnline() {
+      if (statusRef.current !== "error") return;
+      if (!loadStoredMnemonic() || !hasBreezApiKey()) return;
+      void unlockStoredWallet();
+    }
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
   }, [unlockStoredWallet]);
 
   const value = useMemo(

@@ -2,8 +2,9 @@
  * Link the M-Pesa number that will dial USSD to the demo profile open in this browser.
  */
 
-import { isProfileId, publicServiceCode, ussdDestination } from "@pesasense/ussd";
+import { isProfileId, isUssdLang, publicServiceCode, ussdDestination } from "@pesasense/ussd";
 import { maskPhone, toBitikaPhone } from "@pesasense/wallet";
+import { apiError } from "../../../../lib/api-error";
 import { isCrossSite } from "../../../../lib/same-origin";
 import { getUssdStore } from "../../../../lib/ussd-server";
 
@@ -15,35 +16,31 @@ const LINK_LIMIT = 10;
 
 export async function POST(req: Request) {
   if (isCrossSite(req)) {
-    return Response.json({ error: "This request was refused." }, { status: 403 });
+    return apiError("errors.refused", 403);
   }
   let body: {
     phone?: unknown;
     profileId?: unknown;
     destination?: unknown;
+    language?: unknown;
   };
   try {
     body = (await req.json()) as typeof body;
   } catch {
-    return Response.json({ error: "Could not read this request." }, { status: 400 });
+    return apiError("errors.couldNotRead", 400);
   }
   if (typeof body.profileId !== "string" || !isProfileId(body.profileId)) {
-    return Response.json({ error: "Choose a known demo profile." }, { status: 400 });
+    return apiError("errors.knownProfile", 400);
   }
   if (typeof body.phone !== "string") {
-    return Response.json(
-      { error: "Enter the M-Pesa number that will dial." },
-      { status: 400 },
-    );
+    return apiError("errors.enterDialPhone", 400);
   }
 
   let phone: string;
   try {
     phone = toBitikaPhone(body.phone);
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Enter a Kenyan M-Pesa number.";
-    return Response.json({ error: message }, { status: 400 });
+  } catch {
+    return apiError("errors.enterKenyanPhone", 400);
   }
 
   const destination =
@@ -55,22 +52,13 @@ export async function POST(req: Request) {
     body.destination.trim() !== "" &&
     !destination
   ) {
-    return Response.json(
-      {
-        error:
-          "Enter a Lightning address like name@wallet.com. A demo address ending .invalid cannot receive sats.",
-      },
-      { status: 400 },
-    );
+    return apiError("errors.enterLightningInvalid", 400);
   }
 
   const store = getUssdStore();
   const attempts = store.hitRate(`link:${phone}`, Date.now(), LINK_WINDOW_MS);
   if (attempts > LINK_LIMIT) {
-    return Response.json(
-      { error: "Too many link attempts. Wait and try again." },
-      { status: 429 },
-    );
+    return apiError("errors.tooManyLinks", 429);
   }
 
   const existing = store.getAccount(phone);
@@ -82,6 +70,7 @@ export async function POST(req: Request) {
     linkedAt: new Date().toISOString(),
     source: "web",
   });
+  if (isUssdLang(body.language)) store.setLanguage(phone, body.language);
 
   const service = publicServiceCode(process.env);
   console.info(

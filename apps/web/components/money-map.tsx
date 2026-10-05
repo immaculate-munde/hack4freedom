@@ -7,43 +7,63 @@ import type {
   FinancialProfile,
   IncomeSource,
 } from "@pesasense/core";
-import { formatKes } from "../lib/format";
+import { useFormat, useI18n } from "../contexts/language-context";
+
+type MapAmount =
+  | { type: "single"; value: number }
+  | { type: "range"; low: number; high: number };
 
 type MapStop = {
   id: string;
-  category: string;
-  title: string;
-  amountLine: string;
-  whenLine: string;
+  categoryKey: string | null;
+  categoryText: string;
+  titleKey: string | null;
+  titleText: string;
+  amount: MapAmount;
+  whenKey: string;
+  whenTypical: number | null;
   share: number | null;
-  sentence: string;
+  sentenceKey: string;
+  sentenceCategory: string | null;
 };
 
 const COMMITMENT_CATEGORY: Record<CommitmentCategory, string> = {
-  rent: "Rent",
-  school_fees: "School fees",
-  utilities: "Utilities",
-  loan: "Loan",
-  insurance: "Insurance",
-  chama: "Chama",
-  other: "Commitment",
+  rent: "overview.map.cat.rent",
+  school_fees: "overview.map.cat.schoolFees",
+  utilities: "overview.map.cat.utilities",
+  loan: "overview.map.cat.loan",
+  insurance: "overview.map.cat.insurance",
+  chama: "overview.map.cat.chama",
+  other: "overview.map.cat.commitment",
 };
 
-const COMMITMENT_KIND: Record<CommitmentCategory, string> = {
-  rent: "rent",
-  school_fees: "school fees",
-  utilities: "a utilities bill",
-  loan: "a loan payment",
-  insurance: "insurance",
-  chama: "a chama contribution",
-  other: "a regular commitment",
+const COMMITMENT_SENTENCE: Record<CommitmentCategory, string> = {
+  rent: "overview.map.sentence.rent",
+  school_fees: "overview.map.sentence.schoolFees",
+  utilities: "overview.map.sentence.utilities",
+  loan: "overview.map.sentence.loan",
+  insurance: "overview.map.sentence.insurance",
+  chama: "overview.map.sentence.chama",
+  other: "overview.map.sentence.commitment",
 };
 
-const SPENDING_KIND: Record<string, string> = {
-  groceries: "groceries",
-  transport: "transport",
-  airtime: "airtime",
-  "eating out": "eating out",
+const SPENDING: Record<string, { categoryKey: string; sentenceKey: string }> = {
+  groceries: {
+    categoryKey: "overview.map.cat.groceries",
+    sentenceKey: "overview.map.sentence.groceries",
+  },
+  transport: {
+    categoryKey: "overview.map.cat.transport",
+    sentenceKey: "overview.map.sentence.transport",
+  },
+  airtime: {
+    categoryKey: "overview.map.cat.airtime",
+    sentenceKey: "overview.map.sentence.airtime",
+  },
+  "eating out": {
+    categoryKey: "overview.map.cat.eatingOut",
+    sentenceKey: "overview.map.sentence.eatingOut",
+  },
 };
 
 const BAND_TOP = 18;
@@ -55,29 +75,25 @@ function incomeShare(amountKes: number, typicalIncome: number): number | null {
   return Math.round((amountKes / typicalIncome) * 100);
 }
 
-function cadencePhrase(cadence: Cadence): string {
-  if (cadence === "weekly") return "a week";
-  if (cadence === "termly") return "a term";
-  if (cadence === "yearly") return "a year";
-  if (cadence === "irregular") return ", not on a fixed schedule";
-  return "a month";
+function cadenceWhenKey(cadence: Cadence): string {
+  if (cadence === "weekly") return "overview.map.when.week";
+  if (cadence === "termly") return "overview.map.when.term";
+  if (cadence === "yearly") return "overview.map.when.year";
+  if (cadence === "irregular") return "overview.map.when.irregular";
+  return "overview.map.when.month";
 }
 
 function titleCase(value: string): string {
   return value.replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-function incomeKind(sources: Array<{ value: IncomeSource }>): string {
-  if (sources.length !== 1) return "the combined income on this statement";
+function incomeSentenceKey(sources: Array<{ value: IncomeSource }>): string {
+  if (sources.length !== 1) return "overview.map.sentence.incomeCombined";
   const kind = sources[0]?.value.kind;
-  if (kind === "salary") return "salary coming in";
-  if (kind === "business") return "business income";
-  if (kind === "transfer") return "money transferred in";
-  return "money coming in";
-}
-
-function spendingKind(category: string): string {
-  return SPENDING_KIND[category] ?? `${category} spending`;
+  if (kind === "salary") return "overview.map.sentence.salary";
+  if (kind === "business") return "overview.map.sentence.business";
+  if (kind === "transfer") return "overview.map.sentence.transfer";
+  return "overview.map.sentence.incomeOther";
 }
 
 export function buildMoneyStops(profile: FinancialProfile): MapStop[] {
@@ -87,48 +103,65 @@ export function buildMoneyStops(profile: FinancialProfile): MapStop[] {
   const stops: MapStop[] = [
     {
       id: "income",
-      category: "Income",
-      title: "Income",
-      amountLine: `${formatKes(income.floor)} to ${formatKes(income.ceiling)}`,
-      whenLine: `a month, typically ${formatKes(typicalIncome)}`,
+      categoryKey: "overview.map.cat.income",
+      categoryText: "",
+      titleKey: "overview.map.cat.income",
+      titleText: "",
+      amount: { type: "range", low: income.floor, high: income.ceiling },
+      whenKey: "overview.map.when.monthTypical",
+      whenTypical: typicalIncome,
       share: null,
-      sentence: `This is ${incomeKind(profile.income.sources)}.`,
+      sentenceKey: incomeSentenceKey(profile.income.sources),
+      sentenceCategory: null,
     },
   ];
 
   profile.commitments.forEach((item, index) => {
-    const when = cadencePhrase(item.cadence);
     stops.push({
       id: `commitment-${index}`,
-      category: COMMITMENT_CATEGORY[item.category],
-      title: item.label,
-      amountLine: formatKes(item.amountKes),
-      whenLine: when.replace(/^, /, ""),
+      categoryKey: COMMITMENT_CATEGORY[item.category],
+      categoryText: "",
+      titleKey: null,
+      titleText: item.label,
+      amount: { type: "single", value: item.amountKes },
+      whenKey: cadenceWhenKey(item.cadence),
+      whenTypical: null,
       share: incomeShare(item.amountKes, typicalIncome),
-      sentence: `This is ${COMMITMENT_KIND[item.category]}.`,
+      sentenceKey: COMMITMENT_SENTENCE[item.category],
+      sentenceCategory: null,
     });
   });
 
   profile.spending.byCategory.forEach((item, index) => {
+    const known = SPENDING[item.category];
+    const label = titleCase(item.category);
     stops.push({
       id: `spending-${index}`,
-      category: titleCase(item.category),
-      title: titleCase(item.category),
-      amountLine: formatKes(item.monthlyKes.typical),
-      whenLine: "a month",
+      categoryKey: known?.categoryKey ?? null,
+      categoryText: known ? "" : label,
+      titleKey: known?.categoryKey ?? null,
+      titleText: known ? "" : label,
+      amount: { type: "single", value: item.monthlyKes.typical },
+      whenKey: "overview.map.when.month",
+      whenTypical: null,
       share: incomeShare(item.monthlyKes.typical, typicalIncome),
-      sentence: `This is ${spendingKind(item.category)}.`,
+      sentenceKey: known?.sentenceKey ?? "overview.map.sentence.spendingOther",
+      sentenceCategory: known ? null : label,
     });
   });
 
   stops.push({
     id: "surplus",
-    category: "Surplus",
-    title: "Safe surplus floor",
-    amountLine: formatKes(floor),
-    whenLine: "a month",
+    categoryKey: "overview.map.cat.surplus",
+    categoryText: "",
+    titleKey: "overview.map.safeFloor",
+    titleText: "",
+    amount: { type: "single", value: floor },
+    whenKey: "overview.map.when.month",
+    whenTypical: null,
     share: incomeShare(floor, typicalIncome),
-    sentence: "This is what is left after the regular bills.",
+    sentenceKey: "overview.map.sentence.surplus",
+    sentenceCategory: null,
   });
 
   return stops;
@@ -158,6 +191,8 @@ export function MoneyMap({
   /** Ask the path to open a stop. A new token repeats the same id. */
   focusRequest?: { id: string; token: number } | null;
 }) {
+  const { t } = useI18n();
+  const { kes } = useFormat();
   const stops = useMemo(() => buildMoneyStops(profile), [profile]);
   const [selectedId, setSelectedId] = useState(stops[0]?.id ?? "income");
   const selected = stops.find((stop) => stop.id === selectedId) ?? stops[0];
@@ -193,23 +228,45 @@ export function MoneyMap({
 
   if (!selected) return null;
 
+  const category = selected.categoryKey ? t(selected.categoryKey) : selected.categoryText;
+  const title = selected.titleText
+    ? selected.titleText
+    : selected.titleKey
+      ? t(selected.titleKey)
+      : category;
+  const amountLine =
+    selected.amount.type === "range"
+      ? t("overview.map.amountRange", {
+          low: kes(selected.amount.low),
+          high: kes(selected.amount.high),
+        })
+      : kes(selected.amount.value);
+  const whenLine =
+    selected.whenTypical != null
+      ? t(selected.whenKey, { typical: kes(selected.whenTypical) })
+      : t(selected.whenKey);
+  const sentence = t(
+    selected.sentenceKey,
+    selected.sentenceCategory ? { category: selected.sentenceCategory } : undefined,
+  );
+
   return (
     <section
       id="month-path"
-      className="rounded-[28px] bg-[#141210] px-4 py-6 sm:px-6"
+      className="overflow-x-clip rounded-[28px] border border-[#e3b23c]/25 bg-[#141210] px-3 py-6 sm:px-6"
       aria-labelledby={headingId}
     >
       <div className="mb-2 flex items-center justify-between gap-3">
         <h2 id={headingId} className="text-xs font-semibold tracking-[0.16em] text-[#e3b23c] uppercase">
-          The month
+          {t("overview.map.heading")}
         </h2>
         {isDemo ? (
           <span className="rounded-full bg-[#e3b23c] px-2.5 py-1 text-[11px] font-semibold text-[#1e3a32]">
-            Demo data
+            {t("overview.demoData")}
           </span>
         ) : null}
       </div>
-      <div ref={boxRef} className="relative" style={{ height: MAP_HEIGHT }}>
+      <div ref={boxRef} className="money-map-track relative" style={{ height: MAP_HEIGHT }}>
         <svg
           className="pointer-events-none absolute inset-0"
           width={width}
@@ -230,6 +287,12 @@ export function MoneyMap({
           if (!point) return null;
           const onLeft = index % 2 === 0;
           const isSelected = stop.id === selected.id;
+          const stopCategory = stop.categoryKey ? t(stop.categoryKey) : stop.categoryText;
+          const stopTitle = stop.titleText
+            ? stop.titleText
+            : stop.titleKey
+              ? t(stop.titleKey)
+              : stopCategory;
           return (
             <button
               key={stop.id}
@@ -237,7 +300,7 @@ export function MoneyMap({
               aria-pressed={isSelected}
               aria-controls={detailId}
               onClick={() => setSelectedId(stop.id)}
-              className="absolute w-[5.5rem] -translate-x-1/2 rounded-xl text-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e3b23c]"
+              className="absolute w-[3.5rem] -translate-x-1/2 rounded-xl text-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e3b23c] md:w-[5.5rem]"
               style={{ left: point.x, top: onLeft ? 4 : 96 }}
             >
               <span
@@ -252,14 +315,14 @@ export function MoneyMap({
               >
                 {index + 1}
               </span>
-              <span className="mt-1 block truncate text-[10px] font-semibold tracking-[0.08em] text-[#e3b23c] uppercase">
-                {stop.category}
+              <span className="mt-1 block whitespace-normal break-words text-[8px] leading-3 font-semibold text-[#e3b23c] uppercase md:truncate md:text-[10px] md:leading-normal md:tracking-[0.08em]">
+                {stopCategory}
               </span>
               <span
-                className="block truncate text-[11px] leading-4 font-bold"
+                className="block whitespace-normal break-words text-[9px] leading-3 font-bold md:truncate md:text-[11px] md:leading-4"
                 style={{ color: isSelected ? "#ffffff" : "#f6f1e4" }}
               >
-                {stop.title}
+                {stopTitle}
               </span>
             </button>
           );
@@ -271,19 +334,22 @@ export function MoneyMap({
         className="mt-2 rounded-2xl border border-[#e3b23c]/40 bg-[#1c1914] px-4 py-3"
       >
         <p className="text-[11px] font-semibold tracking-[0.14em] text-[#e3b23c] uppercase">
-          {selected.category}
+          {category}
         </p>
-        <p className="mt-1 text-base font-bold text-white">{selected.title}</p>
+        <p className="mt-1 text-base font-bold text-white">{title}</p>
         <p className="mt-1 text-sm font-semibold text-[#f6f1e4] tabular-nums">
-          {selected.amountLine}{" "}
-          <span className="font-medium text-[#c4b8a4]">{selected.whenLine}</span>
+          {amountLine}{" "}
+          <span className="font-medium text-[#c4b8a4]">{whenLine}</span>
         </p>
         {selected.share !== null ? (
           <p className="mt-1 text-sm text-[#f6f1e4]">
-            {selected.share}% of typical income ({formatKes(profile.income.monthlyKes.typical)}).
+            {t("overview.map.share", {
+              share: selected.share,
+              amount: kes(profile.income.monthlyKes.typical),
+            })}
           </p>
         ) : null}
-        <p className="mt-1 text-sm leading-5 text-[#c4b8a4]">{selected.sentence}</p>
+        <p className="mt-1 text-sm leading-5 text-[#c4b8a4]">{sentence}</p>
       </div>
     </section>
   );

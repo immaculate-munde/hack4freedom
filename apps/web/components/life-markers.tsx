@@ -3,8 +3,9 @@
 import { useId, useMemo, useState } from "react";
 import Link from "next/link";
 import type { FinancialProfile } from "@pesasense/core";
+import { useFormat, useI18n } from "../contexts/language-context";
 import { appInvestAllowance, showBufferFirstUx } from "../lib/buffer-gate";
-import { formatKes, habitPercentOfFloor } from "../lib/format";
+import { habitPercentOfFloor } from "../lib/format";
 import { habitOffer } from "../lib/habit-plan";
 
 type MarkerId = "in" | "bills" | "spend" | "safe" | "cover";
@@ -17,32 +18,41 @@ type Marker = {
   meaning: string;
 };
 
-const grouped = new Intl.NumberFormat("en-KE", { maximumFractionDigits: 0 });
+type Translate = (key: string, vars?: Record<string, string | number>) => string;
 
 function monthsLabel(months: number): string {
   if (Number.isInteger(months)) return String(months);
   return months.toFixed(1).replace(/\.0$/, "");
 }
 
-function kesRange(low: number, high: number): string {
-  return `${formatKes(low)}–${grouped.format(Math.round(high))}`;
+function monthsFigure(months: number, t: Translate): string {
+  const count = monthsLabel(months);
+  if (Number(count) === 1) return t("overview.markers.oneMonth", { count });
+  return t("overview.markers.manyMonths", { count });
 }
 
-export function buildLifeMarkers(profile: FinancialProfile): Marker[] {
+export function buildLifeMarkers(
+  profile: FinancialProfile,
+  t: Translate,
+  kes: (amount: number) => string,
+  number: (amount: number) => string,
+): Marker[] {
   const income = profile.income.monthlyKes;
   const surplus = profile.surplus.monthlyKes;
   const floor = surplus.floor;
   const bufferFirst = showBufferFirstUx(profile) || floor <= 0;
   const plan = profile.investmentPlan;
   const habit = plan?.amountKes ?? 0;
-  const cadence = plan?.cadence === "weekly" ? "week" : "month";
   const markers: Marker[] = [
     {
       id: "in",
-      label: "In",
-      title: "What comes in",
-      figure: kesRange(income.floor, income.ceiling),
-      meaning: `A typical month is ${formatKes(income.typical)}. This is what the statement shows coming in. Stay with the statement.`,
+      label: t("overview.markers.in"),
+      title: t("overview.markers.inTitle"),
+      figure: t("overview.markers.range", {
+        low: kes(income.floor),
+        high: number(income.ceiling),
+      }),
+      meaning: t("overview.markers.inMeaning", { typical: kes(income.typical) }),
     },
   ];
 
@@ -50,10 +60,10 @@ export function buildLifeMarkers(profile: FinancialProfile): Marker[] {
     const promised = profile.commitments.reduce((sum, item) => sum + item.amountKes, 0);
     markers.push({
       id: "bills",
-      label: "Bills",
-      title: "Already promised",
-      figure: `${formatKes(promised)} a month`,
-      meaning: "These bills are spoken for. They are not surplus.",
+      label: t("overview.markers.bills"),
+      title: t("overview.markers.billsTitle"),
+      figure: t("overview.markers.perMonth", { amount: kes(promised) }),
+      meaning: t("overview.markers.billsMeaning"),
     });
   }
 
@@ -64,37 +74,50 @@ export function buildLifeMarkers(profile: FinancialProfile): Marker[] {
     );
     markers.push({
       id: "spend",
-      label: "Spend",
-      title: "Day to day",
-      figure: formatKes(dayToDay),
-      meaning: "This is the typical month of day-to-day spending.",
+      label: t("overview.markers.spend"),
+      title: t("overview.markers.spendTitle"),
+      figure: kes(dayToDay),
+      meaning: t("overview.markers.spendMeaning"),
     });
   }
 
   const habitLine =
     habit > 0 && floor > 0
-      ? `The habit is ${formatKes(habit)} a ${cadence}, ${habitPercentOfFloor(habit, floor)}% of that floor, not of the typical ${formatKes(surplus.typical)}. The wider range goes to ${formatKes(surplus.ceiling)}. Bitcoin can lose value.`
+      ? t(
+          plan?.cadence === "weekly"
+            ? "overview.markers.safeHabitWeek"
+            : "overview.markers.safeHabitMonth",
+          {
+            habit: kes(habit),
+            share: habitPercentOfFloor(habit, floor),
+            typical: kes(surplus.typical),
+            ceiling: kes(surplus.ceiling),
+          },
+        )
       : bufferFirst
-        ? `The safe floor is ${formatKes(floor)}. Nothing is left to set aside after the bills. Bitcoin can lose value.`
-        : `The safe floor is what is left after the regular bills. The wider range is ${formatKes(surplus.typical)} to ${formatKes(surplus.ceiling)}. No habit is saved yet. Bitcoin can lose value.`;
+        ? t("overview.markers.safeEmpty", { floor: kes(floor) })
+        : t("overview.markers.safeNoHabit", {
+            typical: kes(surplus.typical),
+            ceiling: kes(surplus.ceiling),
+          });
 
   markers.push({
     id: "safe",
-    label: "Safe",
-    title: "Safe to consider",
-    figure: formatKes(floor),
+    label: t("overview.markers.safe"),
+    title: t("overview.markers.safeTitle"),
+    figure: kes(floor),
     meaning: habitLine,
   });
 
   const months = profile.resilience.monthsOfExpensesCovered;
   markers.push({
     id: "cover",
-    label: "Cover",
-    title: "How long it covers",
-    figure: `${monthsLabel(months)} months`,
+    label: t("overview.markers.cover"),
+    title: t("overview.markers.coverTitle"),
+    figure: monthsFigure(months, t),
     meaning: bufferFirst
-      ? `The buffer comes first. ${monthsLabel(months)} months of expenses are covered, and this history is not ready for a Bitcoin habit yet.`
-      : "This is the buffer. Keep the habit inside the floor. Do not stretch it.",
+      ? t("overview.markers.coverBuffer", { months: monthsLabel(months) })
+      : t("overview.markers.coverReady"),
   });
 
   return markers;
@@ -115,7 +138,12 @@ export function LifeMarkers({
   /** Opens a bill on the winding path when that path is on the page. */
   onOpenPromisedStop?: () => void;
 }) {
-  const markers = useMemo(() => buildLifeMarkers(profile), [profile]);
+  const { t } = useI18n();
+  const { kes, number } = useFormat();
+  const markers = useMemo(
+    () => buildLifeMarkers(profile, t, kes, number),
+    [profile, t, kes, number],
+  );
   const [selectedId, setSelectedId] = useState<MarkerId>(markers[0]?.id ?? "in");
   const selected = markers.find((marker) => marker.id === selectedId) ?? markers[0];
   const readingId = useId();
@@ -141,21 +169,26 @@ export function LifeMarkers({
     habitHref,
     onSelect: select,
     onOpenPromisedStop,
+    t,
   });
 
   return (
-    <section className="rounded-[28px] bg-[#141210] px-3 py-3 sm:px-4" aria-label="The whole month">
+    <section className="rounded-[28px] border border-[#e3b23c]/25 bg-[#141210] px-3 py-3 sm:px-4" aria-label={t("overview.markers.heading")}>
       <div className="mb-2 flex items-center justify-between gap-3">
         <h2 className="text-xs font-semibold tracking-[0.16em] text-[#e3b23c] uppercase">
-          The whole month
+          {t("overview.markers.heading")}
         </h2>
         {isDemo ? (
           <span className="rounded-full bg-[#e3b23c] px-2.5 py-1 text-[11px] font-semibold text-[#1e3a32]">
-            Demo data
+            {t("overview.demoData")}
           </span>
         ) : null}
       </div>
-      <div className="grid grid-cols-5 gap-1.5" role="group" aria-label="Month markers">
+      <div
+        className="grid grid-cols-2 gap-1.5 min-[400px]:grid-cols-3 min-[520px]:grid-cols-5"
+        role="group"
+        aria-label={t("overview.markers.group")}
+      >
         {markers.map((marker, index) => {
           const isSelected = marker.id === selected.id;
           return (
@@ -193,7 +226,9 @@ export function LifeMarkers({
         <p className="mt-1 text-sm leading-5 text-[#f6f1e4]">{selected.meaning}</p>
         {next ? (
           <div className="mt-2">
-            <p className="text-[10px] font-semibold tracking-[0.14em] text-[#c4b8a4] uppercase">Next</p>
+            <p className="text-[10px] font-semibold tracking-[0.14em] text-[#c4b8a4] uppercase">
+              {t("overview.markers.next")}
+            </p>
             <div className="mt-0.5">{next}</div>
           </div>
         ) : null}
@@ -203,10 +238,10 @@ export function LifeMarkers({
           href={investReady ? "/invest" : habitHref}
           className="btn btn-accent inline-flex w-full justify-center"
         >
-          {investReady ? "Review an investment" : "Set the habit"}
+          {investReady ? t("overview.markers.reviewInvestment") : t("overview.markers.setHabit")}
         </Link>
         <p className="text-center text-sm leading-5 text-[#c4b8a4]">
-          You review it on the next screen. Nothing is sent until you approve it.
+          {t("overview.markers.reviewNext")}
         </p>
       </div>
     </section>
@@ -222,6 +257,7 @@ function nextStep({
   habitHref,
   onSelect,
   onOpenPromisedStop,
+  t,
 }: {
   id: MarkerId;
   investReady: boolean;
@@ -231,19 +267,20 @@ function nextStep({
   habitHref: string;
   onSelect: (id: MarkerId) => void;
   onOpenPromisedStop?: () => void;
+  t: Translate;
 }) {
   if (id === "in") {
     if (hasBills) {
       return (
         <button type="button" className={stepClass} onClick={() => onSelect("bills")}>
-          See where it goes
+          {t("overview.markers.seeWhere")}
         </button>
       );
     }
     if (onOpenPromisedStop) {
       return (
         <button type="button" className={stepClass} onClick={onOpenPromisedStop}>
-          See where it goes
+          {t("overview.markers.seeWhere")}
         </button>
       );
     }
@@ -254,7 +291,7 @@ function nextStep({
     if (!onOpenPromisedStop) return null;
     return (
       <button type="button" className={stepClass} onClick={onOpenPromisedStop}>
-        Open them on the path
+        {t("overview.markers.openPath")}
       </button>
     );
   }
@@ -262,7 +299,7 @@ function nextStep({
   if (id === "spend") {
     return (
       <button type="button" className={stepClass} onClick={() => onSelect("safe")}>
-        See the safe floor
+        {t("overview.markers.seeFloor")}
       </button>
     );
   }
@@ -272,22 +309,22 @@ function nextStep({
       return (
         <>
           <Link href="/invest" className={stepClass}>
-            Review an investment
+            {t("overview.markers.reviewInvestment")}
           </Link>
-          <p className="mt-1 text-sm leading-5 text-[#c4b8a4]">Nothing is sent until you approve it.</p>
+          <p className="mt-1 text-sm leading-5 text-[#c4b8a4]">{t("overview.markers.nothingSent")}</p>
         </>
       );
     }
     if (habitReady) {
       return (
         <Link href={habitHref} className={stepClass}>
-          Set the habit
+          {t("overview.markers.setHabit")}
         </Link>
       );
     }
     return (
       <button type="button" className={stepClass} onClick={() => onSelect("cover")}>
-        See the buffer
+        {t("overview.markers.seeBuffer")}
       </button>
     );
   }
@@ -295,7 +332,7 @@ function nextStep({
   if (bufferFirst) return null;
   return (
     <button type="button" className={stepClass} onClick={() => onSelect("safe")}>
-      Keep it inside the floor
+      {t("overview.markers.keepInside")}
     </button>
   );
 }

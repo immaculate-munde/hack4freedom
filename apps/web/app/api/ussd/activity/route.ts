@@ -4,6 +4,7 @@
 
 import { publicServiceCode } from "@pesasense/ussd";
 import { maskPhone, toBitikaPhone } from "@pesasense/wallet";
+import { apiError } from "../../../../lib/api-error";
 import { isCrossSite } from "../../../../lib/same-origin";
 import { getUssdStore } from "../../../../lib/ussd-server";
 
@@ -12,7 +13,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   if (isCrossSite(req)) {
-    return Response.json({ error: "This request was refused." }, { status: 403 });
+    return apiError("errors.refused", 403);
   }
   const url = new URL(req.url);
   const rawPhone = url.searchParams.get("phone") ?? "";
@@ -20,16 +21,13 @@ export async function GET(req: Request) {
   try {
     phone = toBitikaPhone(rawPhone);
   } catch {
-    return Response.json({ error: "Enter a Kenyan M-Pesa number." }, { status: 400 });
+    return apiError("errors.enterKenyanPhone", 400);
   }
 
   const store = getUssdStore();
   const attempts = store.hitRate(`activity:${phone}`, Date.now(), 60_000);
   if (attempts > 40) {
-    return Response.json(
-      { error: "Too many requests. Wait a minute." },
-      { status: 429 },
-    );
+    return apiError("errors.tooManyRequests", 429);
   }
 
   const account = store.getAccount(phone);

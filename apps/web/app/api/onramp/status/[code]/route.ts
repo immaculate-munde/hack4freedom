@@ -1,4 +1,5 @@
-import { clientSafeOnRampError } from "@pesasense/wallet";
+import { clientSafeOnRampCode } from "@pesasense/wallet";
+import { apiError } from "../../../../../lib/api-error";
 import { getBitikaRamp } from "../../../../../lib/bitika";
 import {
   isTerminalPurchase,
@@ -13,7 +14,7 @@ export async function GET(
   try {
     const { code } = await context.params;
     if (!code || code === "undefined") {
-      return Response.json({ error: "Missing transaction code." }, { status: 400 });
+      return apiError("errors.missingTx", 400);
     }
     const cached = recallPurchase(code);
     if (cached && isTerminalPurchase(cached.status)) {
@@ -28,9 +29,6 @@ export async function GET(
     }
     return Response.json(purchase);
   } catch (e) {
-    return Response.json(
-      { error: clientSafeOnRampError(e, "Could not read purchase status.") },
-      { status: 502 },
-    );
+    return apiError(clientSafeOnRampCode(e) ?? "errors.statusFailed", 502);
   }
 }

@@ -15,8 +15,7 @@ export function habitOffer(
   if (showBufferFirstUx(profile) || floor <= 0) {
     return {
       ok: false,
-      reason:
-        "The buffer comes first. A habit waits until the safe surplus floor is above zero.",
+      reason: "habit.bufferFirst",
     };
   }
   return { ok: true, maxKes: floor };

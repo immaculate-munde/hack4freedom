@@ -3,11 +3,12 @@
 import { Suspense, useEffect, useState } from "react";
 
 import Link from "next/link";
-import { PAST_PERFORMANCE_DISCLAIMER, type BuyCadence } from "@pesasense/core";
+import type { BuyCadence } from "@pesasense/core";
 import { ProfileRequired } from "../../components/profile-required";
+import { useFormat, useI18n } from "../../contexts/language-context";
 import { useProfile } from "../../contexts/profile-context";
 import { appInvestAllowance } from "../../lib/buffer-gate";
-import { formatKes, habitPercentOfFloor } from "../../lib/format";
+import { habitPercentOfFloor } from "../../lib/format";
 import { habitOffer, parseWholeKes, planWithAmount } from "../../lib/habit-plan";
 import {
   readHabitReminder,
@@ -17,13 +18,21 @@ import {
 } from "../../lib/habit-reminder";
 import { useActiveProfile } from "../../lib/use-active-profile";
 
+type HabitError =
+  | "habit.errors.whole"
+  | "habit.errors.exceeds"
+  | "habit.errors.save"
+  | "habit.errors.reminder";
+
 function HabitContent() {
   const active = useActiveProfile();
   const { setProfile } = useProfile();
+  const { t, locale } = useI18n();
+  const { kes } = useFormat();
   const [amount, setAmount] = useState("");
   const [cadence, setCadence] = useState<BuyCadence>("monthly");
-  const [error, setError] = useState<string | null>(null);
-  const [savedNote, setSavedNote] = useState<string | null>(null);
+  const [errorKey, setErrorKey] = useState<HabitError | null>(null);
+  const [savedNote, setSavedNote] = useState(false);
   const [reminderNote, setReminderNote] = useState<string | null>(null);
   const [reminder, setReminder] = useState<HabitReminder | null>(null);
 
@@ -58,18 +67,19 @@ function HabitContent() {
     profile.investmentPlan != null &&
     draftAmount === profile.investmentPlan.amountKes &&
     cadence === profile.investmentPlan.cadence;
+  const cadenceLabel = cadence === "weekly" ? t("habit.perWeekly") : t("habit.perMonthly");
 
   function onSave() {
     if (!offer.ok) return;
     const nextAmount = parseWholeKes(amount);
     if (nextAmount === null) {
-      setError("Enter a whole number of shillings.");
-      setSavedNote(null);
+      setErrorKey("habit.errors.whole");
+      setSavedNote(false);
       return;
     }
     if (nextAmount > offer.maxKes) {
-      setError(`The habit cannot exceed the safe floor of ${formatKes(offer.maxKes)}.`);
-      setSavedNote(null);
+      setErrorKey("habit.errors.exceeds");
+      setSavedNote(false);
       return;
     }
     try {
@@ -88,15 +98,13 @@ function HabitContent() {
         setReminder(writeHabitReminder({ amountKes: nextAmount, cadence }));
       }
     } catch {
-      setError("Could not save this habit on this phone.");
-      setSavedNote(null);
+      setErrorKey("habit.errors.save");
+      setSavedNote(false);
       return;
     }
-    setError(null);
+    setErrorKey(null);
     setReminderNote(null);
-    setSavedNote(
-      "Habit saved on this phone (localStorage pesasense.profile). Reload to confirm. Nothing is sent until you approve a purchase.",
-    );
+    setSavedNote(true);
   }
 
   async function onRemind() {
@@ -108,77 +116,79 @@ function HabitContent() {
         cadence: plan.cadence,
       });
       setReminder(next);
-      setError(null);
+      setErrorKey(null);
     } catch {
-      setError("Could not save the reminder on this phone.");
+      setErrorKey("habit.errors.reminder");
       return;
     }
-    const arm = await requestReminderNotification(plan.amountKes);
+    const arm = await requestReminderNotification(plan.amountKes, locale);
     setReminderNote(arm.note);
   }
 
+  const errorText =
+    errorKey === "habit.errors.exceeds"
+      ? t(errorKey, { floor: kes(offer.ok ? offer.maxKes : 0) })
+      : errorKey
+        ? t(errorKey)
+        : null;
+
   return (
-    <main className="flex w-full flex-col gap-5">
-      <header>
+    <main className="flex w-full flex-col gap-8 pb-24 md:gap-5 md:pb-0">
+      <header className="mb-2 md:mb-0">
         <p className="text-[11px] font-semibold tracking-[0.14em] text-teal uppercase">
-          Patient habit
+          {t("habit.eyebrow")}
         </p>
         <h1 className="mt-1 text-[28px] leading-9 font-bold tracking-tight text-ink">
-          Steady long-term habit
+          {t("habit.title")}
         </h1>
-        <p className="mt-1 text-sm leading-6 text-slate">
-          A small pot from your monthly safe surplus. Bitcoin is one option, not the
-          only one.
-        </p>
+        <p className="mt-1 text-sm leading-6 text-slate">{t("habit.intro")}</p>
         {isDemo ? (
-          <p className="mt-2 text-[11px] font-semibold text-slate">Demo data</p>
+          <p className="mt-2 text-[11px] font-semibold text-slate">{t("habit.demoData")}</p>
         ) : null}
       </header>
 
       <section className="flex items-start gap-3 rounded-[20px] bg-mint px-4 py-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-teal">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-paper text-teal">
           <LeafIcon />
         </span>
         <div>
           <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-semibold text-ink">Sensi&apos;s note</p>
+            <p className="text-sm font-semibold text-ink">{t("habit.sensiNote")}</p>
             <p className="text-[11px] font-semibold tracking-wide text-teal uppercase">
-              Mindset
+              {t("habit.mindset")}
             </p>
           </div>
-          <p className="mt-1 text-sm leading-5 text-ink">
-            “A patient pot for 3 to 5 years. You approve each purchase.”
-          </p>
+          <p className="mt-1 text-sm leading-5 text-ink">“{t("habit.sensiQuote")}”</p>
         </div>
       </section>
 
       {offer.ok ? (
-        <section className="rounded-[20px] bg-white p-5 shadow-card">
+        <section className="rounded-[20px] bg-surface p-5 shadow-card">
           <div className="flex items-center justify-between gap-3">
             <p className="text-[11px] font-semibold tracking-[0.12em] text-slate uppercase">
-              Allocated target
+              {t("habit.allocated")}
             </p>
             <div className="flex rounded-full bg-pearl p-1 text-xs font-semibold">
               <button
                 type="button"
                 aria-pressed={cadence === "weekly"}
                 onClick={() => setCadence("weekly")}
-                className={`rounded-full px-3 py-1 ${cadence === "weekly" ? "bg-white text-teal shadow-card" : "text-slate"}`}
+                className={`rounded-full px-3 py-1 ${cadence === "weekly" ? "bg-brass text-on-accent shadow-card" : "text-slate"}`}
               >
-                Weekly
+                {t("common.weekly")}
               </button>
               <button
                 type="button"
                 aria-pressed={cadence === "monthly"}
                 onClick={() => setCadence("monthly")}
-                className={`rounded-full px-3 py-1 ${cadence === "monthly" ? "bg-white text-teal shadow-card" : "text-slate"}`}
+                className={`rounded-full px-3 py-1 ${cadence === "monthly" ? "bg-brass text-on-accent shadow-card" : "text-slate"}`}
               >
-                Monthly
+                {t("common.monthly")}
               </button>
             </div>
           </div>
           <label className="mt-3 block text-sm font-semibold text-ink" htmlFor="habit-amount">
-            Amount (KES)
+            {t("habit.amountLabel")}
           </label>
           <input
             id="habit-amount"
@@ -188,39 +198,36 @@ function HabitContent() {
             value={amount}
             onChange={(event) => {
               setAmount(event.target.value);
-              setSavedNote(null);
+              setSavedNote(false);
             }}
             placeholder="0"
           />
           <p className="mt-3 text-[32px] leading-10 font-bold text-ink tabular-nums">
-            {formatKes(previewKes)}{" "}
-            <span className="text-base font-semibold text-slate">/ {cadence}</span>
+            {kes(previewKes)}{" "}
+            <span className="text-base font-semibold text-slate">/ {cadenceLabel}</span>
           </p>
           <p className="mt-1 text-sm text-slate">
             <span className="mr-1 rounded-full border border-line px-2 py-0.5 text-[11px] font-semibold">
-              {isDemo ? "Demo" : "Illustrative"}
+              {isDemo ? t("habit.demo") : t("habit.illustrative")}
             </span>
-            Sats appear when there is a quote. Goes straight to your own wallet.
+            {t("habit.satsNote")}
           </p>
           <div className="mt-4 flex items-center justify-between gap-3 text-sm">
-            <p className="font-semibold text-ink">{share}% of your safe floor</p>
-            <p className="text-slate tabular-nums">{formatKes(floor)} floor</p>
+            <p className="font-semibold text-ink">{t("habit.share", { share })}</p>
+            <p className="text-slate tabular-nums">{t("habit.floor", { amount: kes(floor) })}</p>
           </div>
           <div className="mt-2 h-2 rounded-full bg-pearl" aria-hidden="true">
-            <div className="h-2 rounded-full bg-teal" style={{ width: `${width}%` }} />
+            <div className="h-2 rounded-full bg-teal dark:bg-[#8fd0c4]" style={{ width: `${width}%` }} />
           </div>
-          <p className="mt-3 text-sm leading-6 text-slate">
-            Monthly is the usual habit. Weekly is an option. The amount stays at or
-            below the safe floor.
-          </p>
-          {error ? (
+          <p className="mt-3 text-sm leading-6 text-slate">{t("habit.cadenceNote")}</p>
+          {errorText ? (
             <p className="mt-3 text-sm font-semibold text-warning" role="alert">
-              {error}
+              {errorText}
             </p>
           ) : null}
-          {savedNote ? <p className="mt-3 text-sm text-teal">{savedNote}</p> : null}
+          {savedNote ? <p className="mt-3 text-sm text-teal">{t("habit.saved")}</p> : null}
           <button type="button" onClick={onSave} className="btn btn-accent mt-4 w-full">
-            Save habit
+            {t("habit.save")}
           </button>
           <button
             type="button"
@@ -228,76 +235,66 @@ function HabitContent() {
             disabled={!draftMatches}
             className="btn btn-secondary mt-3 w-full"
           >
-            Remind me on the 1st
+            {t("habit.remind")}
           </button>
           {reminderNote ? (
             <p className="mt-3 text-sm leading-6 text-teal">{reminderNote}</p>
           ) : reminder ? (
-            <p className="mt-3 text-sm leading-6 text-slate">
-              Reminder saved on this phone. On/after the 1st you get an in-app
-              banner; a browser notification fires when permission and timing allow.
-              You approve each purchase.
-            </p>
+            <p className="mt-3 text-sm leading-6 text-slate">{t("habit.remindSet")}</p>
           ) : (
             <p className="mt-3 text-sm leading-6 text-slate">
-              {draftMatches
-                ? "A reminder stays on this phone. It does not send money or SMS."
-                : "Save the habit first. The reminder uses that saved amount."}
+              {draftMatches ? t("habit.remindStays") : t("habit.remindAfterSave")}
             </p>
           )}
         </section>
       ) : (
         <section className="rounded-[20px] border border-mint/60 bg-mint/20 p-5 shadow-card">
-          <p className="text-sm leading-6 text-ink">{offer.reason}</p>
-          <p className="mt-2 text-sm leading-6 text-slate">
-            There is no amount to set, and nothing is purchased.
-          </p>
+          <p className="text-sm leading-6 text-ink">{t("habit.bufferFirst")}</p>
+          <p className="mt-2 text-sm leading-6 text-slate">{t("habit.nothingToSet")}</p>
         </section>
       )}
 
       <section>
-        <div className="mb-2 flex items-baseline justify-between">
-          <h2 className="text-base font-semibold text-ink">Resilience ladder</h2>
-          <p className="text-xs font-semibold text-slate">3 tiers</p>
+        <div className="mb-4 flex items-baseline justify-between md:mb-2">
+          <h2 className="text-base font-semibold text-ink">{t("habit.ladderTitle")}</h2>
+          <p className="text-xs font-semibold text-slate">{t("habit.tiers", { count: 3 })}</p>
         </div>
-        <div className="overflow-hidden rounded-[20px] bg-white shadow-card">
+        <div className="overflow-hidden rounded-[20px] border border-line bg-surface shadow-card">
           <Ladder
             n="1"
-            title="Cash cushion"
-            state="Liquid"
-            body="Money you may need soon. Watch out for treating it as spare cash."
+            title={t("habit.cashTitle")}
+            state={t("habit.cashState")}
+            body={t("habit.cashBody")}
             current={false}
           />
           <Ladder
             n="2"
-            title="Everyday saving"
-            state="1–2 yrs"
-            body="M-Shwari, Ziidi, a money market fund, or a SACCO. Watch the fees and the lock-up."
+            title={t("habit.everydayTitle")}
+            state={t("habit.everydayState")}
+            body={t("habit.everydayBody")}
             current={false}
           />
           <Ladder
             n="3"
-            title="Bitcoin steady pot"
-            state="Current habit"
-            body="Good for 3 to 5 years or more. The value goes up and down, and you can lose money."
+            title={t("habit.bitcoinTitle")}
+            state={t("habit.bitcoinState")}
+            body={t("habit.bitcoinBody")}
             current
           />
         </div>
       </section>
 
       <p className="flex items-center justify-center gap-2 rounded-full bg-pearl px-4 py-2 text-center text-xs font-semibold text-slate">
-        Keys stay on your device · Backup is coming soon
+        {t("habit.keys")}
       </p>
 
       {offer.ok && draftMatches && allowance.ok ? (
         <Link href="/invest" className="btn btn-accent inline-flex items-center justify-center">
-          Review and approve
+          {t("habit.review")}
         </Link>
       ) : null}
-      <p className="text-center text-sm text-slate">
-        You can skip a month. Nothing moves until you approve it.
-      </p>
-      <p className="text-xs leading-5 text-slate">{PAST_PERFORMANCE_DISCLAIMER}</p>
+      <p className="text-center text-sm text-slate">{t("habit.skipMonth")}</p>
+      <p className="text-xs leading-5 text-slate">{t("habit.disclaimer")}</p>
     </main>
   );
 }
@@ -344,9 +341,9 @@ export default function HabitPage() {
     <Suspense
       fallback={
         <main className="mx-auto flex w-full max-w-2xl flex-col gap-4">
-          <div className="animate-pulse h-6 w-32 rounded-full bg-pearl" />
-          <div className="animate-pulse h-10 w-64 rounded-full bg-pearl" />
-          <div className="card animate-pulse h-40 bg-pearl" />
+          <div className="skeleton animate-pulse h-6 w-32 rounded-full" />
+          <div className="skeleton animate-pulse h-10 w-64 rounded-full" />
+          <div className="card skeleton animate-pulse h-40" />
         </main>
       }
     >

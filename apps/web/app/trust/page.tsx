@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * Trust screen.
  *
@@ -6,14 +8,16 @@
  */
 import { PageFrame } from "../../components/page-frame";
 import { RegulatoryDisclosure } from "../../components/regulatory-disclosure";
+import { useI18n } from "../../contexts/language-context";
 
 export default function TrustPage() {
+  const { t } = useI18n();
   return (
     <PageFrame
-      title="Who regulates what"
-      description="What PesaSense is, and what it is not."
+      title={t("trust.title")}
+      description={t("trust.description")}
       backHref="/welcome"
-      backLabel="Back to welcome"
+      backLabel={t("trust.back")}
     >
       <RegulatoryDisclosure />
     </PageFrame>

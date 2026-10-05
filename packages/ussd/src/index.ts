@@ -36,7 +36,9 @@ export {
   isFlow,
   isProfileId,
   isPurchaseSource,
+  isUssdLang,
   type PurchasePatch,
+  type UssdLang,
   type UssdStore,
 } from "./store";
 export { con, end, kes, USSD_SCREEN_LIMIT } from "./text";

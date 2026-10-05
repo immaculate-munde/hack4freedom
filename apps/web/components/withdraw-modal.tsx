@@ -2,6 +2,7 @@
 
 import { QRCodeSVG } from "qrcode.react";
 import { useCallback, useState } from "react";
+import { useFormat, useI18n } from "../contexts/language-context";
 
 function XIcon() {
   return (
@@ -71,11 +72,7 @@ export interface WithdrawModalProps {
   amountSats?: number;
 }
 
-const STEPS = [
-  "Copy the address below or scan the QR code with your phone.",
-  "Open your Lightning wallet — Wallet of Satoshi, Blink, Breez, or any other.",
-  "Send your sats to this address. bitcoin.co.ke converts them to KES on your M-Pesa.",
-] as const;
+const STEP_KEYS = ["wallet.withdraw.step1", "wallet.withdraw.step2", "wallet.withdraw.step3"] as const;
 
 export function WithdrawModal({
   isOpen,
@@ -85,6 +82,8 @@ export function WithdrawModal({
   balanceSats,
   amountSats,
 }: WithdrawModalProps) {
+  const { t } = useI18n();
+  const { number } = useFormat();
   const [copied, setCopied] = useState(false);
 
   const copyAddress = useCallback(async () => {
@@ -115,7 +114,7 @@ export function WithdrawModal({
       className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center"
       role="dialog"
       aria-modal="true"
-      aria-label="Withdraw to M-Pesa"
+      aria-label={t("wallet.withdraw.aria")}
     >
       <div
         className="absolute inset-0 bg-ink/50 backdrop-blur-sm"
@@ -126,23 +125,21 @@ export function WithdrawModal({
       <div className="relative w-full max-w-sm rounded-3xl border border-sand bg-paper p-6 shadow-2xl">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h2 className="font-serif text-xl text-pine">Withdraw to M-Pesa</h2>
-            <p className="mt-0.5 text-xs text-ink/55">
-              via bitcoin.co.ke · ~1% fee
-            </p>
+            <h2 className="font-serif text-xl text-pine">{t("wallet.withdraw.title")}</h2>
+            <p className="mt-0.5 text-xs text-slate">{t("wallet.withdraw.fee")}</p>
           </div>
           <button
             type="button"
-            aria-label="Close"
+            aria-label={t("common.close")}
             onClick={onClose}
-            className="btn btn-ghost -mr-1 -mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-sand/80 text-ink/50 hover:text-ink"
+            className="btn btn-ghost -mr-1 -mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-sand/80 text-slate hover:text-ink"
           >
             <XIcon />
           </button>
         </div>
 
         <div className="mt-5 flex justify-center">
-          <div className="rounded-2xl border border-sand bg-white p-3 shadow-sm">
+          <div className="rounded-2xl border border-sand bg-surface p-3 shadow-sm">
             <QRCodeSVG
               value={withdrawAddress}
               size={180}
@@ -156,13 +153,13 @@ export function WithdrawModal({
           {withdrawAddress}
         </p>
 
-        <ol className="mt-5 space-y-3" aria-label="Steps to withdraw">
-          {STEPS.map((text, i) => (
-            <li key={i} className="flex items-start gap-3">
+        <ol className="mt-5 space-y-3" aria-label={t("wallet.withdraw.stepsAria")}>
+          {STEP_KEYS.map((key, i) => (
+            <li key={key} className="flex items-start gap-3">
               <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-pine/10 text-[10px] font-bold tabular-nums text-pine">
                 {i + 1}
               </span>
-              <p className="text-xs leading-5 text-ink/75">{text}</p>
+              <p className="text-xs leading-5 text-ink-soft">{t(key)}</p>
             </li>
           ))}
         </ol>
@@ -175,7 +172,7 @@ export function WithdrawModal({
             onClick={() => void copyAddress()}
           >
             {copied ? <CheckIcon /> : <CopyIcon />}
-            {copied ? "Copied!" : "Copy address"}
+            {copied ? t("wallet.withdraw.copied") : t("wallet.withdraw.copy")}
           </button>
           <button
             type="button"
@@ -183,24 +180,26 @@ export function WithdrawModal({
             className="btn btn-secondary flex flex-1 items-center justify-center gap-2"
             onClick={tryWalletApp}
           >
-            Try wallet app
+            {t("wallet.withdraw.tryApp")}
           </button>
         </div>
 
         {withdrawDone ? (
           <div className="mt-4 rounded-xl border border-moss/25 bg-moss/8 px-3 py-2.5">
             <p className="text-xs leading-5 text-moss">
-              Payment submitted from your PesaSense wallet. KES should arrive on
-              M-Pesa after bitcoin.co.ke settles.
+              {t("wallet.withdraw.submitted")}
               {balanceSats !== undefined ? (
-                <> Wallet balance: {balanceSats} sats.</>
+                t("wallet.withdraw.balance", { sats: number(balanceSats) })
               ) : null}
             </p>
           </div>
         ) : amountSats ? (
-          <p className="mt-4 text-xs leading-5 text-ink/55">
-            Send about <span className="font-semibold text-ink/80">{amountSats} sats</span> to this
-            address. If the wallet app does not open, use Copy address instead.
+          <p className="mt-4 text-xs leading-5 text-slate">
+            {t("wallet.withdraw.sendLead")}
+            <span className="font-semibold text-ink-soft">
+              {number(amountSats)} sats
+            </span>
+            {t("wallet.withdraw.sendTrail")}
           </p>
         ) : null}
       </div>

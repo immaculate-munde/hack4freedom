@@ -2,11 +2,13 @@
 
 import { useRef, useState } from "react";
 import { parseStatement, type FinancialProfile } from "@pesasense/core";
+import { useI18n } from "../contexts/language-context";
 import { extractTextFromMpesaPdf } from "../lib/mpesa-pdf";
 import {
   buildProfileFromTransactions,
   clearOnboardingDraft,
 } from "../lib/profile-from-import";
+import { explainImport } from "./sms-import-form";
 
 export function PdfImportForm({
   onProfileReady,
@@ -15,6 +17,7 @@ export function PdfImportForm({
   onProfileReady: (profile: FinancialProfile) => void;
   onDemoFallback: () => void;
 }) {
+  const { t } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -25,15 +28,15 @@ export function PdfImportForm({
   async function handleAnalyze() {
     const file = inputRef.current?.files?.[0];
     if (!file) {
-      setError("Choose your M-Pesa statement PDF first.");
+      setError(t("import.pdf.chooseFirst"));
       return;
     }
     if (!password.trim()) {
-      setError("Enter the password you use to open this PDF.");
+      setError(t("import.pdf.enterPassword"));
       return;
     }
     if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
-      setError("Please upload a PDF file.");
+      setError(t("import.pdf.pdfOnly"));
       return;
     }
 
@@ -44,9 +47,7 @@ export function PdfImportForm({
       const text = await extractTextFromMpesaPdf(file, password);
       const transactions = parseStatement({ text, source: "mpesa_pdf" });
       if (transactions.length === 0) {
-        throw new Error(
-          "We opened the PDF but could not read transaction rows. Try pasting the same period as M-Pesa SMS messages below, or export a statement with a text table (not a scan).",
-        );
+        throw new Error("import.pdf.noRows");
       }
       const profile = buildProfileFromTransactions(transactions);
       clearOnboardingDraft();
@@ -54,17 +55,14 @@ export function PdfImportForm({
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "";
       if (message.includes("Not implemented")) {
-        setError("Reading a real statement is coming soon. Falling back to the demo profile...");
+        setError(t("import.pdf.comingSoon"));
         setTimeout(() => {
           onDemoFallback();
           setLoading(false);
         }, 1500);
         return;
       }
-      setError(
-        message ||
-          "We could not read that PDF. Check the password, or paste SMS messages instead.",
-      );
+      setError(explainImport(t, message, "import.pdf.unreadable"));
     } finally {
       setLoading(false);
     }
@@ -85,7 +83,7 @@ export function PdfImportForm({
       />
       <button
         type="button"
-        className="flex w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-sand/80 bg-paper/50 py-10 transition hover:border-teal/40 hover:bg-mint/5"
+        className="flex w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-sand bg-paper/50 py-10 transition hover:border-moss hover:bg-mint/15"
         onClick={() => inputRef.current?.click()}
         disabled={loading}
       >
@@ -104,20 +102,21 @@ export function PdfImportForm({
           />
         </svg>
         <p className="mt-3 text-sm font-semibold text-ink">
-          {fileName ?? "Choose PDF statement"}
+          {fileName ?? t("import.pdf.choose")}
         </p>
-        <p className="mt-1 text-xs text-ink/55">Processed on this phone only</p>
+        <p className="mt-1 text-xs text-slate">{t("import.pdf.onPhone")}</p>
       </button>
 
       <label className="block text-sm">
-        Statement password
+        {t("import.pdf.password")}
         <span className="mt-1 flex gap-2">
           <input
             className="field flex-1"
             type={showPassword ? "text" : "password"}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Whatever opens the file"
+            placeholder={t("import.pdf.passwordPlaceholder")}
+            aria-label={t("import.pdf.password")}
             autoComplete="off"
           />
           <button
@@ -125,13 +124,11 @@ export function PdfImportForm({
             className="btn btn-secondary shrink-0"
             onClick={() => setShowPassword((v) => !v)}
           >
-            {showPassword ? "Hide" : "Show"}
+            {showPassword ? t("import.pdf.hide") : t("import.pdf.show")}
           </button>
         </span>
       </label>
-      <p className="text-[11px] leading-4 text-ink/55">
-        Used once to decrypt on your phone. Not your ID. Not saved.
-      </p>
+      <p className="text-[11px] leading-4 text-slate">{t("import.pdf.once")}</p>
 
       {error ? (
         <p className="rounded-xl bg-brass/10 px-3 py-2 text-xs font-medium text-brass">
@@ -162,10 +159,10 @@ export function PdfImportForm({
                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
               />
             </svg>
-            Reading PDF…
+            {t("import.pdf.reading")}
           </>
         ) : (
-          "Analyze PDF"
+          t("import.pdf.analyze")
         )}
       </button>
     </div>

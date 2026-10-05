@@ -4,6 +4,8 @@ A private, on-device financial profile that helps someone in Kenya start a small
 
 Built for [Hack4Freedom](https://www.hack4freedom.com/) Nairobi.
 
+Live site at [Pesasense](https://pesasense.vercel.app/).
+
 ## For judges
 
 The live path is a surplus, a refused plan when the buffer is thin, a non-custodial buy, a browser wallet, an encrypted Nostr copy, and a chama record that never holds sats.
@@ -24,7 +26,7 @@ A first visit opens [http://localhost:3000/welcome](http://localhost:3000/welcom
 
 **Running in this repo:** the screens above, Bitika collect with an explicit yes, device purchase history, a signed webhook kept in memory for this server process, NIP-44 encrypt-to-self with a NIP-78 event and one anonymous NIP-90 surplus job, and the chama rules.
 
-**Specified, not running:** SMS and PDF parsing, `buildProfile()`, and historical scenarios. Those functions throw `Not implemented`. `PROFILE_SOURCE=parsed` shows that no profile has been built. The reliability note stays on the device. eCash is out of scope. The acceptance test in `packages/core/src/profile.spec.ts` is skipped until the parser and `buildProfile()` return data.
+**Specified:** SMS and PDF parsing, `buildProfile()`, and historical scenarios. Those functions throw `Not implemented`. `PROFILE_SOURCE=parsed` shows that no profile has been built. The reliability note stays on the device. eCash is out of scope. The acceptance test in `packages/core/src/profile.spec.ts` is skipped until the parser and `buildProfile()` return data.
 
 ## Freedom tech in this build
 
@@ -82,12 +84,12 @@ TypeScript end to end. Sensitive data stays on the device. The server is a thin 
 | Web app | Next.js App Router, PWA, Tailwind. `next dev --webpack` because Breez ships WASM. |
 | Parser and profile | `packages/core`. Vitest. No UI imports. Parser and `buildProfile()` still throw. |
 | On-ramp | `BitcoinOnRamp` in `packages/wallet`, with a Bitika adapter. Next.js routes under `apps/web/app/api/onramp/`. |
-| USSD | `packages/ussd`. `POST /api/ussd` is the handset callback. It uses the same surplus rules and the same Bitika collect. See [docs/ussd.md](docs/ussd.md). |
+| USSD | `packages/ussd`. Africa's Talking posts to `https://pesasense.vercel.app/api/ussd`. Same surplus rules and the same Bitika collect. See [docs/ussd.md](docs/ussd.md). |
 | Telegram | `packages/telegram`. `POST /api/telegram/webhook` runs the habit → remind → approve loop. Statements sent to the bot leave the phone. See [docs/telegram.md](docs/telegram.md). |
 | In-app wallet | Breez SDK Spark in the browser. |
 | Profile encryption | `packages/nostr` with `nostr-tools`. NIP-44, kind `30078`, one anonymous kind `5910` job. |
 | Chama | `packages/nostr/src/chama-ledger.ts`. Rules are tested. The screen persists the demo circle in `localStorage`. |
-| Hosting | Vercel, when deployed. |
+| Hosting | Vercel for the browser demo. One always-on Node process when USSD must keep a session. See [docs/deploy.md](docs/deploy.md). |
 
 ```
 apps/web/          PWA: overview, surplus, habit, learn, invest, wallet, chama
@@ -122,7 +124,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 Without those keys the surplus, learn, habit, and chama screens still load. Invest shows that the Bitika key is missing. Wallet create fails until the Breez key is set. Save and load need a relay the browser can reach.
 
-USSD is the same app on a handset. Link a number on `/overview`, then post sample menus to `POST /api/ussd`. Steps and curl examples: [docs/ussd.md](docs/ussd.md).
+USSD is the same app on a handset. The live callback to paste in Africa's Talking is `https://pesasense.vercel.app/api/ussd?key=YOUR_USSD_API_KEY` (`YOUR_USSD_API_KEY` is the Vercel `USSD_API_KEY`, not the Bitika key). Link a number on `/overview`, or post sample menus to `POST /api/ussd` locally. Steps: [docs/ussd.md](docs/ussd.md).
 
 Telegram is optional. Set `TELEGRAM_BOT_TOKEN` (and optionally `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME`) then point BotFather's webhook at `/api/telegram/webhook`. Setup: [docs/telegram.md](docs/telegram.md).
 
@@ -153,9 +155,10 @@ PesaSense is advisory and non-custodial. Partner licence claims are marked **to 
 | Doc | Who it is for |
 | --- | --- |
 | [docs/demo.md](docs/demo.md) | Judges and anyone demoing. Clicks, what each click proves, and a fallback. |
+| [docs/deploy.md](docs/deploy.md) | Where to host the browser demo and a live USSD callback, and which env vars to set. |
 | [docs/architecture.md](docs/architecture.md) | How data and money are separated, and where the stubs are. |
 | [docs/bitika-api.md](docs/bitika-api.md) | The on-ramp calls this app actually makes. |
-| [docs/ussd.md](docs/ussd.md) | Handset menu, callback, and local curl steps. |
+| [docs/ussd.md](docs/ussd.md) | Handset menu, the Africa's Talking callback URL, and local curl steps. |
 | [docs/telegram.md](docs/telegram.md) | Bot webhook, env, and the approve-only purchase loop. |
 | [docs/contributing.md](docs/contributing.md) | Where to extend the stubs without breaking the contract. |
 | [docs/regulation.md](docs/regulation.md) | Licence notes that are still marked to verify. |
