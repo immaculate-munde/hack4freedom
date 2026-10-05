@@ -10,7 +10,15 @@ import {
   assertInvestAmount,
   DEMO_STATEMENT_PASSWORD,
   demoProfiles,
+  formatTelegramBeat,
+  formatTelegramChoiceFeedback,
+  formatTelegramTopicMenu,
+  getLearnTopic,
   investAllowance,
+  parseTelegramAnswerChoice,
+  parseTelegramTopicChoice,
+  telegramBeatKeyboard,
+  telegramTopicMenuKeyboard,
   type FinancialProfile,
   type OnboardingAnswers,
 } from "@pesasense/core";
@@ -81,32 +89,6 @@ const HABIT_CADENCE_COPY = [
   "Tap Monthly or Weekly.",
 ].join("\n");
 
-/** Short education pages — no statement, no purchase, no invented sats. */
-const LEARN_PAGES: string[] = [
-  [
-    "What is a small Bitcoin habit?",
-    "",
-    "A habit here means a small amount you plan to put in Bitcoin.",
-    "You choose whole shillings. Monthly is the default. Weekly is optional.",
-    "It is not a fund and not an automatic buy. You pick the amount after we help you see your money picture.",
-  ].join("\n"),
-  [
-    "How buying and reminders work",
-    "",
-    "When you buy later, Bitcoin goes to a Lightning address you control — your own wallet.",
-    "A reminder on the 1st only asks you to check. It does not send M-Pesa or Bitcoin.",
-    "You approve each purchase yourself. Nothing sends on its own.",
-  ].join("\n"),
-  [
-    "Risk and money left after bills",
-    "",
-    "Bitcoin can lose value. This is education, not financial advice.",
-    "On the habit path, we look at money left after bills — a careful guess of what may remain after rent, chama, and other costs.",
-    "Your plan cannot go above that careful number.",
-    "Learning here does not start a purchase. You do not need to upload a statement.",
-  ].join("\n"),
-];
-
 type ReplyOptions = {
   replyKeyboard?: string[][];
   removeKeyboard?: boolean;
@@ -125,19 +107,24 @@ function startMenuReply(): TelegramReply {
   return reply(START_COPY, { replyKeyboard: pathMenuKeyboard() });
 }
 
-function learnEndKeyboard(): string[][] {
-  return [["Start a small habit"], ["Ask something else"]];
+function learnMenuReply(): TelegramReply {
+  return reply(formatTelegramTopicMenu(), {
+    replyKeyboard: telegramTopicMenuKeyboard(),
+  });
 }
 
-function learnPageReply(pageIndex: number): TelegramReply {
-  const text = LEARN_PAGES[pageIndex] ?? LEARN_PAGES[LEARN_PAGES.length - 1]!;
-  const isLast = pageIndex >= LEARN_PAGES.length - 1;
-  if (isLast) {
-    return reply(text, { replyKeyboard: learnEndKeyboard() });
+function learnBeatReply(topicId: string, beatIndex: number): TelegramReply {
+  const text = formatTelegramBeat(topicId, beatIndex);
+  if (!text) {
+    return learnMenuReply();
   }
   return reply(text, {
-    replyKeyboard: [["Next"], ["Back to menu"]],
+    replyKeyboard: telegramBeatKeyboard(topicId, beatIndex),
   });
+}
+
+function clearLearn(): Pick<TelegramSession, "learnTopicId" | "learnPage"> {
+  return { learnTopicId: null, learnPage: null };
 }
 
 function save(
@@ -155,7 +142,7 @@ function beginHabitPath(
   deps: TelegramDeps,
   config: TelegramConfig,
 ): TelegramReply[] {
-  save(deps, { ...session, step: "ask_debt", learnPage: null }, config);
+  save(deps, { ...session, step: "ask_debt", ...clearLearn() }, config);
   return [
     reply(
       "Let's plan a small amount for Bitcoin. A few optional questions first — tap Skip anytime, or send /skip.",
@@ -172,7 +159,7 @@ function showMenu(
 ): TelegramReply[] {
   save(
     deps,
-    { ...session, step: "menu", pendingPdfFileId: null, learnPage: null },
+    { ...session, step: "menu", pendingPdfFileId: null, ...clearLearn() },
     config,
   );
   return [
@@ -196,7 +183,7 @@ function debtNameQuestion(): TelegramReply {
 
 function debtAmountQuestion(label: string): TelegramReply {
   return reply(
-    `Noted: ${label}. About how much do you owe? Whole shillings only. Tap Skip if you are not sure.`,
+    `Noted: ${label}. About how much do you repay each month? Whole shillings only. Tap Skip if you are not sure.`,
     { replyKeyboard: [["Skip"]] },
   );
 }
@@ -268,7 +255,7 @@ function afterProfile(
 ): TelegramReply[] {
   const next = save(
     deps,
-    { ...session, profile, step: "ready", pendingPdfFileId: null, learnPage: null },
+    { ...session, profile, step: "ready", pendingPdfFileId: null, ...clearLearn() },
     config,
   );
   const ready = next.profile!;
@@ -346,6 +333,7 @@ function choiceToCallback(session: TelegramSession, text: string): string | null
   if (t === "Start a small habit") return "path:habit";
   if (t === "Learn about Bitcoin") return "path:learn";
   if (t === "Ask something else" || t === "Back to menu") return "menu";
+  if (t === "More topics") return "path:learn";
   if (t === "Skip" || t === "Skip (no password)") return "skip";
   if (t === "Demo Amina (labeled demo)") return "demo:amina";
   if (t === "Emergency buffer") return "goal:buffer";
@@ -356,9 +344,17 @@ function choiceToCallback(session: TelegramSession, text: string): string | null
   if (t === "Remind me on the 1st") return "remind";
   if (t === "Use 07…@bitcoin.co.ke") return "dest:bitcoincke";
 
-  if (t === "Next" && session.step === "learn") {
-    const next = (session.learnPage ?? 0) + 1;
-    return `learn:${next}`;
+  if (session.step === "learn") {
+    if (t === "Next" && session.learnTopicId) {
+      const next = (session.learnPage ?? 0) + 1;
+      return `learn:beat:${session.learnTopicId}:${next}`;
+    }
+    const topicId = parseTelegramTopicChoice(t);
+    if (topicId) return `learn:topic:${topicId}`;
+    if (session.learnTopicId != null && session.learnPage != null) {
+      const choiceId = parseTelegramAnswerChoice(session.learnTopicId, session.learnPage, t);
+      if (choiceId) return `learn:answer:${session.learnTopicId}:${session.learnPage}:${choiceId}`;
+    }
   }
 
   if (t === "Yes") {
@@ -543,17 +539,89 @@ async function onCallback(
   }
 
   if (data === "path:learn" || data === "learn:0") {
-    save(deps, { ...session, step: "learn", pendingPdfFileId: null, learnPage: 0 }, config);
-    return [learnPageReply(0)];
+    save(
+      deps,
+      {
+        ...session,
+        step: "learn",
+        pendingPdfFileId: null,
+        learnTopicId: null,
+        learnPage: null,
+      },
+      config,
+    );
+    return [learnMenuReply()];
+  }
+
+  if (data.startsWith("learn:topic:")) {
+    const topicId = data.slice("learn:topic:".length);
+    if (!getLearnTopic(topicId)) {
+      return showMenu(session, deps, config);
+    }
+    save(
+      deps,
+      {
+        ...session,
+        step: "learn",
+        pendingPdfFileId: null,
+        learnTopicId: topicId,
+        learnPage: 0,
+      },
+      config,
+    );
+    return [learnBeatReply(topicId, 0)];
+  }
+
+  if (data.startsWith("learn:beat:")) {
+    const rest = data.slice("learn:beat:".length);
+    const splitAt = rest.lastIndexOf(":");
+    if (splitAt <= 0) return showMenu(session, deps, config);
+    const topicId = rest.slice(0, splitAt);
+    const page = Number(rest.slice(splitAt + 1));
+    const topic = getLearnTopic(topicId);
+    if (!topic || !Number.isInteger(page) || page < 0 || page >= topic.beats.length) {
+      save(
+        deps,
+        { ...session, step: "learn", learnTopicId: null, learnPage: null },
+        config,
+      );
+      return [learnMenuReply()];
+    }
+    save(
+      deps,
+      { ...session, step: "learn", learnTopicId: topicId, learnPage: page },
+      config,
+    );
+    return [learnBeatReply(topicId, page)];
+  }
+
+  if (data.startsWith("learn:answer:")) {
+    const parts = data.slice("learn:answer:".length).split(":");
+    if (parts.length < 3) return showMenu(session, deps, config);
+    const [topicId, pageRaw, choiceId] = parts;
+    const page = Number(pageRaw);
+    if (!topicId || !choiceId || !Number.isInteger(page)) {
+      return showMenu(session, deps, config);
+    }
+    const feedback = formatTelegramChoiceFeedback(topicId, page, choiceId);
+    if (!feedback) {
+      return [learnBeatReply(topicId, page)];
+    }
+    save(
+      deps,
+      { ...session, step: "learn", learnTopicId: topicId, learnPage: page },
+      config,
+    );
+    return [
+      reply(feedback, {
+        replyKeyboard: telegramBeatKeyboard(topicId, page),
+      }),
+    ];
   }
 
   if (data.startsWith("learn:")) {
-    const page = Number(data.slice("learn:".length));
-    if (!Number.isInteger(page) || page < 0 || page >= LEARN_PAGES.length) {
-      return showMenu(session, deps, config);
-    }
-    save(deps, { ...session, step: "learn", learnPage: page }, config);
-    return [learnPageReply(page)];
+    // Legacy learn:N callbacks → topic menu
+    return onCallback(session, "path:learn", deps, config);
   }
 
   if (data === "skip") {
@@ -911,10 +979,18 @@ async function onText(
   }
 
   if (session.step === "learn") {
+    if (session.learnTopicId != null && session.learnPage != null) {
+      return [
+        reply(
+          "You are learning now — no statement or purchase from here. Tap Next, pick an answer, or use the buttons below.",
+          { replyKeyboard: telegramBeatKeyboard(session.learnTopicId, session.learnPage) },
+        ),
+      ];
+    }
     return [
       reply(
-        "You are learning now — no statement or purchase from here. Tap Next, or use the buttons below.",
-        { replyKeyboard: learnEndKeyboard() },
+        "You are learning now — no statement or purchase from here. Pick a topic below.",
+        { replyKeyboard: telegramTopicMenuKeyboard() },
       ),
     ];
   }
@@ -957,11 +1033,11 @@ async function onText(
     const label = existing?.label ?? "Debt";
     const onboarding: OnboardingAnswers = {
       ...session.onboarding,
-      debts: [{ label, balanceKes: amount }],
+      debts: [{ label, balanceKes: amount, monthlyPaymentKes: amount }],
     };
     save(deps, { ...session, onboarding, step: "ask_chama" }, config);
     return [
-      reply(`Noted: ${label} — KES ${amount.toLocaleString("en-KE")}.`),
+      reply(`Noted: ${label} — KES ${amount.toLocaleString("en-KE")} a month.`),
       chamaQuestion(),
     ];
   }
@@ -1125,7 +1201,7 @@ function looksLikeSms(text: string): boolean {
 /** Exported for unit tests that drive the state machine without Telegram HTTP. */
 export const __testOnly = {
   START_COPY,
-  LEARN_PAGES,
+  learnMenuReply,
   debtQuestion,
   importPrompt,
   pdfPasswordPrompt,

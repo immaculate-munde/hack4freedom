@@ -37,12 +37,12 @@ export function factsPromptBlock(facts: SensiFacts): string {
       ? `KES ${facts.habitKes} / ${facts.habitCadence}`
       : "not set";
   return [
-    `Months covered: ${facts.monthsCovered}`,
-    `Typical monthly income (profile): KES ${facts.incomeTypicalKes}`,
-    `Safe surplus floor: KES ${facts.surplusFloorKes}`,
-    `Typical surplus: KES ${facts.surplusTypicalKes}`,
-    `Surplus ceiling: KES ${facts.surplusCeilingKes}`,
-    `Recurring commitments counted: ${facts.commitmentCount}`,
-    `Bitcoin habit: ${habit}`,
+    `Months of M-Pesa history on this phone: ${facts.monthsCovered}`,
+    `Typical monthly income (from profile): KES ${facts.incomeTypicalKes}`,
+    `Safe money left after bills (floor): KES ${facts.surplusFloorKes}`,
+    `Typical money left after bills: KES ${facts.surplusTypicalKes}`,
+    `Higher money-left estimate (ceiling): KES ${facts.surplusCeilingKes}`,
+    `Recurring bills / commitments counted: ${facts.commitmentCount}`,
+    `Small Bitcoin habit amount: ${habit}`,
   ].join("\n");
 }

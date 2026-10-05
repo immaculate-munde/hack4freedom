@@ -37,7 +37,9 @@ export type TelegramSession = {
   profile: FinancialProfile | null;
   /** Pending PDF file_id while waiting for the user-supplied password. */
   pendingPdfFileId: string | null;
-  /** Current Learn-about-Bitcoin page index while step is "learn". */
+  /** Active Learn topic id from @pesasense/core while step is "learn". */
+  learnTopicId: string | null;
+  /** Beat index within the active topic (or null on the topic menu). */
   learnPage: number | null;
   reminder: {
     dayOfMonth: 1;

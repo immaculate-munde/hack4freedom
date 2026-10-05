@@ -1,6 +1,8 @@
 {
   "title": "Invest",
   "backOverview": "Back to overview",
+  "backHabit": "Back to habit",
+  "seeSurplus": "See surplus",
   "notReady": "Not ready yet",
   "notReadyFallback": "You are not ready to invest yet.",
   "bufferFirst": "Build a buffer before buying Bitcoin.",

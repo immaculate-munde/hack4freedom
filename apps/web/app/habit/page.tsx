@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 
 import Link from "next/link";
 import type { BuyCadence } from "@pesasense/core";
+import { HabitInvestJourney } from "../../components/habit-invest-journey";
 import { ProfileRequired } from "../../components/profile-required";
 import { useFormat, useI18n } from "../../contexts/language-context";
 import { useProfile } from "../../contexts/profile-context";
@@ -134,6 +135,7 @@ function HabitContent() {
 
   return (
     <main className="flex w-full flex-col gap-8 pb-24 md:gap-5 md:pb-0">
+      <HabitInvestJourney step="habit" />
       <header className="mb-2 md:mb-0">
         <p className="text-[11px] font-semibold tracking-[0.14em] text-teal uppercase">
           {t("habit.eyebrow")}
@@ -142,6 +144,7 @@ function HabitContent() {
           {t("habit.title")}
         </h1>
         <p className="mt-1 text-sm leading-6 text-slate">{t("habit.intro")}</p>
+        <p className="mt-1 text-sm leading-6 text-slate">{t("habit.journeyNote")}</p>
         {isDemo ? (
           <p className="mt-2 text-[11px] font-semibold text-slate">{t("habit.demoData")}</p>
         ) : null}

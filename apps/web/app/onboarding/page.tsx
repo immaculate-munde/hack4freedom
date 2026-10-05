@@ -7,6 +7,7 @@ import type { SensiMood } from "../../components/sensi-avatar";
 import { LanguageSwitcher } from "../../components/language-switcher";
 import { ThemeToggle } from "../../components/theme-toggle";
 import { useFormat, useI18n } from "../../contexts/language-context";
+import { persistChamaOptInFromOnboarding } from "../../lib/chama-opt-in";
 import type { TranslateVars } from "../../lib/i18n";
 
 const DRAFT_KEY = "pesasense.onboarding";
@@ -100,22 +101,30 @@ function toGoal(draft: Draft): UserGoal {
 }
 
 function toAnswers(draft: Draft): OnboardingAnswers {
-  const balance = wholeKes(draft.debtBalance);
+  // The field is the monthly repayment (surplus leaves room for it).
+  // balanceKes keeps the same figure so older readers still see an amount.
+  const debtMonthly = wholeKes(draft.debtBalance);
   const debts =
-    draft.hasDebt === true && draft.debtNotes.trim() && balance !== null
-      ? [{ label: draft.debtNotes.trim(), balanceKes: balance }]
+    draft.hasDebt === true && draft.debtNotes.trim() && debtMonthly !== null
+      ? [
+          {
+            label: draft.debtNotes.trim(),
+            balanceKes: debtMonthly,
+            monthlyPaymentKes: debtMonthly,
+          },
+        ]
       : [];
 
   const contribution = wholeKes(draft.chamaAmount);
-  const monthly =
+  const chamaMonthly =
     contribution === null
       ? null
       : draft.chamaCadence === "weekly"
         ? contribution * 4
         : contribution;
   const chamaMemberships =
-    draft.inChama === true && draft.chamaName.trim() && monthly !== null
-      ? [{ name: draft.chamaName.trim(), monthlyContributionKes: monthly }]
+    draft.inChama === true && draft.chamaName.trim() && chamaMonthly !== null
+      ? [{ name: draft.chamaName.trim(), monthlyContributionKes: chamaMonthly }]
       : [];
 
   return { debts, chamaMemberships, goal: toGoal(draft) };
@@ -164,19 +173,18 @@ export default function OnboardingPage() {
   }
 
   function complete(nextDraft: Draft) {
-    sessionStorage.setItem(
-      DRAFT_KEY,
-      JSON.stringify({
-        draft: nextDraft,
-        answers: toAnswers(nextDraft),
-        wantsChama: nextDraft.wantsChama === true,
-        bitcoinExperience: {
-          hasInvested: nextDraft.hasInvestedBitcoin === true,
-          where: nextDraft.bitcoinWhere.trim(),
-          reasons: nextDraft.bitcoinReasons,
-        },
-      }),
-    );
+    const payload = JSON.stringify({
+      draft: nextDraft,
+      answers: toAnswers(nextDraft),
+      wantsChama: nextDraft.wantsChama === true,
+      bitcoinExperience: {
+        hasInvested: nextDraft.hasInvestedBitcoin === true,
+        where: nextDraft.bitcoinWhere.trim(),
+        reasons: nextDraft.bitcoinReasons,
+      },
+    });
+    sessionStorage.setItem(DRAFT_KEY, payload);
+    persistChamaOptInFromOnboarding(payload);
     router.push("/onboard");
   }
 

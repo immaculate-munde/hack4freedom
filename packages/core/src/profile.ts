@@ -429,6 +429,109 @@ export function computeSurplus(input: SurplusInput): Surplus {
 // Main
 // ─────────────────────────────────────────────────────────────
 
+function normalizeLabel(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function labelsMatch(a: string, b: string): boolean {
+  const left = normalizeLabel(a);
+  const right = normalizeLabel(b);
+  if (!left || !right) return false;
+  return left === right || left.includes(right) || right.includes(left);
+}
+
+/**
+ * Self-reported chama contributions and debt repayments outrank statement inference.
+ * They become fixed commitments so surplus leaves room for them.
+ */
+export function applyOnboardingToCommitments(
+  detected: Commitment[],
+  onboarding?: OnboardingAnswers,
+): Commitment[] {
+  if (!onboarding) return detected;
+  const next = [...detected];
+
+  for (const chama of onboarding.chamaMemberships) {
+    const amountKes = Math.round(chama.monthlyContributionKes);
+    if (!(amountKes > 0) || !chama.name.trim()) continue;
+    const index = next.findIndex(
+      (row) => row.category === "chama" && labelsMatch(row.label, chama.name),
+    );
+    const merged: Commitment = {
+      label: chama.name.trim(),
+      category: "chama",
+      amountKes,
+      cadence: "monthly",
+      confidence: "high",
+      observations: index >= 0 ? Math.max(next[index]!.observations, 1) : 1,
+      userConfirmed: true,
+    };
+    if (index >= 0) next[index] = merged;
+    else next.push(merged);
+  }
+
+  for (const debt of onboarding.debts) {
+    const amountKes = Math.round(debt.monthlyPaymentKes ?? 0);
+    if (!(amountKes > 0) || !debt.label.trim()) continue;
+    const index = next.findIndex(
+      (row) => row.category === "loan" && labelsMatch(row.label, debt.label),
+    );
+    const merged: Commitment = {
+      label: debt.label.trim(),
+      category: "loan",
+      amountKes,
+      cadence: "monthly",
+      confidence: "high",
+      observations: index >= 0 ? Math.max(next[index]!.observations, 1) : 1,
+      userConfirmed: true,
+    };
+    if (index >= 0) next[index] = merged;
+    else next.push(merged);
+  }
+
+  next.sort((a, b) => b.amountKes - a.amountKes);
+  return next;
+}
+
+/**
+ * Goals and unpaid balances (no repayment schedule) shape whether Bitcoin waits.
+ */
+export function applyOnboardingToResilience(
+  resilience: Resilience,
+  onboarding: OnboardingAnswers | undefined,
+  incomeTypicalKes: number,
+): Resilience {
+  if (!onboarding) return resilience;
+
+  let bufferFirst = resilience.bufferFirst;
+  let monthsOfExpensesCovered = resilience.monthsOfExpensesCovered;
+
+  const overhangKes = onboarding.debts
+    .filter((debt) => !(debt.monthlyPaymentKes && debt.monthlyPaymentKes > 0))
+    .reduce((sum, debt) => sum + Math.max(0, debt.balanceKes), 0);
+  // A balance with no monthly repayment still blocks a habit when it is large.
+  if (overhangKes > 0 && incomeTypicalKes > 0 && overhangKes >= incomeTypicalKes) {
+    bufferFirst = true;
+    monthsOfExpensesCovered = Math.min(monthsOfExpensesCovered, 1);
+  }
+
+  if (onboarding.goal.kind === "emergency_buffer" && monthsOfExpensesCovered < 3) {
+    bufferFirst = true;
+  }
+  if (
+    onboarding.goal.kind === "quick_returns" ||
+    onboarding.goal.kind === "full_liquidity"
+  ) {
+    bufferFirst = true;
+  }
+
+  return {
+    ...resilience,
+    bufferFirst,
+    monthsOfExpensesCovered,
+  };
+}
+
 /**
  * Build a profile from about six months of transactions.
  * Onboarding answers override anything the statements only imply.
@@ -453,14 +556,16 @@ export function buildProfile(input: BuildProfileInput): FinancialProfile {
   };
 
   const income = detectIncome(sorted);
-  const commitments = detectCommitments(sorted);
+  const detectedCommitments = detectCommitments(sorted);
+  const commitments = applyOnboardingToCommitments(detectedCommitments, onboarding);
   const spending = detectSpending(sorted, commitments);
 
   // Fixed commitments reduce the income the surplus formula sees.
   // Include every detected commitment: monthly and termly both count,
   // because termly fees (school fees) are still obligations across the year.
+  // User-confirmed onboarding rows always count, even with one observation.
   const monthlyCommitmentsTotal = commitments
-    .filter((c) => c.observations >= 1)
+    .filter((c) => c.userConfirmed || c.observations >= 1)
     .reduce((sum, c) => sum + c.amountKes, 0);
 
   const netIncome: IncomeSummary = {
@@ -485,9 +590,14 @@ export function buildProfile(input: BuildProfileInput): FinancialProfile {
     resilience: placeholder,
   });
 
-  // Now compute real resilience using the floor, and recompute surplus.
-  const resilience = detectResilience(sorted, firstPass.monthlyKes.floor);
-  const surplus = computeSurplus({ income: netIncome, spending, resilience })
+  // Now compute real resilience using the floor, fold in goals/debts, recompute surplus.
+  const baseResilience = detectResilience(sorted, firstPass.monthlyKes.floor);
+  const resilience = applyOnboardingToResilience(
+    baseResilience,
+    onboarding,
+    income.monthlyKes.typical,
+  );
+  const surplus = computeSurplus({ income: netIncome, spending, resilience });
 
   return {
     version: 1,

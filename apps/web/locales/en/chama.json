@@ -1,5 +1,10 @@
 {
   "title": "Chama",
+  "gateTitle": "Join a chama to unlock",
+  "gateBody": "Chama stays off your menu until you choose to use it.",
+  "gateHint": "If you already contribute to a circle — or want to start one — unlock Chama on this phone. You can still skip for now.",
+  "gateOptIn": "I want to join a chama",
+  "gateLater": "Not now",
   "loadingCircle": "Loading the demo circle.",
   "loading": "Loading.",
   "unreadable": "This saved circle cannot be read.",

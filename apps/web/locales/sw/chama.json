@@ -1,5 +1,10 @@
 {
   "title": "Chama",
+  "gateTitle": "Jiunge na chama ili kufungua",
+  "gateBody": "Chama hakionekani kwenye menyu hadi uchague kuitumia.",
+  "gateHint": "Ikiwa tayari unachanga kwenye duara — au unataka kuanza — fungua Chama kwenye simu hii. Unaweza kuruka kwa sasa.",
+  "gateOptIn": "Ninataka kujiunga na chama",
+  "gateLater": "Sio sasa",
   "loadingCircle": "Inapakia duara la mfano.",
   "loading": "Inapakia.",
   "unreadable": "Duara hili lililohifadhiwa halisomeki.",

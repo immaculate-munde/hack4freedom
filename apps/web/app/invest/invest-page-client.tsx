@@ -1,8 +1,9 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, type ReactNode } from "react";
 import Link from "next/link";
 import { appInvestAllowance } from "../../lib/buffer-gate";
+import { HabitInvestJourney } from "../../components/habit-invest-journey";
 import { PageFrame } from "../../components/page-frame";
 import { ProfileRequired } from "../../components/profile-required";
 import { UssdAccess } from "../../components/ussd-access";
@@ -10,6 +11,25 @@ import { WalletActivity } from "../../components/wallet-activity";
 import { useI18n } from "../../contexts/language-context";
 import { useActiveProfile } from "../../lib/use-active-profile";
 import { InvestFlow } from "./invest-flow";
+
+function InvestShell({
+  title,
+  description,
+  backLabel,
+  children,
+}: {
+  title: string;
+  description?: ReactNode;
+  backLabel: string;
+  children: ReactNode;
+}) {
+  return (
+    <PageFrame title={title} description={description} backHref="/habit" backLabel={backLabel}>
+      <HabitInvestJourney step="invest" />
+      {children}
+    </PageFrame>
+  );
+}
 
 const ALLOWANCE: Record<string, string> = {
   "Build a buffer before buying Bitcoin.": "invest.bufferFirst",
@@ -22,9 +42,9 @@ function InvestPageContent({ bitikaMode: mode }: { bitikaMode: "sandbox" | "live
 
   if (!active.ready) {
     return (
-      <PageFrame title={t("invest.title")} backHref="/" backLabel={t("invest.backOverview")}>
+      <InvestShell title={t("invest.title")} backLabel={t("invest.backHabit")}>
         <ProfileRequired />
-      </PageFrame>
+      </InvestShell>
     );
   }
 
@@ -37,20 +57,23 @@ function InvestPageContent({ bitikaMode: mode }: { bitikaMode: "sandbox" | "live
     const reasonKey = ALLOWANCE[allowance.reason];
     const reason = reasonKey ? t(reasonKey) : t("invest.notReadyFallback");
     return (
-      <PageFrame title={t("invest.notReady")} backHref="/" backLabel={t("invest.backOverview")}>
+      <InvestShell title={t("invest.notReady")} backLabel={t("invest.backHabit")}>
         <section className="card">
           <p className="text-sm leading-6 text-ink-soft">{reason}</p>
+          <Link href="/surplus" className="btn btn-secondary mt-4 inline-flex">
+            {t("invest.seeSurplus")}
+          </Link>
         </section>
         {profileId === "amina" || profileId === "brian" ? (
           <UssdAccess profileId={profileId} />
         ) : null}
-      </PageFrame>
+      </InvestShell>
     );
   }
 
   if (!hasPlan || planAmount === undefined) {
     return (
-      <PageFrame title={t("invest.setHabit")} backHref="/habit" backLabel={t("invest.setHabit")}>
+      <InvestShell title={t("invest.setHabit")} backLabel={t("invest.setHabit")}>
         <section className="card">
           <p className="text-sm leading-6 text-ink-soft">{t("invest.setHabitFirst")}</p>
           <Link href="/habit" className="btn btn-accent mt-4 inline-flex">
@@ -60,15 +83,14 @@ function InvestPageContent({ bitikaMode: mode }: { bitikaMode: "sandbox" | "live
         {profileId === "amina" || profileId === "brian" ? (
           <UssdAccess profileId={profileId} />
         ) : null}
-      </PageFrame>
+      </InvestShell>
     );
   }
 
   return (
-    <PageFrame
+    <InvestShell
       title={t("invest.title")}
-      backHref="/"
-      backLabel={t("invest.backOverview")}
+      backLabel={t("invest.backHabit")}
       description={
         isDemo
           ? t("invest.demoProfile", { name: active.displayName })
@@ -89,7 +111,7 @@ function InvestPageContent({ bitikaMode: mode }: { bitikaMode: "sandbox" | "live
       {mode === "missing" ? (
         <p className="mt-4 text-xs text-red-800">{t("invest.missingKey")}</p>
       ) : null}
-    </PageFrame>
+    </InvestShell>
   );
 }
 

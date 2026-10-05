@@ -8,6 +8,13 @@ import type {
   IncomeSource,
 } from "@pesasense/core";
 import { useFormat, useI18n } from "../contexts/language-context";
+import {
+  hasBusinessIncome,
+  joinNames,
+  titleCaseWords,
+  topIncomeLabels,
+  topSpendCategories,
+} from "../lib/overview-story";
 
 type MapAmount =
   | { type: "single"; value: number }
@@ -24,7 +31,7 @@ type MapStop = {
   whenTypical: number | null;
   share: number | null;
   sentenceKey: string;
-  sentenceCategory: string | null;
+  sentenceVars?: Record<string, string | number>;
 };
 
 const COMMITMENT_CATEGORY: Record<CommitmentCategory, string> = {
@@ -37,38 +44,29 @@ const COMMITMENT_CATEGORY: Record<CommitmentCategory, string> = {
   other: "overview.map.cat.commitment",
 };
 
-const COMMITMENT_SENTENCE: Record<CommitmentCategory, string> = {
-  rent: "overview.map.sentence.rent",
-  school_fees: "overview.map.sentence.schoolFees",
-  utilities: "overview.map.sentence.utilities",
-  loan: "overview.map.sentence.loan",
-  insurance: "overview.map.sentence.insurance",
-  chama: "overview.map.sentence.chama",
-  other: "overview.map.sentence.commitment",
-};
-
 const SPENDING: Record<string, { categoryKey: string; sentenceKey: string }> = {
   groceries: {
     categoryKey: "overview.map.cat.groceries",
-    sentenceKey: "overview.map.sentence.groceries",
+    sentenceKey: "overview.map.sentence.groceriesNamed",
   },
   transport: {
     categoryKey: "overview.map.cat.transport",
-    sentenceKey: "overview.map.sentence.transport",
+    sentenceKey: "overview.map.sentence.transportNamed",
   },
   airtime: {
     categoryKey: "overview.map.cat.airtime",
-    sentenceKey: "overview.map.sentence.airtime",
+    sentenceKey: "overview.map.sentence.airtimeNamed",
   },
   "eating out": {
     categoryKey: "overview.map.cat.eatingOut",
-    sentenceKey: "overview.map.sentence.eatingOut",
+    sentenceKey: "overview.map.sentence.eatingOutNamed",
   },
 };
 
 const BAND_TOP = 18;
 const BAND_BOTTOM = 110;
 const MAP_HEIGHT = 176;
+const ROW_HEIGHT = 58;
 
 function incomeShare(amountKes: number, typicalIncome: number): number | null {
   if (!(typicalIncome > 0) || !Number.isFinite(amountKes)) return null;
@@ -83,36 +81,70 @@ function cadenceWhenKey(cadence: Cadence): string {
   return "overview.map.when.month";
 }
 
-function titleCase(value: string): string {
-  return value.replace(/\b\w/g, (letter) => letter.toUpperCase());
+function incomeSentence(
+  sources: Array<{ value: IncomeSource }>,
+): { key: string; vars?: Record<string, string | number> } {
+  const labels = sources
+    .slice()
+    .sort((a, b) => b.value.monthlyKes.typical - a.value.monthlyKes.typical)
+    .map((row) => row.value.label.trim())
+    .filter(Boolean);
+  const named = joinNames(labels.slice(0, 2));
+  if (sources.length === 1) {
+    const kind = sources[0]?.value.kind;
+    if (kind === "salary") {
+      return named
+        ? { key: "overview.map.sentence.salaryNamed", vars: { label: named } }
+        : { key: "overview.map.sentence.salary" };
+    }
+    if (kind === "business") {
+      return named
+        ? { key: "overview.map.sentence.businessNamed", vars: { label: named } }
+        : { key: "overview.map.sentence.business" };
+    }
+    if (kind === "transfer") {
+      return named
+        ? { key: "overview.map.sentence.transferNamed", vars: { label: named } }
+        : { key: "overview.map.sentence.transfer" };
+    }
+  }
+  if (named) {
+    return { key: "overview.map.sentence.incomeCombinedNamed", vars: { labels: named } };
+  }
+  return { key: "overview.map.sentence.incomeCombined" };
 }
 
-function incomeSentenceKey(sources: Array<{ value: IncomeSource }>): string {
-  if (sources.length !== 1) return "overview.map.sentence.incomeCombined";
-  const kind = sources[0]?.value.kind;
-  if (kind === "salary") return "overview.map.sentence.salary";
-  if (kind === "business") return "overview.map.sentence.business";
-  if (kind === "transfer") return "overview.map.sentence.transfer";
-  return "overview.map.sentence.incomeOther";
+function commitmentSentenceKey(category: CommitmentCategory): string {
+  const map: Record<CommitmentCategory, string> = {
+    rent: "overview.map.sentence.rentNamed",
+    school_fees: "overview.map.sentence.schoolFeesNamed",
+    utilities: "overview.map.sentence.utilitiesNamed",
+    loan: "overview.map.sentence.loanNamed",
+    insurance: "overview.map.sentence.insuranceNamed",
+    chama: "overview.map.sentence.chamaNamed",
+    other: "overview.map.sentence.commitmentNamed",
+  };
+  return map[category];
 }
 
 export function buildMoneyStops(profile: FinancialProfile): MapStop[] {
   const income = profile.income.monthlyKes;
   const floor = profile.surplus.monthlyKes.floor;
   const typicalIncome = income.typical;
+  const incomeLine = incomeSentence(profile.income.sources);
   const stops: MapStop[] = [
     {
       id: "income",
       categoryKey: "overview.map.cat.income",
       categoryText: "",
-      titleKey: "overview.map.cat.income",
-      titleText: "",
+      titleKey: null,
+      titleText: topIncomeLabels(profile, 1)[0] ?? "",
       amount: { type: "range", low: income.floor, high: income.ceiling },
       whenKey: "overview.map.when.monthTypical",
       whenTypical: typicalIncome,
       share: null,
-      sentenceKey: incomeSentenceKey(profile.income.sources),
-      sentenceCategory: null,
+      sentenceKey: incomeLine.key,
+      sentenceVars: incomeLine.vars,
     },
   ];
 
@@ -127,14 +159,17 @@ export function buildMoneyStops(profile: FinancialProfile): MapStop[] {
       whenKey: cadenceWhenKey(item.cadence),
       whenTypical: null,
       share: incomeShare(item.amountKes, typicalIncome),
-      sentenceKey: COMMITMENT_SENTENCE[item.category],
-      sentenceCategory: null,
+      sentenceKey: commitmentSentenceKey(item.category),
+      sentenceVars: { label: item.label },
     });
   });
 
+  const biggestSpend = topSpendCategories(profile, 1)[0] ?? "";
   profile.spending.byCategory.forEach((item, index) => {
     const known = SPENDING[item.category];
-    const label = titleCase(item.category);
+    const label = titleCaseWords(item.category);
+    const share = incomeShare(item.monthlyKes.typical, typicalIncome);
+    const isTop = item.category === biggestSpend;
     stops.push({
       id: `spending-${index}`,
       categoryKey: known?.categoryKey ?? null,
@@ -144,9 +179,14 @@ export function buildMoneyStops(profile: FinancialProfile): MapStop[] {
       amount: { type: "single", value: item.monthlyKes.typical },
       whenKey: "overview.map.when.month",
       whenTypical: null,
-      share: incomeShare(item.monthlyKes.typical, typicalIncome),
-      sentenceKey: known?.sentenceKey ?? "overview.map.sentence.spendingOther",
-      sentenceCategory: known ? null : label,
+      share,
+      sentenceKey: isTop
+        ? "overview.map.sentence.spendingTop"
+        : (known?.sentenceKey ?? "overview.map.sentence.spendingOtherNamed"),
+      sentenceVars: {
+        category: label,
+        share: share ?? 0,
+      },
     });
   });
 
@@ -160,8 +200,13 @@ export function buildMoneyStops(profile: FinancialProfile): MapStop[] {
     whenKey: "overview.map.when.month",
     whenTypical: null,
     share: incomeShare(floor, typicalIncome),
-    sentenceKey: "overview.map.sentence.surplus",
-    sentenceCategory: null,
+    sentenceKey:
+      floor <= 0
+        ? "overview.map.sentence.surplusEmpty"
+        : hasBusinessIncome(profile)
+          ? "overview.map.sentence.surplusBusiness"
+          : "overview.map.sentence.surplusNamed",
+    sentenceVars: { floor: floor },
   });
 
   return stops;
@@ -181,6 +226,25 @@ function curveThrough(points: Array<{ x: number; y: number }>): string {
   return d;
 }
 
+function snakePoints(
+  count: number,
+  width: number,
+  rowHeight: number,
+): Array<{ x: number; y: number }> {
+  const colGap = width * 0.5;
+  const leftX = width * 0.25;
+  const rightX = leftX + colGap * 0.5;
+  const points: Array<{ x: number; y: number }> = [];
+  for (let index = 0; index < count; index += 1) {
+    const row = Math.floor(index / 2);
+    const col = index % 2;
+    const goRight = row % 2 === 0;
+    const x = goRight ? (col === 0 ? leftX : rightX) : col === 0 ? rightX : leftX;
+    points.push({ x, y: 22 + row * rowHeight });
+  }
+  return points;
+}
+
 export function MoneyMap({
   profile,
   isDemo,
@@ -196,15 +260,17 @@ export function MoneyMap({
   const stops = useMemo(() => buildMoneyStops(profile), [profile]);
   const [selectedId, setSelectedId] = useState(stops[0]?.id ?? "income");
   const selected = stops.find((stop) => stop.id === selectedId) ?? stops[0];
-  const boxRef = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(680);
+  const sectionRef = useRef<HTMLElement>(null);
+  const [width, setWidth] = useState(320);
   const headingId = useId();
   const detailId = useId();
+  const rows = Math.ceil(stops.length / 2);
+  const mobileHeight = Math.max(rows * ROW_HEIGHT + 8, ROW_HEIGHT);
 
   useEffect(() => {
-    const el = boxRef.current;
+    const el = sectionRef.current;
     if (!el) return;
-    const measure = () => setWidth(el.clientWidth);
+    const measure = () => setWidth(Math.max(el.clientWidth - 24, 240));
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(el);
@@ -218,13 +284,14 @@ export function MoneyMap({
     }
   }, [focusRequest, stops]);
 
-  const points = stops.map((_, index) => {
+  const desktopPoints = stops.map((_, index) => {
     const span = Math.max(stops.length - 1, 1);
     return {
       x: 28 + (index / span) * Math.max(width - 56, 1),
       y: index % 2 === 0 ? BAND_TOP : BAND_BOTTOM,
     };
   });
+  const mobilePoints = snakePoints(stops.length, width, ROW_HEIGHT);
 
   if (!selected) return null;
 
@@ -245,15 +312,77 @@ export function MoneyMap({
     selected.whenTypical != null
       ? t(selected.whenKey, { typical: kes(selected.whenTypical) })
       : t(selected.whenKey);
-  const sentence = t(
-    selected.sentenceKey,
-    selected.sentenceCategory ? { category: selected.sentenceCategory } : undefined,
-  );
+  const sentenceVars = {
+    ...selected.sentenceVars,
+    ...(typeof selected.sentenceVars?.floor === "number"
+      ? { floor: kes(selected.sentenceVars.floor as number) }
+      : {}),
+  };
+  const sentence = t(selected.sentenceKey, sentenceVars);
+
+  function renderStop(
+    stop: MapStop,
+    index: number,
+    point: { x: number; y: number },
+    compact: boolean,
+  ) {
+    const isSelected = stop.id === selected!.id;
+    const stopCategory = stop.categoryKey ? t(stop.categoryKey) : stop.categoryText;
+    const stopTitle = stop.titleText
+      ? stop.titleText
+      : stop.titleKey
+        ? t(stop.titleKey)
+        : stopCategory;
+    return (
+      <button
+        key={`${compact ? "m" : "d"}-${stop.id}`}
+        type="button"
+        aria-pressed={isSelected}
+        aria-controls={detailId}
+        onClick={() => setSelectedId(stop.id)}
+        className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-xl text-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e3b23c] ${
+          compact ? "w-[6.5rem]" : "w-[3.5rem] md:w-[5.5rem]"
+        }`}
+        style={{ left: point.x, top: point.y }}
+      >
+        <span
+          aria-hidden="true"
+          className={`mx-auto flex items-center justify-center rounded-full font-semibold ${
+            compact ? "h-6 w-6 text-[10px]" : "h-7 w-7 text-xs"
+          }`}
+          style={{
+            backgroundColor: isSelected ? "#e3b23c" : "transparent",
+            color: isSelected ? "#1e3a32" : "#e3b23c",
+            border: "1.5px solid #e3b23c",
+            boxShadow: isSelected ? "0 0 0 3px rgb(227 178 60 / 28%)" : "none",
+          }}
+        >
+          {index + 1}
+        </span>
+        <span
+          className={`mt-0.5 block whitespace-normal break-words font-semibold text-[#e3b23c] uppercase ${
+            compact ? "text-[8px] leading-2.5" : "text-[8px] leading-3 md:truncate md:text-[10px]"
+          }`}
+        >
+          {stopCategory}
+        </span>
+        <span
+          className={`block whitespace-normal break-words font-bold ${
+            compact ? "text-[9px] leading-3" : "text-[9px] leading-3 md:truncate md:text-[11px]"
+          }`}
+          style={{ color: isSelected ? "#ffffff" : "#f6f1e4" }}
+        >
+          {stopTitle || stopCategory}
+        </span>
+      </button>
+    );
+  }
 
   return (
     <section
+      ref={sectionRef}
       id="month-path"
-      className="overflow-x-clip rounded-[28px] border border-[#e3b23c]/25 bg-[#141210] px-3 py-6 sm:px-6"
+      className="overflow-x-clip rounded-[28px] border border-[#e3b23c]/25 bg-[#141210] px-3 py-4 sm:px-6 sm:py-6"
       aria-labelledby={headingId}
     >
       <div className="mb-2 flex items-center justify-between gap-3">
@@ -266,7 +395,33 @@ export function MoneyMap({
           </span>
         ) : null}
       </div>
-      <div ref={boxRef} className="money-map-track relative" style={{ height: MAP_HEIGHT }}>
+
+      {/* Phone: compact vertical path, two nodes per row */}
+      <div className="money-map-track relative md:hidden" style={{ height: mobileHeight }}>
+        <svg
+          className="pointer-events-none absolute inset-0"
+          width={width}
+          height={mobileHeight}
+          aria-hidden="true"
+        >
+          <path
+            d={curveThrough(mobilePoints)}
+            fill="none"
+            stroke="#e3b23c"
+            strokeWidth="1.5"
+            strokeDasharray="5 7"
+            strokeLinecap="round"
+          />
+        </svg>
+        {stops.map((stop, index) => {
+          const point = mobilePoints[index];
+          if (!point) return null;
+          return renderStop(stop, index, point, true);
+        })}
+      </div>
+
+      {/* Desktop: wider winding path */}
+      <div className="money-map-track relative hidden md:block" style={{ height: MAP_HEIGHT }}>
         <svg
           className="pointer-events-none absolute inset-0"
           width={width}
@@ -274,7 +429,7 @@ export function MoneyMap({
           aria-hidden="true"
         >
           <path
-            d={curveThrough(points)}
+            d={curveThrough(desktopPoints)}
             fill="none"
             stroke="#e3b23c"
             strokeWidth="1.75"
@@ -283,51 +438,13 @@ export function MoneyMap({
           />
         </svg>
         {stops.map((stop, index) => {
-          const point = points[index];
+          const point = desktopPoints[index];
           if (!point) return null;
           const onLeft = index % 2 === 0;
-          const isSelected = stop.id === selected.id;
-          const stopCategory = stop.categoryKey ? t(stop.categoryKey) : stop.categoryText;
-          const stopTitle = stop.titleText
-            ? stop.titleText
-            : stop.titleKey
-              ? t(stop.titleKey)
-              : stopCategory;
-          return (
-            <button
-              key={stop.id}
-              type="button"
-              aria-pressed={isSelected}
-              aria-controls={detailId}
-              onClick={() => setSelectedId(stop.id)}
-              className="absolute w-[3.5rem] -translate-x-1/2 rounded-xl text-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e3b23c] md:w-[5.5rem]"
-              style={{ left: point.x, top: onLeft ? 4 : 96 }}
-            >
-              <span
-                aria-hidden="true"
-                className="mx-auto flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold"
-                style={{
-                  backgroundColor: isSelected ? "#e3b23c" : "transparent",
-                  color: isSelected ? "#1e3a32" : "#e3b23c",
-                  border: "1.5px solid #e3b23c",
-                  boxShadow: isSelected ? "0 0 0 4px rgb(227 178 60 / 28%)" : "none",
-                }}
-              >
-                {index + 1}
-              </span>
-              <span className="mt-1 block whitespace-normal break-words text-[8px] leading-3 font-semibold text-[#e3b23c] uppercase md:truncate md:text-[10px] md:leading-normal md:tracking-[0.08em]">
-                {stopCategory}
-              </span>
-              <span
-                className="block whitespace-normal break-words text-[9px] leading-3 font-bold md:truncate md:text-[11px] md:leading-4"
-                style={{ color: isSelected ? "#ffffff" : "#f6f1e4" }}
-              >
-                {stopTitle}
-              </span>
-            </button>
-          );
+          return renderStop(stop, index, { x: point.x, y: onLeft ? 28 : 124 }, false);
         })}
       </div>
+
       <div
         id={detailId}
         aria-live="polite"
@@ -336,7 +453,7 @@ export function MoneyMap({
         <p className="text-[11px] font-semibold tracking-[0.14em] text-[#e3b23c] uppercase">
           {category}
         </p>
-        <p className="mt-1 text-base font-bold text-white">{title}</p>
+        <p className="mt-1 text-base font-bold text-white">{title || category}</p>
         <p className="mt-1 text-sm font-semibold text-[#f6f1e4] tabular-nums">
           {amountLine}{" "}
           <span className="font-medium text-[#c4b8a4]">{whenLine}</span>

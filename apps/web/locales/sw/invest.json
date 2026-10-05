@@ -1,6 +1,8 @@
 {
   "title": "Wekeza",
   "backOverview": "Rudi kwenye muhtasari",
+  "backHabit": "Rudi kwenye tabia",
+  "seeSurplus": "Angalia ziada",
   "notReady": "Bado haijawa tayari",
   "notReadyFallback": "Bado hauko tayari kuwekeza.",
   "bufferFirst": "Jenga akiba kabla ya kununua Bitcoin.",

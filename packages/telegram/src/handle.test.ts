@@ -250,31 +250,39 @@ describe("telegram handle", () => {
   it("Learn about Bitcoin educates without statement or purchase", async () => {
     const h = harness();
     await h.send(20, { kind: "command", command: "/start", args: "" });
-    const page0 = await h.send(20, { kind: "text", text: "Learn about Bitcoin" });
+    const menu = await h.send(20, { kind: "text", text: "Learn about Bitcoin" });
     expect(h.store.getSession(20)?.step).toBe("learn");
-    expect(h.store.getSession(20)?.learnPage).toBe(0);
-    expect(allText(page0)).not.toMatch(/You chose:/);
-    expect(firstBody(page0)).toMatch(/small Bitcoin habit/i);
-    expect(firstBody(page0)).toMatch(/small amount you plan to put in Bitcoin/i);
-    expect(firstBody(page0)).toMatch(/monthly/i);
-    expect(firstBody(page0)).not.toMatch(/\d+\s*sats/i);
-    expect(buttonLabels(page0)).toContain("Next");
+    expect(h.store.getSession(20)?.learnTopicId).toBeNull();
+    expect(h.store.getSession(20)?.learnPage).toBeNull();
+    expect(allText(menu)).not.toMatch(/You chose:/);
+    expect(firstBody(menu)).toMatch(/Learn Bitcoin with Sensi/i);
+    expect(firstBody(menu)).toMatch(/What is Bitcoin/i);
+    expect(firstBody(menu)).not.toMatch(/\d+\s*sats/i);
+    expect(buttonLabels(menu).some((label) => /What is Bitcoin/i.test(label))).toBe(true);
 
-    const page1 = await h.send(20, { kind: "text", text: "Next" });
-    expect(allText(page1)).not.toMatch(/You chose:/);
-    expect(firstBody(page1)).toMatch(/Lightning/i);
-    expect(firstBody(page1)).toMatch(/does not send/i);
-    expect(firstBody(page1)).toMatch(/approve each purchase/i);
+    const beat0 = await h.send(20, { kind: "text", text: "1. What is Bitcoin?" });
+    expect(h.store.getSession(20)?.learnTopicId).toBe("what-is-bitcoin");
+    expect(h.store.getSession(20)?.learnPage).toBe(0);
+    expect(firstBody(beat0)).toMatch(/digital money/i);
+    expect(buttonLabels(beat0)).toContain("Next");
+
+    const beat1 = await h.send(20, { kind: "text", text: "Next" });
+    expect(allText(beat1)).not.toMatch(/You chose:/);
+    expect(firstBody(beat1)).toMatch(/whitepaper|21 million|peer-to-peer/i);
     expect(h.store.getSession(20)?.learnPage).toBe(1);
 
-    const page2 = await h.send(20, { kind: "text", text: "Next" });
-    expect(firstBody(page2)).toMatch(/lose value/i);
-    expect(firstBody(page2)).toMatch(/not financial advice/i);
-    expect(firstBody(page2)).toMatch(/money left after bills/i);
-    expect(buttonLabels(page2)).toEqual([
-      "Start a small habit",
-      "Ask something else",
-    ]);
+    const check = await h.send(20, { kind: "text", text: "Next" });
+    expect(h.store.getSession(20)?.learnPage).toBe(2);
+    expect(firstBody(check)).toMatch(/Quick check|closest to the idea/i);
+    expect(buttonLabels(check).some((label) => /digital money/i.test(label))).toBe(true);
+
+    const answer = await h.send(20, {
+      kind: "text",
+      text: "Bitcoin is digital money on a shared network you can hold yourself",
+    });
+    expect(firstBody(answer)).toMatch(/Yes|correct/i);
+    expect(buttonLabels(answer)).toContain("More topics");
+    expect(buttonLabels(answer)).toContain("Start a small habit");
     expect(h.purchases).toHaveLength(0);
     expect(h.store.getSession(20)?.profile).toBeNull();
 
@@ -298,8 +306,6 @@ describe("telegram handle", () => {
     const h = harness();
     await h.send(21, { kind: "command", command: "/start", args: "" });
     await h.send(21, { kind: "text", text: "Learn about Bitcoin" });
-    await h.send(21, { kind: "text", text: "Next" });
-    await h.send(21, { kind: "text", text: "Next" });
     const menu = await h.send(21, { kind: "text", text: "Ask something else" });
     expect(h.store.getSession(21)?.step).toBe("menu");
     expect(buttonLabels(menu)).toContain("Learn about Bitcoin");
@@ -324,9 +330,10 @@ describe("telegram handle", () => {
 
     const amount = await h.send(8, { kind: "text", text: "12000" });
     expect(allText(amount)).toMatch(/Noted: Fuliza — KES 12,000/i);
+    expect(allText(amount)).toMatch(/a month/i);
     expect(allText(amount)).toMatch(/chama/i);
     expect(h.store.getSession(8)?.onboarding.debts).toEqual([
-      { label: "Fuliza", balanceKes: 12000 },
+      { label: "Fuliza", balanceKes: 12000, monthlyPaymentKes: 12000 },
     ]);
     expect(h.store.getSession(8)?.step).toBe("ask_chama");
   });

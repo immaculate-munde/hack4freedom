@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { useI18n } from "../contexts/language-context";
+import { readChamaOptIn } from "../lib/chama-opt-in";
 import { CustomerRail } from "./customer-rail";
 import { HabitReminderBanner } from "./habit-reminder-banner";
 import { LanguageSwitcher } from "./language-switcher";
@@ -11,29 +12,46 @@ import { PwaExperience } from "./pwa-experience";
 import { SensiAvatar } from "./sensi-avatar";
 import { ThemeToggle } from "./theme-toggle";
 
-const PRIMARY = [
-  { href: "/overview", key: "overview", match: (p: string) => p.startsWith("/overview") },
-  { href: "/surplus", key: "surplus", match: (p: string) => p.startsWith("/surplus") },
-  { href: "/habit", key: "habit", match: (p: string) => p.startsWith("/habit") },
-  { href: "/learn", key: "learn", match: (p: string) => p.startsWith("/learn") },
-] as const;
+type NavItem = {
+  href: string;
+  key: "overview" | "surplus" | "habit" | "learn" | "wallet" | "chama";
+  match: (p: string) => boolean;
+};
 
-const MORE = [
-  { href: "/invest", key: "invest", match: (p: string) => p.startsWith("/invest") },
-  { href: "/wallet", key: "wallet", match: (p: string) => p.startsWith("/wallet") },
-  { href: "/chama", key: "chama", match: (p: string) => p.startsWith("/chama") },
-] as const;
+/** Habit matches /habit and /invest — one continuous surplus → buy journey. */
+const PRIMARY: readonly NavItem[] = [
+  { href: "/overview", key: "overview", match: (p) => p.startsWith("/overview") },
+  { href: "/surplus", key: "surplus", match: (p) => p.startsWith("/surplus") },
+  {
+    href: "/habit",
+    key: "habit",
+    match: (p) => p.startsWith("/habit") || p.startsWith("/invest"),
+  },
+  { href: "/learn", key: "learn", match: (p) => p.startsWith("/learn") },
+];
 
-const NAV = [...PRIMARY, ...MORE] as const;
+const MORE_BASE: readonly NavItem[] = [
+  { href: "/wallet", key: "wallet", match: (p) => p.startsWith("/wallet") },
+  { href: "/chama", key: "chama", match: (p) => p.startsWith("/chama") },
+];
 
-type NavKey = (typeof NAV)[number]["key"];
+type NavKey = NavItem["key"];
 
-type SensiTopic = "surplus" | "bitcoin" | "wallet" | "habit" | "chama" | "scam" | "fallback";
+type SensiTopic =
+  | "surplus"
+  | "spend"
+  | "bitcoin"
+  | "wallet"
+  | "habit"
+  | "chama"
+  | "scam"
+  | "fallback";
 
 type SensiTurn = { id: number; question: string; topic: SensiTopic };
 
 const SENSI_PROMPTS: Record<Exclude<SensiTopic, "fallback">, string> = {
   surplus: "sensi.askSurplus",
+  spend: "sensi.askSpend",
   bitcoin: "sensi.howBitcoin",
   wallet: "sensi.askWallet",
   habit: "sensi.askHabit",
@@ -43,6 +61,7 @@ const SENSI_PROMPTS: Record<Exclude<SensiTopic, "fallback">, string> = {
 
 const SENSI_REPLIES: Record<SensiTopic, string> = {
   surplus: "sensi.replySurplus",
+  spend: "sensi.replySpend",
   bitcoin: "sensi.replyBitcoin",
   wallet: "sensi.replyWallet",
   habit: "sensi.replyHabit",
@@ -53,22 +72,24 @@ const SENSI_REPLIES: Record<SensiTopic, string> = {
 
 const SENSI_LINKS: Record<SensiTopic, { href: string; label: string }> = {
   surplus: { href: "/surplus", label: "sensi.seeSurplus" },
+  spend: { href: "/overview#month-path", label: "sensi.seePath" },
   bitcoin: { href: "/learn", label: "sensi.seeLearn" },
   wallet: { href: "/wallet", label: "sensi.seeWallet" },
   habit: { href: "/habit", label: "sensi.seeHabit" },
   chama: { href: "/chama", label: "sensi.seeChama" },
   scam: { href: "/learn", label: "sensi.seeLearn" },
-  fallback: { href: "/learn", label: "sensi.seeLearn" },
+  fallback: { href: "/overview", label: "sensi.seePath" },
 };
 
 function sensiStarters(pathname: string): Array<Exclude<SensiTopic, "fallback">> {
   if (pathname.startsWith("/wallet")) return ["wallet", "scam"];
-  if (pathname.startsWith("/surplus")) return ["surplus", "habit"];
+  if (pathname.startsWith("/surplus")) return ["surplus", "spend"];
   if (pathname.startsWith("/habit")) return ["habit", "surplus"];
   if (pathname.startsWith("/chama")) return ["chama", "wallet"];
   if (pathname.startsWith("/learn")) return ["bitcoin", "scam"];
   if (pathname.startsWith("/invest")) return ["surplus", "bitcoin"];
-  return ["surplus", "bitcoin"];
+  if (pathname.startsWith("/overview")) return ["spend", "surplus"];
+  return ["spend", "surplus"];
 }
 
 function sensiTopic(text: string): SensiTopic {
@@ -79,6 +100,13 @@ function sensiTopic(text: string): SensiTopic {
   if (/wallet|custody|private key|mkoba|funguo|kujihifadhi/.test(question)) return "wallet";
   if (/chama/.test(question)) return "chama";
   if (/habit|monthly|kila mwezi|tabia/.test(question)) return "habit";
+  if (
+    /spend|expense|bill|rent|grocer|transport|airtime|matumizi|bili|kodi|mboga|nauli|where.*money|pesa zangu/.test(
+      question,
+    )
+  ) {
+    return "spend";
+  }
   if (/surplus|floor|buffer|cushion|zaida|ziada|sakafu|hifadhi/.test(question)) return "surplus";
   if (/bitcoin|btc|sats/.test(question)) return "bitcoin";
   return "fallback";
@@ -120,9 +148,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   const sensiLauncherRef = useRef<HTMLButtonElement | null>(null);
   const sensiWasOpen = useRef(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [navCollapsed, setNavCollapsed] = useState(false);
+  const [navExpanded, setNavExpanded] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
-  const moreActive = MORE.some((item) => item.match(pathname));
+  const [chamaOptIn, setChamaOptIn] = useState(false);
+  const moreItems = MORE_BASE.filter((item) => item.key !== "chama" || chamaOptIn);
+  const navItems = [...PRIMARY, ...moreItems];
+  const moreActive = moreItems.some((item) => item.match(pathname));
 
   function askSensi(text: string, topic?: SensiTopic) {
     const question = text.trim();
@@ -157,24 +188,22 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [pathname, locale, t]);
 
   useEffect(() => {
-    try {
-      setNavCollapsed(localStorage.getItem("pesasense.nav-collapsed") === "true");
-    } catch {
-      setNavCollapsed(false);
-    }
-  }, []);
-
-  function toggleNav() {
-    setNavCollapsed((current) => {
-      const next = !current;
-      try {
-        localStorage.setItem("pesasense.nav-collapsed", next ? "true" : "false");
-      } catch {
-        // The menu still toggles for this visit.
+    setChamaOptIn(readChamaOptIn());
+    function onStorage(event: StorageEvent) {
+      if (event.key === "pesasense.chama.optIn" || event.key === "pesasense.chama.v1") {
+        setChamaOptIn(readChamaOptIn());
       }
-      return next;
-    });
-  }
+    }
+    function onOptIn() {
+      setChamaOptIn(readChamaOptIn());
+    }
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("pesasense.chama.optIn", onOptIn);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("pesasense.chama.optIn", onOptIn);
+    };
+  }, [pathname]);
 
   useEffect(() => {
     setMoreOpen(false);
@@ -233,38 +262,61 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="app-shell">
       {quiet ? null : (
         <aside
-          className={`app-sidebar hidden lg:flex ${navCollapsed ? "app-sidebar-collapsed" : ""}`}
+          className={`app-sidebar hidden lg:flex ${navExpanded ? "" : "app-sidebar-collapsed"}`}
           aria-label={t("nav.nav")}
+          onMouseLeave={() => setNavExpanded(false)}
         >
-          <div className={`flex h-full min-h-0 w-full flex-col py-6 ${navCollapsed ? "px-2" : "px-4"}`}>
-            <div className={`mb-6 flex shrink-0 items-center gap-3 ${navCollapsed ? "justify-center px-0" : "px-2"}`}>
+          <div className={`flex h-full min-h-0 w-full flex-col py-5 ${navExpanded ? "px-4" : "px-2"}`}>
+            <div
+              className={`mb-3 flex shrink-0 items-center gap-2 ${
+                navExpanded ? "justify-between px-1" : "flex-col gap-2"
+              }`}
+            >
               <button
                 type="button"
                 aria-label={t("nav.openSensi")}
                 aria-expanded={isSensiOpen}
                 onClick={toggleSensi}
-                className="btn flex h-12 w-12 items-center justify-center rounded-full bg-[#f3efe4]"
+                className="btn flex h-11 w-11 items-center justify-center rounded-full bg-[#f3efe4]"
               >
                 <SensiAvatar size="sm" mood={isSensiOpen ? "happy" : "neutral"} />
               </button>
-              {navCollapsed ? null : (
-                <div className="min-w-0">
+              {navExpanded ? (
+                <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-bold text-[#f6f1e4]">{t("nav.brand")}</p>
                   <p className="text-xs text-[#e3b23c]">{t("nav.stays")}</p>
                 </div>
-              )}
+              ) : null}
+              <button
+                type="button"
+                aria-expanded={navExpanded}
+                aria-label={navExpanded ? t("nav.collapseNav") : t("nav.expandNav")}
+                className="app-sidebar-expand-hotspot h-10 min-w-10 px-2"
+                onMouseEnter={() => setNavExpanded(true)}
+                onFocus={() => setNavExpanded(true)}
+                onClick={() => setNavExpanded((current) => !current)}
+              >
+                <NavDoubleArrows expanded={navExpanded} />
+              </button>
             </div>
-            <nav className="app-sidebar-nav flex min-h-0 flex-1 flex-col gap-1">
-              {NAV.map((tab) => {
+            <nav
+              className={`app-sidebar-nav flex min-h-0 flex-1 flex-col ${
+                navExpanded ? "gap-1" : "app-sidebar-nav-rail"
+              }`}
+            >
+              {navItems.map((tab) => {
                 const active = tab.match(pathname);
+                const label =
+                  tab.key === "habit" ? t("nav.habitInvest") : t(`nav.${tab.key}`);
                 return (
                   <Link
                     key={tab.href}
                     href={tab.href}
                     aria-current={active ? "page" : undefined}
-                    aria-label={t(`nav.${tab.key}`)}
+                    aria-label={label}
+                    title={label}
                     className={`flex h-11 w-full shrink-0 items-center rounded-2xl text-sm font-semibold ${
-                      navCollapsed ? "justify-center px-0" : "gap-3 px-4"
+                      navExpanded ? "gap-3 px-4" : "justify-center px-0"
                     } ${
                       active
                         ? "bg-[#f3efe4] text-pine"
@@ -272,25 +324,16 @@ export function AppShell({ children }: { children: ReactNode }) {
                     }`}
                   >
                     <NavIcon name={tab.key} />
-                    {navCollapsed ? <span className="sr-only">{t(`nav.${tab.key}`)}</span> : t(`nav.${tab.key}`)}
+                    {navExpanded ? label : <span className="sr-only">{label}</span>}
                   </Link>
                 );
               })}
             </nav>
-            <div className="mt-auto flex shrink-0 flex-col items-center gap-2 pt-4">
-              {navCollapsed ? null : (
-                <p className="px-3 pb-1 text-xs leading-5 text-[#f6f1e4]/75">{t("nav.encrypted")}</p>
-              )}
-              <button
-                type="button"
-                aria-pressed={navCollapsed}
-                aria-label={navCollapsed ? t("nav.expandNav") : t("nav.collapseNav")}
-                onClick={toggleNav}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#f6f1e4] hover:bg-white/10"
-              >
-                <NavChevron collapsed={navCollapsed} />
-              </button>
-            </div>
+            {navExpanded ? (
+              <p className="mt-auto shrink-0 px-3 pt-4 text-xs leading-5 text-[#f6f1e4]/75">
+                {t("nav.encrypted")}
+              </p>
+            ) : null}
           </div>
         </aside>
       )}
@@ -362,7 +405,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                     {t("nav.moreMenu")}
                   </p>
                   <div className="flex flex-col gap-1">
-                    {MORE.map((item) => {
+                    {moreItems.map((item) => {
                       const active = item.match(pathname);
                       return (
                         <Link
@@ -611,13 +654,19 @@ function Brand() {
   );
 }
 
-function NavChevron({ collapsed }: { collapsed: boolean }) {
+function NavDoubleArrows({ expanded }: { expanded: boolean }) {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5 fill-none stroke-current">
-      {collapsed ? (
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M9 6l6 6-6 6" />
+      {expanded ? (
+        <>
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M11 6l-5 6 5 6" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M18 6l-5 6 5 6" />
+        </>
       ) : (
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M15 6l-6 6 6 6" />
+        <>
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M6 6l5 6-5 6" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M13 6l5 6-5 6" />
+        </>
       )}
     </svg>
   );
@@ -681,16 +730,6 @@ function NavIcon({ name }: { name: NavKey }) {
         />
         <path strokeLinecap="round" d="M14 14.5 12 13V9" />
         <circle cx="17.5" cy="17.5" r="3.2" />
-      </svg>
-    );
-  }
-
-  if (name === "invest") {
-    return (
-      <svg viewBox="0 0 24 24" aria-hidden="true" className={common} strokeWidth="1.75">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 20V10" />
-        <path strokeLinecap="round" d="M12 13c0-4 3.2-6 6.5-6-1 4-3.2 6-6.5 6Z" />
-        <path strokeLinecap="round" d="M12 15c0-3.2-2.6-5-5.4-5 1 3.2 2.6 5 5.4 5Z" />
       </svg>
     );
   }
