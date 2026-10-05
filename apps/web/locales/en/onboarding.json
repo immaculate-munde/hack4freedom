@@ -12,9 +12,9 @@
   "debt": {
     "title": "Debts",
     "ask": "Do you repay any debt every month?",
-    "why": "A loan or a balance you pay back. I'll leave room for it. Rent can wait for your statement.",
+    "why": "A loan or repayment you make every month. I'll leave room for it in your surplus. Rent can wait for your statement.",
     "notesPlaceholder": "What the debt is for",
-    "balanceLabel": "Balance, if you know it"
+    "balanceLabel": "Monthly repayment (KES)"
   },
   "chama": {
     "title": "Chama",

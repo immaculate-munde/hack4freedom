@@ -4,15 +4,15 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { demoProfiles, type FinancialProfile } from "@pesasense/core";
+import { ImportAnalysisCard } from "../../components/import-analysis-card";
 import { SmsImportForm } from "../../components/sms-import-form";
-import { useFormat, useI18n } from "../../contexts/language-context";
+import { useI18n } from "../../contexts/language-context";
 import { useProfile } from "../../contexts/profile-context";
 import { routeAfterImport } from "../../lib/profile-from-import";
 import { takeSharedText } from "../../lib/share-target";
 
 function SharePageContent() {
   const { t } = useI18n();
-  const { kes, number } = useFormat();
   const router = useRouter();
   const params = useSearchParams();
   const { setProfile } = useProfile();
@@ -21,6 +21,7 @@ function SharePageContent() {
   const [sharedText, setSharedText] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [result, setResult] = useState<FinancialProfile | null>(null);
+  const [transactionCount, setTransactionCount] = useState<number | undefined>(undefined);
 
   useEffect(() => {
     let cancelled = false;
@@ -54,6 +55,14 @@ function SharePageContent() {
     router.push("/overview");
   }
 
+  function handleProfileReady(
+    profile: FinancialProfile,
+    meta?: { transactionCount: number },
+  ) {
+    setResult(profile);
+    setTransactionCount(meta?.transactionCount);
+  }
+
   function handleCommit() {
     if (!result) return;
     const next = result;
@@ -80,31 +89,19 @@ function SharePageContent() {
           {!ready ? (
             <p className="text-sm text-slate">{t("common.loading")}</p>
           ) : result ? (
-            <div className="space-y-3 rounded-2xl border border-mint/60 bg-mint/25 p-4">
-              <p className="text-sm font-semibold text-pine">{t("import.complete")}</p>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between gap-3">
-                  <span className="text-ink-soft">{t("import.safeSurplus")}</span>
-                  <span className="font-semibold text-ink">
-                    {kes(result.surplus.monthlyKes.floor)} – {number(result.surplus.monthlyKes.ceiling)}
-                  </span>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <span className="text-ink-soft">{t("import.resilience")}</span>
-                  <span className="font-semibold text-ink">
-                    {t("import.months", { count: result.resilience.monthsOfExpensesCovered })}
-                  </span>
-                </div>
-              </div>
-              <button type="button" onClick={handleCommit} className="btn btn-primary w-full">
-                {routeAfterImport(result) === "/habit" ? t("import.setHabit") : t("import.useProfile")}
-              </button>
-            </div>
+            <ImportAnalysisCard
+              profile={result}
+              transactionCount={transactionCount}
+              primaryActionLabel={
+                routeAfterImport(result) === "/habit" ? t("import.setHabit") : t("import.useProfile")
+              }
+              onPrimaryAction={handleCommit}
+            />
           ) : (
             <SmsImportForm
               key={sharedText ?? "empty"}
               initialText={sharedText ?? ""}
-              onProfileReady={setResult}
+              onProfileReady={handleProfileReady}
               onDemoFallback={handleUseDemo}
             />
           )}
@@ -120,7 +117,7 @@ function SharePageContent() {
 
 export default function SharePage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<main className="page-frame"><p className="text-sm text-slate">…</p></main>}>
       <SharePageContent />
     </Suspense>
   );

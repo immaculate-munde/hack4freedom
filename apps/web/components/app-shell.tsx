@@ -4,91 +4,51 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { useI18n } from "../contexts/language-context";
+import { readChamaOptIn } from "../lib/chama-opt-in";
 import { CustomerRail } from "./customer-rail";
+import { HabitReminderBanner } from "./habit-reminder-banner";
 import { LanguageSwitcher } from "./language-switcher";
 import { PwaExperience } from "./pwa-experience";
 import { SensiAvatar } from "./sensi-avatar";
+import { SensiGuide } from "./sensi-guide";
 import { ThemeToggle } from "./theme-toggle";
 
-const PRIMARY = [
-  { href: "/overview", key: "overview", match: (p: string) => p.startsWith("/overview") },
-  { href: "/surplus", key: "surplus", match: (p: string) => p.startsWith("/surplus") },
-  { href: "/habit", key: "habit", match: (p: string) => p.startsWith("/habit") },
-  { href: "/learn", key: "learn", match: (p: string) => p.startsWith("/learn") },
-] as const;
-
-const MORE = [
-  { href: "/invest", key: "invest", match: (p: string) => p.startsWith("/invest") },
-  { href: "/wallet", key: "wallet", match: (p: string) => p.startsWith("/wallet") },
-  { href: "/chama", key: "chama", match: (p: string) => p.startsWith("/chama") },
-] as const;
-
-const NAV = [...PRIMARY, ...MORE] as const;
-
-type NavKey = (typeof NAV)[number]["key"];
-
-type SensiTopic = "surplus" | "bitcoin" | "wallet" | "habit" | "chama" | "scam" | "fallback";
-
-type SensiTurn = { id: number; question: string; topic: SensiTopic };
-
-const SENSI_PROMPTS: Record<Exclude<SensiTopic, "fallback">, string> = {
-  surplus: "sensi.askSurplus",
-  bitcoin: "sensi.howBitcoin",
-  wallet: "sensi.askWallet",
-  habit: "sensi.askHabit",
-  chama: "sensi.askChama",
-  scam: "sensi.askScam",
+type NavItem = {
+  href: string;
+  key: "overview" | "surplus" | "habit" | "learn" | "wallet" | "chama";
+  match: (p: string) => boolean;
 };
 
-const SENSI_REPLIES: Record<SensiTopic, string> = {
-  surplus: "sensi.replySurplus",
-  bitcoin: "sensi.replyBitcoin",
-  wallet: "sensi.replyWallet",
-  habit: "sensi.replyHabit",
-  chama: "sensi.replyChama",
-  scam: "sensi.replyScam",
-  fallback: "sensi.replyFallback",
-};
+/** Habit matches /habit and /invest — one continuous surplus → buy journey. */
+const PRIMARY: readonly NavItem[] = [
+  { href: "/overview", key: "overview", match: (p) => p.startsWith("/overview") },
+  { href: "/surplus", key: "surplus", match: (p) => p.startsWith("/surplus") },
+  {
+    href: "/habit",
+    key: "habit",
+    match: (p) => p.startsWith("/habit") || p.startsWith("/invest"),
+  },
+  { href: "/learn", key: "learn", match: (p) => p.startsWith("/learn") },
+];
 
-const SENSI_LINKS: Record<SensiTopic, { href: string; label: string }> = {
-  surplus: { href: "/surplus", label: "sensi.seeSurplus" },
-  bitcoin: { href: "/learn", label: "sensi.seeLearn" },
-  wallet: { href: "/wallet", label: "sensi.seeWallet" },
-  habit: { href: "/habit", label: "sensi.seeHabit" },
-  chama: { href: "/chama", label: "sensi.seeChama" },
-  scam: { href: "/learn", label: "sensi.seeLearn" },
-  fallback: { href: "/learn", label: "sensi.seeLearn" },
-};
+const MORE_BASE: readonly NavItem[] = [
+  { href: "/wallet", key: "wallet", match: (p) => p.startsWith("/wallet") },
+  { href: "/chama", key: "chama", match: (p) => p.startsWith("/chama") },
+];
 
-function sensiStarters(pathname: string): Array<Exclude<SensiTopic, "fallback">> {
-  if (pathname.startsWith("/wallet")) return ["wallet", "scam"];
-  if (pathname.startsWith("/surplus")) return ["surplus", "habit"];
-  if (pathname.startsWith("/habit")) return ["habit", "surplus"];
-  if (pathname.startsWith("/chama")) return ["chama", "wallet"];
-  if (pathname.startsWith("/learn")) return ["bitcoin", "scam"];
-  if (pathname.startsWith("/invest")) return ["surplus", "bitcoin"];
-  return ["surplus", "bitcoin"];
-}
-
-function sensiTopic(text: string): SensiTopic {
-  const question = text.toLowerCase();
-  if (/scam|guaranteed|recovery word|seed|ulaghai|maneno ya kurejesha|faida iliyohakikishwa/.test(question)) {
-    return "scam";
-  }
-  if (/wallet|custody|private key|mkoba|funguo|kujihifadhi/.test(question)) return "wallet";
-  if (/chama/.test(question)) return "chama";
-  if (/habit|monthly|kila mwezi|tabia/.test(question)) return "habit";
-  if (/surplus|floor|buffer|cushion|zaida|ziada|sakafu|hifadhi/.test(question)) return "surplus";
-  if (/bitcoin|btc|sats/.test(question)) return "bitcoin";
-  return "fallback";
-}
+type NavKey = NavItem["key"];
 
 function hidesNav(pathname: string): boolean {
   return pathname === "/welcome" || pathname === "/onboarding" || pathname === "/onboard";
 }
 
 function hidesSensi(pathname: string): boolean {
-  return pathname === "/welcome" || pathname === "/onboarding" || pathname === "/onboard";
+  return (
+    pathname === "/welcome" ||
+    pathname === "/onboarding" ||
+    pathname === "/onboard" ||
+    pathname.startsWith("/sensi")
+  );
 }
 
 function titleKey(pathname: string): string | null {
@@ -113,24 +73,14 @@ export function AppShell({ children }: { children: ReactNode }) {
   const quiet = hidesNav(pathname);
   const { locale, t } = useI18n();
   const [isSensiOpen, setIsSensiOpen] = useState(false);
-  const [sensiDraft, setSensiDraft] = useState("");
-  const [sensiTurns, setSensiTurns] = useState<SensiTurn[]>([]);
-  const sensiThreadRef = useRef<HTMLDivElement>(null);
   const sensiLauncherRef = useRef<HTMLButtonElement | null>(null);
-  const sensiWasOpen = useRef(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [navCollapsed, setNavCollapsed] = useState(false);
+  const [navExpanded, setNavExpanded] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
-  const moreActive = MORE.some((item) => item.match(pathname));
-
-  function askSensi(text: string, topic?: SensiTopic) {
-    const question = text.trim();
-    if (!question) return;
-    setSensiTurns((current) =>
-      [...current, { id: Date.now(), question, topic: topic ?? sensiTopic(question) }].slice(-6),
-    );
-    setSensiDraft("");
-  }
+  const [chamaOptIn, setChamaOptIn] = useState(false);
+  const moreItems = MORE_BASE.filter((item) => item.key !== "chama" || chamaOptIn);
+  const navItems = [...PRIMARY, ...moreItems];
+  const moreActive = moreItems.some((item) => item.match(pathname));
 
   function toggleSensi(event: { currentTarget: HTMLButtonElement }) {
     sensiLauncherRef.current = event.currentTarget;
@@ -156,68 +106,27 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [pathname, locale, t]);
 
   useEffect(() => {
-    try {
-      setNavCollapsed(localStorage.getItem("pesasense.nav-collapsed") === "true");
-    } catch {
-      setNavCollapsed(false);
-    }
-  }, []);
-
-  function toggleNav() {
-    setNavCollapsed((current) => {
-      const next = !current;
-      try {
-        localStorage.setItem("pesasense.nav-collapsed", next ? "true" : "false");
-      } catch {
-        // The menu still toggles for this visit.
+    setChamaOptIn(readChamaOptIn());
+    function onStorage(event: StorageEvent) {
+      if (event.key === "pesasense.chama.optIn" || event.key === "pesasense.chama.v1") {
+        setChamaOptIn(readChamaOptIn());
       }
-      return next;
-    });
-  }
+    }
+    function onOptIn() {
+      setChamaOptIn(readChamaOptIn());
+    }
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("pesasense.chama.optIn", onOptIn);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("pesasense.chama.optIn", onOptIn);
+    };
+  }, [pathname]);
 
   useEffect(() => {
     setMoreOpen(false);
     setProfileOpen(false);
   }, [pathname]);
-
-  useEffect(() => {
-    const thread = sensiThreadRef.current;
-    if (!thread) return;
-    thread.scrollTop = thread.scrollHeight;
-  }, [sensiTurns, isSensiOpen]);
-
-  useEffect(() => {
-    if (!isSensiOpen) {
-      if (sensiWasOpen.current) sensiLauncherRef.current?.focus();
-      sensiWasOpen.current = false;
-      return;
-    }
-    sensiWasOpen.current = true;
-    const dialog = document.getElementById("sensi-guide");
-    const input = dialog?.querySelector("input");
-    if (window.matchMedia("(pointer: fine)").matches) input?.focus();
-    function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setIsSensiOpen(false);
-        return;
-      }
-      if (event.key !== "Tab" || !dialog) return;
-      const focusable = [...dialog.querySelectorAll<HTMLElement>("a[href], button:not(:disabled), input:not(:disabled)")];
-      if (focusable.length === 0) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (!first || !last) return;
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [isSensiOpen]);
 
   useEffect(() => {
     if (!moreOpen) return;
@@ -232,38 +141,61 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="app-shell">
       {quiet ? null : (
         <aside
-          className={`app-sidebar hidden lg:flex ${navCollapsed ? "app-sidebar-collapsed" : ""}`}
+          className={`app-sidebar hidden lg:flex ${navExpanded ? "" : "app-sidebar-collapsed"}`}
           aria-label={t("nav.nav")}
+          onMouseLeave={() => setNavExpanded(false)}
         >
-          <div className={`flex h-full min-h-0 w-full flex-col py-6 ${navCollapsed ? "px-2" : "px-4"}`}>
-            <div className={`mb-6 flex shrink-0 items-center gap-3 ${navCollapsed ? "justify-center px-0" : "px-2"}`}>
+          <div className={`flex h-full min-h-0 w-full flex-col py-5 ${navExpanded ? "px-4" : "px-2"}`}>
+            <div
+              className={`mb-3 flex shrink-0 items-center gap-2 ${
+                navExpanded ? "justify-between px-1" : "flex-col gap-2"
+              }`}
+            >
               <button
                 type="button"
                 aria-label={t("nav.openSensi")}
                 aria-expanded={isSensiOpen}
                 onClick={toggleSensi}
-                className="btn flex h-12 w-12 items-center justify-center rounded-full bg-[#f3efe4]"
+                className="btn flex h-11 w-11 items-center justify-center rounded-full bg-[#f3efe4]"
               >
                 <SensiAvatar size="sm" mood={isSensiOpen ? "happy" : "neutral"} />
               </button>
-              {navCollapsed ? null : (
-                <div className="min-w-0">
+              {navExpanded ? (
+                <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-bold text-[#f6f1e4]">{t("nav.brand")}</p>
                   <p className="text-xs text-[#e3b23c]">{t("nav.stays")}</p>
                 </div>
-              )}
+              ) : null}
+              <button
+                type="button"
+                aria-expanded={navExpanded}
+                aria-label={navExpanded ? t("nav.collapseNav") : t("nav.expandNav")}
+                className="app-sidebar-expand-hotspot h-10 min-w-10 px-2"
+                onMouseEnter={() => setNavExpanded(true)}
+                onFocus={() => setNavExpanded(true)}
+                onClick={() => setNavExpanded((current) => !current)}
+              >
+                <NavDoubleArrows expanded={navExpanded} />
+              </button>
             </div>
-            <nav className="app-sidebar-nav flex min-h-0 flex-1 flex-col gap-1">
-              {NAV.map((tab) => {
+            <nav
+              className={`app-sidebar-nav flex min-h-0 flex-1 flex-col ${
+                navExpanded ? "gap-1" : "app-sidebar-nav-rail"
+              }`}
+            >
+              {navItems.map((tab) => {
                 const active = tab.match(pathname);
+                const label =
+                  tab.key === "habit" ? t("nav.habitInvest") : t(`nav.${tab.key}`);
                 return (
                   <Link
                     key={tab.href}
                     href={tab.href}
                     aria-current={active ? "page" : undefined}
-                    aria-label={t(`nav.${tab.key}`)}
+                    aria-label={label}
+                    title={label}
                     className={`flex h-11 w-full shrink-0 items-center rounded-2xl text-sm font-semibold ${
-                      navCollapsed ? "justify-center px-0" : "gap-3 px-4"
+                      navExpanded ? "gap-3 px-4" : "justify-center px-0"
                     } ${
                       active
                         ? "bg-[#f3efe4] text-pine"
@@ -271,25 +203,16 @@ export function AppShell({ children }: { children: ReactNode }) {
                     }`}
                   >
                     <NavIcon name={tab.key} />
-                    {navCollapsed ? <span className="sr-only">{t(`nav.${tab.key}`)}</span> : t(`nav.${tab.key}`)}
+                    {navExpanded ? label : <span className="sr-only">{label}</span>}
                   </Link>
                 );
               })}
             </nav>
-            <div className="mt-auto flex shrink-0 flex-col items-center gap-2 pt-4">
-              {navCollapsed ? null : (
-                <p className="px-3 pb-1 text-xs leading-5 text-[#f6f1e4]/75">{t("nav.encrypted")}</p>
-              )}
-              <button
-                type="button"
-                aria-pressed={navCollapsed}
-                aria-label={navCollapsed ? t("nav.expandNav") : t("nav.collapseNav")}
-                onClick={toggleNav}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#f6f1e4] hover:bg-white/10"
-              >
-                <NavChevron collapsed={navCollapsed} />
-              </button>
-            </div>
+            {navExpanded ? (
+              <p className="mt-auto shrink-0 px-3 pt-4 text-xs leading-5 text-[#f6f1e4]/75">
+                {t("nav.encrypted")}
+              </p>
+            ) : null}
           </div>
         </aside>
       )}
@@ -337,7 +260,14 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         )}
 
-        <div className={quiet ? "app-content app-content-landing" : "app-content"}>{children}</div>
+        <div className={quiet ? "app-content app-content-landing" : "app-content"}>
+          {quiet ? null : (
+            <div className="mb-4">
+              <HabitReminderBanner />
+            </div>
+          )}
+          {children}
+        </div>
 
         {quiet ? null : (
           <>
@@ -354,7 +284,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                     {t("nav.moreMenu")}
                   </p>
                   <div className="flex flex-col gap-1">
-                    {MORE.map((item) => {
+                    {moreItems.map((item) => {
                       const active = item.match(pathname);
                       return (
                         <Link
@@ -425,114 +355,13 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
 
       {hidesSensi(pathname) ? null : (
-        <>
-          {isSensiOpen ? (
-            <div
-              aria-hidden="true"
-              onClick={closeSensi}
-              className="fixed inset-0 z-40 bg-pine/20 lg:bg-transparent"
-            />
-          ) : null}
-          {isSensiOpen ? (
-            <div
-              id="sensi-guide"
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="sensi-guide-title"
-              className="fixed right-4 bottom-24 z-50 flex max-h-[min(36rem,calc(100dvh-8rem))] w-[min(22rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-3xl border border-sand bg-paper shadow-2xl lg:bottom-6 lg:right-6"
-            >
-              <div className="flex shrink-0 items-start justify-between gap-3 px-4 pt-4">
-                <div className="flex items-center gap-2">
-                  <SensiAvatar size="sm" mood={sensiTurns.length > 0 ? "happy" : "neutral"} />
-                  <div>
-                    <p id="sensi-guide-title" className="text-sm font-semibold text-pine">{t("sensi.hi")}</p>
-                    <p className="text-xs text-slate">{t("sensi.calm")}</p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  aria-label={t("sensi.close")}
-                  onClick={closeSensi}
-                  className="btn inline-flex !h-8 !min-h-8 !w-8 items-center justify-center rounded-full bg-pearl !p-0 text-slate"
-                >
-                  ×
-                </button>
-              </div>
-              <div ref={sensiThreadRef} className="mt-3 min-h-0 flex-1 overflow-y-auto px-4" aria-live="polite">
-                {sensiTurns.length === 0 ? (
-                  <p className="text-sm leading-6 text-ink">{t("sensi.askAnything")}</p>
-                ) : (
-                  <div className="flex flex-col gap-4 pb-1">
-                    {sensiTurns.map((turn) => (
-                      <div key={turn.id} className="flex flex-col gap-2">
-                        <p className="ml-10 self-end rounded-2xl rounded-br-md bg-pine px-3 py-2 text-sm leading-5 text-on-brand">
-                          {turn.question}
-                        </p>
-                        <div>
-                          <p className="text-sm leading-6 text-ink">{t(SENSI_REPLIES[turn.topic])}</p>
-                          <Link
-                            href={SENSI_LINKS[turn.topic].href}
-                            className="btn btn-secondary mt-2 inline-flex !min-h-0 rounded-full !px-3 !py-1.5 text-xs"
-                          >
-                            {t(SENSI_LINKS[turn.topic].label)}
-                          </Link>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <div className="shrink-0 px-4 pt-3 pb-4">
-                <div className="flex flex-wrap gap-2">
-                  {sensiStarters(pathname).map((topic) => (
-                    <button
-                      key={topic}
-                      type="button"
-                      className="btn rounded-full border border-sand bg-surface !min-h-0 !px-3 !py-1.5 text-left text-xs font-semibold text-ink"
-                      onClick={() => askSensi(t(SENSI_PROMPTS[topic]), topic)}
-                    >
-                      {t(SENSI_PROMPTS[topic])}
-                    </button>
-                  ))}
-                </div>
-                <form
-                  className="mt-3 flex items-center gap-2 border-t border-sand pt-3"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    askSensi(sensiDraft);
-                  }}
-                >
-                  <input
-                    type="text"
-                    value={sensiDraft}
-                    onChange={(event) => setSensiDraft(event.target.value)}
-                    placeholder={t("sensi.placeholder")}
-                    aria-label={t("sensi.placeholder")}
-                    className="field min-h-12 min-w-0 flex-1 text-sm"
-                  />
-                  <button
-                    type="submit"
-                    className="btn btn-accent !min-h-12 shrink-0 rounded-full !px-4"
-                    disabled={!sensiDraft.trim()}
-                  >
-                    {t("sensi.send")}
-                  </button>
-                </form>
-              </div>
-            </div>
-          ) : null}
-          <button
-            type="button"
-            aria-label={t("nav.openSensi")}
-            aria-expanded={isSensiOpen}
-            onClick={toggleSensi}
-            className={`btn fixed right-4 bottom-20 z-50 flex h-14 w-14 items-center justify-center rounded-full border-2 border-paper bg-[#f3efe4] shadow-[0_8px_24px_rgb(30_58_50/0.18)] lg:hidden ${
-              moreOpen || isSensiOpen ? "pointer-events-none invisible" : ""
-            }`}
-          >
-            <SensiAvatar size="sm" mood={isSensiOpen ? "happy" : "neutral"} />
-          </button>
-        </>
+        <SensiGuide
+          open={isSensiOpen}
+          onClose={closeSensi}
+          launcherRef={sensiLauncherRef}
+          moreOpen={moreOpen}
+          onToggle={toggleSensi}
+        />
       )}
     </div>
   );
@@ -603,13 +432,19 @@ function Brand() {
   );
 }
 
-function NavChevron({ collapsed }: { collapsed: boolean }) {
+function NavDoubleArrows({ expanded }: { expanded: boolean }) {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5 fill-none stroke-current">
-      {collapsed ? (
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M9 6l6 6-6 6" />
+      {expanded ? (
+        <>
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M11 6l-5 6 5 6" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M18 6l-5 6 5 6" />
+        </>
       ) : (
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M15 6l-6 6 6 6" />
+        <>
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M6 6l5 6-5 6" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M13 6l5 6-5 6" />
+        </>
       )}
     </svg>
   );
@@ -673,16 +508,6 @@ function NavIcon({ name }: { name: NavKey }) {
         />
         <path strokeLinecap="round" d="M14 14.5 12 13V9" />
         <circle cx="17.5" cy="17.5" r="3.2" />
-      </svg>
-    );
-  }
-
-  if (name === "invest") {
-    return (
-      <svg viewBox="0 0 24 24" aria-hidden="true" className={common} strokeWidth="1.75">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 20V10" />
-        <path strokeLinecap="round" d="M12 13c0-4 3.2-6 6.5-6-1 4-3.2 6-6.5 6Z" />
-        <path strokeLinecap="round" d="M12 15c0-3.2-2.6-5-5.4-5 1 3.2 2.6 5 5.4 5Z" />
       </svg>
     );
   }

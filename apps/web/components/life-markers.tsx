@@ -7,6 +7,13 @@ import { useFormat, useI18n } from "../contexts/language-context";
 import { appInvestAllowance, showBufferFirstUx } from "../lib/buffer-gate";
 import { habitPercentOfFloor } from "../lib/format";
 import { habitOffer } from "../lib/habit-plan";
+import {
+  joinNames,
+  titleCaseWords,
+  topCommitmentLabels,
+  topIncomeLabels,
+  topSpendCategories,
+} from "../lib/overview-story";
 
 type MarkerId = "in" | "bills" | "spend" | "safe" | "cover";
 
@@ -52,18 +59,24 @@ export function buildLifeMarkers(
         low: kes(income.floor),
         high: number(income.ceiling),
       }),
-      meaning: t("overview.markers.inMeaning", { typical: kes(income.typical) }),
+      meaning: t("overview.markers.inMeaning", {
+        typical: kes(income.typical),
+        income: joinNames(topIncomeLabels(profile, 2)) || "—",
+      }),
     },
   ];
 
   if (profile.commitments.length > 0) {
     const promised = profile.commitments.reduce((sum, item) => sum + item.amountKes, 0);
+    const billNames = joinNames(topCommitmentLabels(profile, 3));
     markers.push({
       id: "bills",
       label: t("overview.markers.bills"),
       title: t("overview.markers.billsTitle"),
       figure: t("overview.markers.perMonth", { amount: kes(promised) }),
-      meaning: t("overview.markers.billsMeaning"),
+      meaning: billNames
+        ? t("overview.markers.billsMeaning", { names: billNames })
+        : t("overview.markers.billsMeaningEmpty"),
     });
   }
 
@@ -72,12 +85,15 @@ export function buildLifeMarkers(
       (sum, item) => sum + item.monthlyKes.typical,
       0,
     );
+    const spendNames = joinNames(topSpendCategories(profile, 3).map(titleCaseWords));
     markers.push({
       id: "spend",
       label: t("overview.markers.spend"),
       title: t("overview.markers.spendTitle"),
       figure: kes(dayToDay),
-      meaning: t("overview.markers.spendMeaning"),
+      meaning: spendNames
+        ? t("overview.markers.spendMeaning", { names: spendNames })
+        : t("overview.markers.spendMeaningEmpty"),
     });
   }
 

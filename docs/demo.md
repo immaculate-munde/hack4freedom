@@ -11,18 +11,22 @@ A first visit in a fresh browser opens `/welcome`, because `hasSeenWelcome` is n
 | Action | What it proves | If it breaks |
 | --- | --- | --- |
 | Open `/welcome` and tap **Get started** | The first screen states three promises: data stays on the phone, the app never holds the money, and there is no trading pressure. | Open `/overview` after the flag is set. A blank linen screen means the redirect has not finished. |
-| Open `/import`, type any password, and ask it to read a statement or pasted SMS | Parsing is honest. `parseStatement` and `parseSmsBatch` throw `Not implemented`. The screen says reading a statement is coming soon and opens the demo profile. The password is not saved. | Read the notice. Do not claim a statement was parsed. The demo password on the fixture PDF is `demo-statement`. |
+| Open `/import` (or `/onboard`), upload `amina-statement.pdf`, password `demo-statement` | PDF decrypts in the browser, `parseStatement` builds a profile from the fixture rows. The password is not saved. | Wrong password: clear error, try again. Demo fixture password is always `demo-statement` (see `DEMO_STATEMENT_PASSWORD`). SMS paste also works without a password. |
 | Open `/overview` | Amina (invented). **Demo data** badge. Safe monthly surplus **KES 2,000 – KES 15,500**. Typical KES 11,500. Habit **KES 1,500 / month**. The numbers come from `packages/core/src/fixtures/profiles/amina.profile.json`. | If the page says no profile, `PROFILE_SOURCE=parsed` is on. Unset it, or set `PROFILE_SOURCE=demo`, and restart `pnpm dev`. |
 | Open `/overview?profile=brian` | Brian (invented). Copy says the buffer comes first. Surplus floor is KES 0. | The query is ignored in parsed mode. Use demo mode. |
 | Open `/invest?profile=brian` | The buy screen refuses. Title: **Not ready yet.** | If a buy form appears, the URL lost `?profile=brian`. |
 | Open `/surplus` | Commitments and spending rows from the same profile. The range is the profile's surplus, not a figure typed into the layout. | Same parsed-mode fallback as overview. |
-| Open `/habit` | The draft amount stays under the floor. Cadence is monthly. Nothing is sent from this screen. | Brian's habit explains the buffer. It does not offer a buy. |
+| Open `/habit` | **Save habit** writes `investmentPlan` into `localStorage` key `pesasense.profile` (real persistence, not a mock). Cadence is monthly. Nothing is sent from this screen. | Brian's habit explains the buffer. It does not offer a buy. |
+| **Remind me on the 1st** | Preference in `pesasense.habit-reminder.v1`. Requests Notification permission, arms `setTimeout` when the next 1st is within ~24 days, and shows an in-app banner on/after the 1st. No SMS. | Browsers cannot guarantee a month-ahead alert without a service worker/push. Deny permission and still show the banner path. |
+| Open `/sensi` | Thin voice vertical: confirm Sensi picture → Qwen summary from profile facts → optional ElevenLabs TTS. | Missing `QWEN_API_KEY`/`DASHSCOPE_API_KEY` or `ELEVENLABS_API_KEY`: API returns a clear key-missing error. |
 | Open `/learn` | Three short guides (what Bitcoin is, why 3 to 5 years, how self-custody works) and scam red flags. | This screen does not call `runScenario`. Historical low / median / high is still a stub. |
 | On `/overview`, **Save encrypted copy** | NIP-44 encrypt-to-self, published as a kind `30078` event with `d` tag `pesasense-profile:v1`. The secret is `pesasense.nostr-secret.v1` in `localStorage`. Success text starts with `Encrypted copy saved`. | Relay unreachable: say the key never left the browser, and the default relay is `wss://relay.damus.io`. Set `NEXT_PUBLIC_NOSTR_RELAYS` if you have another. |
 | **Load encrypted copy** | Decrypts that event and restores device `WalletEvent`s for this profile id. | `No encrypted profile is stored yet` means save has not succeeded on this key. |
 | **Share surplus range** | A fresh key publishes kind `5910` with floor, typical, ceiling, and horizon only. The success text says no phone number or wallet address was included. | Same relay fallback as save. |
 | Open `/wallet` and create a wallet | Breez SDK Spark (WASM) in the browser. Show the recovery phrase, then the backup step. The phrase is not sent to PesaSense. | Create fails until `NEXT_PUBLIC_BREEZ_API_KEY` is set. Restore with the 12 words if create already succeeded in this browser. |
-| Open `/invest` | Sandbox badge when the key is `bk_test_`. Amount stays between KES 10 and Amina's floor of KES 2,000. Bitika's own cap is KES 10,000. **Approve and pay with M-Pesa** is the explicit yes. | Missing key: the page says to set `BITIKA_API_KEY`. Sandbox does not prompt a real phone and may not fund the Breez balance. Say that before anyone checks the wallet. |
+| Open `/invest` (demo Amina) | No habit save required. Lands on **amount** with a demo M-Pesa number; **Review** opens the Bitika approve sheet; sandbox simulates to **Filled**. | Missing key: the page says to set `BITIKA_API_KEY`. Sandbox does not prompt a real phone and may not fund the Breez balance. Say that before anyone checks the wallet. |
+| Open `/wallet` (demo Amina) → **Simulate successful withdraw** | Same bitcoin.co.ke modal with the green “payment submitted” line — no Breez balance needed. | Card hidden for Brian or imported profiles. |
+| After sandbox **Filled** on `/invest` (demo Amina) → **Simulate withdraw to M-Pesa (demo)** | Uses M-Pesa number from the buy step → `0712345678@bitcoin.co.ke`. | Does not send real Lightning; live path still needs sats in Breez. |
 | On `/overview`, link a phone under **Use this on a handset**, then run the curl steps in [ussd.md](ussd.md) | The same surplus numbers and the same Bitika collect. A USSD buy shows in **Use this on a handset**. A web buy shows on USSD option 4. | The live Africa's Talking callback is `https://pesasense.vercel.app/api/ussd?key=YOUR_USSD_API_KEY`. Until `USSD_SERVICE_CODE` is set, the page shows the example code `*384*40401#`. Local posts to `/api/ussd` do not need a phone. |
 | Phone ending `000001` | Bitika status `failed`. | Use it on purpose when you want the failure path. |
 | Phone ending `000002` | Bitika status `payment_failed`. | Same. Any other sandbox phone simulates a payment. |
@@ -35,7 +39,7 @@ A first visit in a fresh browser opens `/welcome`, because `hasSeenWelcome` is n
 
 ## What to leave unsaid
 
-- Do not say a statement was parsed. Import falls through to Amina on purpose.
+- Do not invent a different demo password. The fixture opens with `demo-statement` only.
 - Do not say the sandbox funded a wallet unless the balance on `/wallet` changed.
 - Do not call Bitika or bitcoin.co.ke licensed. See [regulation.md](regulation.md).
 - Do not describe eCash. This demo does not use it.

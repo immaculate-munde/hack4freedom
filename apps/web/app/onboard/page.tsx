@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { demoProfiles, type FinancialProfile } from "@pesasense/core";
 import { useProfile } from "../../contexts/profile-context";
-import { useFormat, useI18n } from "../../contexts/language-context";
+import { useI18n } from "../../contexts/language-context";
+import { ImportAnalysisCard } from "../../components/import-analysis-card";
 import { PdfImportForm } from "../../components/pdf-import-form";
 import { ShareImportHint } from "../../components/share-import-hint";
 import { SmsImportForm } from "../../components/sms-import-form";
@@ -16,9 +17,17 @@ export default function OnboardPage() {
   const router = useRouter();
   const { setProfile } = useProfile();
   const { t } = useI18n();
-  const { number } = useFormat();
 
   const [parsedProfile, setParsedProfile] = useState<FinancialProfile | null>(null);
+  const [transactionCount, setTransactionCount] = useState<number | undefined>(undefined);
+
+  const handleProfileReady = (
+    profile: FinancialProfile,
+    meta?: { transactionCount: number },
+  ) => {
+    setParsedProfile(profile);
+    setTransactionCount(meta?.transactionCount);
+  };
 
   const handleUseDemo = () => {
     setProfile(demoProfiles.amina);
@@ -85,62 +94,25 @@ export default function OnboardPage() {
         </header>
 
         {parsedProfile ? (
-          <section className="animate-in fade-in slide-in-from-bottom-4 rounded-3xl border border-mint/60 bg-mint/25 p-6 text-pine shadow-sm duration-500 lg:max-w-3xl">
-            <h2 className="font-serif text-2xl font-semibold text-pine">{t("onboard.analysisComplete")}</h2>
-
-            <div className="mt-6 space-y-4">
-              <div className="flex justify-between border-b border-sand/50 pb-3">
-                <span className="text-sm font-medium text-ink-soft">{t("onboard.safeSurplus")}</span>
-                <span className="font-bold text-pine">
-                  {t("onboard.kesRange", {
-                    floor: number(parsedProfile.surplus.monthlyKes.floor),
-                    ceiling: number(parsedProfile.surplus.monthlyKes.ceiling),
-                  })}
-                </span>
-              </div>
-              <div className="flex justify-between border-b border-sand/50 pb-3">
-                <span className="text-sm font-medium text-ink-soft">{t("onboard.resilience")}</span>
-                <span className="font-bold text-ink">
-                  {t("onboard.monthsCovered", {
-                    count: number(parsedProfile.resilience.monthsOfExpensesCovered),
-                  })}
-                </span>
-              </div>
-              <div className="flex justify-between border-b border-sand/50 pb-3">
-                <span className="text-sm font-medium text-ink-soft">{t("onboard.commitments")}</span>
-                <span className="font-bold text-ink">
-                  {t("onboard.items", { count: number(parsedProfile.commitments.length) })}
-                </span>
-              </div>
-              <div className="flex justify-between pt-1">
-                <span className="text-sm font-medium text-ink-soft">{t("onboard.incomeRange")}</span>
-                <span className="font-bold text-ink">
-                  {t("onboard.kesRange", {
-                    floor: number(parsedProfile.income.monthlyKes.floor),
-                    ceiling: number(parsedProfile.income.monthlyKes.ceiling),
-                  })}
-                </span>
-              </div>
-            </div>
-
-            <button
-              onClick={handleGoToDashboard}
-              className="btn btn-primary mt-8 w-full py-4 text-base shadow-sm"
-            >
-              {nextPath === "/habit" ? t("onboard.setHabit") : t("onboard.goDashboard")}
-            </button>
-          </section>
+          <ImportAnalysisCard
+            profile={parsedProfile}
+            transactionCount={transactionCount}
+            primaryActionLabel={
+              nextPath === "/habit" ? t("onboard.setHabit") : t("onboard.goDashboard")
+            }
+            onPrimaryAction={handleGoToDashboard}
+          />
         ) : (
           <div className="grid items-start gap-6 xl:grid-cols-2">
             <section className="card space-y-4">
               <h2 className="font-semibold text-pine">{t("onboard.smsPaste")}</h2>
               <ShareImportHint />
-              <SmsImportForm onProfileReady={setParsedProfile} onDemoFallback={handleUseDemo} />
+              <SmsImportForm onProfileReady={handleProfileReady} onDemoFallback={handleUseDemo} />
             </section>
 
             <section className="card space-y-4">
               <h2 className="font-semibold text-pine">{t("onboard.pdfUpload")}</h2>
-              <PdfImportForm onProfileReady={setParsedProfile} onDemoFallback={handleUseDemo} />
+              <PdfImportForm onProfileReady={handleProfileReady} onDemoFallback={handleUseDemo} />
               <p className="text-[11px] leading-4 text-slate">
                 {t("onboard.demoFixture")}{" "}
                 <a

@@ -46,6 +46,8 @@ export { parseSmsBatch, parseStatement, type ParseStatementInput } from "./parse
 export { validateImportedProfile } from "./import-quality";
 
 export {
+  applyOnboardingToCommitments,
+  applyOnboardingToResilience,
   buildProfile,
   computeSurplus,
   type BuildProfileInput,
@@ -79,3 +81,29 @@ export {
   type ProfileSelection,
   type ProfileSource,
 } from "./profile-source";
+
+export {
+  LEARN_SOURCES,
+  LEARN_TOPICS,
+  TELEGRAM_LEARN_DISCLAIMER,
+  countLearnBeats,
+  formatTelegramBeat,
+  formatTelegramChoiceFeedback,
+  formatTelegramTopicMenu,
+  getLearnTopic,
+  learnDisclaimer,
+  listLearnTopicsByLevel,
+  parseTelegramAnswerChoice,
+  parseTelegramTopicChoice,
+  sourcesForIds,
+  telegramBeatKeyboard,
+  telegramLearnEndKeyboard,
+  telegramTopicLabel,
+  telegramTopicMenuKeyboard,
+  type LearnBeat,
+  type LearnChoice,
+  type LearnImageKey,
+  type LearnLevel,
+  type LearnSource,
+  type LearnTopic,
+} from "./learn";

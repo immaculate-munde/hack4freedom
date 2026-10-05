@@ -12,9 +12,9 @@
   "debt": {
     "title": "Madeni",
     "ask": "Unalipa deni lolote kila mwezi?",
-    "why": "Mkopo, au salio unalolipa. Nitaacha nafasi kwa hilo. Kodi ya nyumba inaweza subiri taarifa yako.",
+    "why": "Mkopo, au malipo unayotoa kila mwezi. Nitaacha nafasi kwa hilo katika ziada yako. Kodi ya nyumba inaweza subiri taarifa yako.",
     "notesPlaceholder": "Deni hili ni la nini",
-    "balanceLabel": "Salio, ukilijua"
+    "balanceLabel": "Malipo ya kila mwezi (KES)"
   },
   "chama": {
     "title": "Chama",

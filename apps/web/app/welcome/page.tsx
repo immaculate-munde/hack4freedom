@@ -6,6 +6,7 @@ import { useState } from "react";
 import { LogoMark } from "../../components/brand/LogoMark";
 import { RegulatoryDisclosure } from "../../components/regulatory-disclosure";
 import { LanguageSwitcher } from "../../components/language-switcher";
+import { TelegramCta } from "../../components/telegram-cta";
 import { ThemeToggle } from "../../components/theme-toggle";
 import { useI18n } from "../../contexts/language-context";
 
@@ -122,9 +123,12 @@ export default function WelcomePage() {
 
           <div className="relative z-10 order-3 flex flex-col items-start gap-4 lg:pb-28">
             <p className="max-w-xs text-sm leading-6 text-slate">{t("welcome.guide")}</p>
-            <button type="button" onClick={getStarted} className="btn btn-accent rounded-full px-6">
-              {t("welcome.getStarted")}
-            </button>
+            <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+              <button type="button" onClick={getStarted} className="btn btn-accent rounded-full px-6">
+                {t("welcome.getStarted")}
+              </button>
+              <TelegramCta />
+            </div>
             <button
               type="button"
               onClick={() => setShowHow(true)}
@@ -223,10 +227,11 @@ export default function WelcomePage() {
             </article>
           ))}
         </div>
-        <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+        <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:flex-wrap">
           <button type="button" onClick={getStarted} className="btn btn-accent rounded-full px-6">
             {t("welcome.getStarted")}
           </button>
+          <TelegramCta />
           <Link href="/trust" className="btn btn-secondary rounded-full px-6">
             {t("welcome.dataHandling")}
           </Link>
@@ -239,9 +244,12 @@ export default function WelcomePage() {
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">{t("welcome.readyTitle")}</h2>
             <p className="mt-2 max-w-lg text-sm leading-6 text-on-brand/75">{t("welcome.readyBody")}</p>
           </div>
-          <button type="button" onClick={getStarted} className="btn btn-accent rounded-full px-6">
-            {t("welcome.getStarted")}
-          </button>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <button type="button" onClick={getStarted} className="btn btn-accent rounded-full px-6">
+              {t("welcome.getStarted")}
+            </button>
+            <TelegramCta className="btn btn-secondary rounded-full px-6 border-paper/30 text-paper" />
+          </div>
         </div>
         <dl className="mx-auto grid w-full max-w-6xl grid-cols-2 gap-6 border-t border-white/10 px-5 py-8 sm:px-8 lg:grid-cols-4">
           <div>

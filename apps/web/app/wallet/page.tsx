@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { BitcoinCoKeWithdrawDemo } from "../../components/bitcoin-co-ke-withdraw-demo";
 import { BreezWalletSetup } from "../../components/breez-wallet-setup";
 import { PageFrame } from "../../components/page-frame";
 import { useFormat, useI18n } from "../../contexts/language-context";
@@ -32,6 +33,8 @@ export default function WalletPage() {
       }
     >
       <BreezWalletSetup />
+
+      <BitcoinCoKeWithdrawDemo />
 
       {wallet.status === "ready" ? (
         <section className="card mt-4 text-sm lg:mt-0">

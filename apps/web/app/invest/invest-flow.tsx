@@ -133,21 +133,26 @@ export function InvestFlow({
   surplusFloorKes,
   defaultAmountKes,
   sandbox,
+  streamlinedDemo = false,
+  initialDestination,
 }: {
   profileId: string;
   profile?: FinancialProfile;
   surplusFloorKes: number;
   defaultAmountKes: number;
   sandbox: boolean;
+  /** Demo: skip habit gate on the page; open amount + Bitika confirm faster. */
+  streamlinedDemo?: boolean;
+  initialDestination?: string;
 }) {
   const { t, locale } = useI18n();
   const { kes, number } = useFormat();
-  const [step, setStep] = useState<Step>("choose");
-  const [hasWallet, setHasWallet] = useState<boolean | null>(null);
-  const [address, setAddress] = useState("");
+  const [step, setStep] = useState<Step>(streamlinedDemo ? "amount" : "choose");
+  const [hasWallet, setHasWallet] = useState<boolean | null>(streamlinedDemo ? true : null);
+  const [address, setAddress] = useState(initialDestination?.trim() ?? "");
   const [addressHint, setAddressHint] = useState<string | null>(null);
   const [amountKes, setAmountKes] = useState(defaultAmountKes);
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState(streamlinedDemo ? "0712345678" : "");
   const [estimatedSats, setEstimatedSats] = useState<number | null>(null);
   const [purchase, setPurchase] = useState<OnRampPurchase | null>(null);
   const [events, setEvents] = useState<WalletEvent[]>([]);
@@ -296,6 +301,16 @@ export function InvestFlow({
       destination,
     );
   }, [profileId, defaultAmountKes, followPurchase]);
+
+  useEffect(() => {
+    if (!streamlinedDemo || resumed.current) return;
+    setHasWallet(true);
+    if (!phone.trim()) setPhone("0712345678");
+    if (!address.trim() && initialDestination) {
+      setAddress(initialDestination);
+    }
+    if (step === "choose") setStep("amount");
+  }, [streamlinedDemo, initialDestination, phone, address, step]);
 
   useEffect(() => {
     if (resumed.current || step === "status" || step === "pending" || step === "done") {
@@ -610,6 +625,24 @@ export function InvestFlow({
               {t("invest.satsBought", { sats: number(satsBoughtTotal) })}
             </p>
           ) : null}
+          {streamlinedDemo &&
+          withdrawAddress &&
+          purchase.status === "filled" ? (
+            <>
+              <button
+                type="button"
+                className="btn btn-primary mt-4 w-full"
+                onClick={() => {
+                  setError(null);
+                  setWithdrawDone(true);
+                  setWithdrawHelpOpen(true);
+                }}
+              >
+                {t("invest.simulateWithdraw")}
+              </button>
+              <p className="mt-2 text-xs leading-5 text-slate">{t("invest.simulateWithdrawNote")}</p>
+            </>
+          ) : null}
           {breezWallet.status === "ready" && withdrawAddress ? (
             <button
               type="button"
@@ -665,8 +698,14 @@ export function InvestFlow({
             onClose={() => setWithdrawHelpOpen(false)}
             withdrawAddress={withdrawAddress ?? ""}
             withdrawDone={withdrawDone}
-            balanceSats={breezWallet.status === "ready" ? breezWallet.balanceSats : undefined}
-            amountSats={purchase.amountSats ?? satsBoughtTotal}
+            balanceSats={
+              breezWallet.status === "ready"
+                ? breezWallet.balanceSats
+                : streamlinedDemo
+                  ? purchase.amountSats ?? satsBoughtTotal ?? estimatedSats ?? 12_500
+                  : undefined
+            }
+            amountSats={purchase.amountSats ?? satsBoughtTotal ?? estimatedSats ?? 12_500}
           />
         </section>
       )}

@@ -5,6 +5,7 @@ import {
   type OnboardingAnswers,
   type Transaction,
 } from "@pesasense/core";
+import { persistChamaOptInFromOnboarding } from "./chama-opt-in";
 
 export function readOnboardingAnswers(): OnboardingAnswers {
   const fallback: OnboardingAnswers = {
@@ -25,6 +26,8 @@ export function readOnboardingAnswers(): OnboardingAnswers {
 
 export function clearOnboardingDraft(): void {
   try {
+    const raw = sessionStorage.getItem("pesasense.onboarding");
+    persistChamaOptInFromOnboarding(raw);
     sessionStorage.removeItem("pesasense.onboarding");
   } catch {
     // ignore

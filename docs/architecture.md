@@ -7,6 +7,8 @@ PesaSense keeps raw financial history on the device and stays out of the payment
 ```
 Browser
   hand-written profile (Amina / Brian) or, later, a parsed profile
+  Profile (+ habit plan)    localStorage  pesasense.profile
+  Habit reminder            localStorage  pesasense.habit-reminder.v1
   Nostr secret              localStorage  pesasense.nostr-secret.v1
   WalletEvent history       localStorage  pesasense.wallet-events.v1
   Chama circle              localStorage  pesasense.chama.v1

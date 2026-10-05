@@ -8,5 +8,6 @@
   "education": "This is education, not financial advice.",
   "neverHold": "We never hold your funds, your keys, or your M-Pesa balance.",
   "notLicensed": "PesaSense is not a licensed exchange or investment adviser. That status is still to be confirmed.",
-  "partner": "The on-ramp partner's licence status is to be confirmed. We do not call a partner licensed until that is checked."
+  "partner": "The on-ramp partner's licence status is to be confirmed. We do not call a partner licensed until that is checked.",
+  "privacyPaths": "On the web app, M-Pesa statements are read on your phone and stay there. If you use the Telegram bot, you send the statement to the bot so it can build your picture — that path leaves your phone. Either way, you approve every purchase; nothing is sent on its own."
 }

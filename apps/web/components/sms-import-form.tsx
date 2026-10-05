@@ -14,7 +14,7 @@ export function SmsImportForm({
   onDemoFallback,
   initialText = "",
 }: {
-  onProfileReady: (profile: FinancialProfile) => void;
+  onProfileReady: (profile: FinancialProfile, meta?: { transactionCount: number }) => void;
   onDemoFallback: () => void;
   initialText?: string;
 }) {
@@ -39,7 +39,7 @@ export function SmsImportForm({
         const parsed = parseSmsBatch(batch);
         const profile = buildProfileFromTransactions(parsed);
         clearOnboardingDraft();
-        onProfileReady(profile);
+        onProfileReady(profile, { transactionCount: parsed.length });
         setLoading(false);
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "";

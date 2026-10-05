@@ -69,7 +69,24 @@ export function readOnboardingChama(raw: string | null): OnboardingChama | null 
 
 export function readStoredOnboardingChama(): OnboardingChama | null {
   try {
-    return readOnboardingChama(sessionStorage.getItem("pesasense.onboarding"));
+    const fromSession = readOnboardingChama(sessionStorage.getItem("pesasense.onboarding"));
+    if (fromSession) return fromSession;
+  } catch {
+    // Fall through to the durable snapshot.
+  }
+  try {
+    const raw = localStorage.getItem("pesasense.chama.onboarding");
+    if (!raw) return null;
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return null;
+    const record = parsed as { name?: unknown; amountKes?: unknown; cadence?: unknown };
+    if (typeof record.name !== "string" || !record.name.trim()) return null;
+    if (typeof record.amountKes !== "number" || !(record.amountKes > 0)) return null;
+    return {
+      name: record.name.trim(),
+      amountKes: Math.round(record.amountKes),
+      cadence: record.cadence === "weekly" ? "weekly" : "monthly",
+    };
   } catch {
     return null;
   }

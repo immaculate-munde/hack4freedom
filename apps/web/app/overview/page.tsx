@@ -14,7 +14,15 @@ import { ImportTrigger } from "../../components/import-trigger";
 import { showBufferFirstUx } from "../../lib/buffer-gate";
 import { LifeMarkers } from "../../components/life-markers";
 import { buildMoneyStops, MoneyMap } from "../../components/money-map";
+import { SensiOverviewCard } from "../../components/sensi-overview-card";
 import { useFormat, useI18n } from "../../contexts/language-context";
+import {
+  hasBusinessIncome,
+  joinNames,
+  titleCaseWords,
+  topIncomeLabels,
+  topSpendCategories,
+} from "../../lib/overview-story";
 import { useActiveProfile } from "../../lib/use-active-profile";
 
 const TRUST_ICONS: Record<string, string> = {
@@ -74,7 +82,7 @@ function statementPeriod(
 function OverviewContent() {
   const active = useActiveProfile();
   const { t } = useI18n();
-  const { date } = useFormat();
+  const { date, kes } = useFormat();
   const [pathFocus, setPathFocus] = useState<{ id: string; token: number } | null>(null);
   if (!active.ready) {
     return <ProfileRequired />;
@@ -89,6 +97,17 @@ function OverviewContent() {
   const query = isDemo && profileId === "brian" ? "?profile=brian" : "";
   const bufferFirst = showBufferFirstUx(profile) || floor <= 0;
   const period = statementPeriod(profile, isDemo, t, date);
+  const incomeNames = joinNames(topIncomeLabels(profile, 2));
+  const spendNames = joinNames(topSpendCategories(profile, 2).map(titleCaseWords));
+  const storyKey =
+    !incomeNames && !spendNames
+      ? "overview.storySparse"
+      : hasBusinessIncome(profile)
+        ? "overview.storyBusiness"
+        : incomeNames
+          ? "overview.storySalary"
+          : "overview.storyMixed";
+  const onboarding = profile.onboarding;
 
   function openPromisedOnPath() {
     const stop = buildMoneyStops(profile).find((item) => item.id.startsWith("commitment-"));
@@ -111,15 +130,62 @@ function OverviewContent() {
         ) : null}
       </header>
 
-      <section className="flex items-center gap-3 rounded-[20px] border border-mint/40 bg-mint/35 px-5 py-4 shadow-card">
+      <section className="flex items-start gap-3 rounded-[20px] border border-mint/40 bg-mint/35 px-5 py-4 shadow-card">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-mint">
           <SensiAvatar size="sm" mood="happy" />
         </span>
-        <p className="text-sm leading-5 text-ink">
-          <span className="font-semibold">{t("overview.greeting", { name })}</span>{" "}
-          {bufferFirst ? t("overview.bufferFirst") : t("overview.habitReady")}
-        </p>
+        <div className="min-w-0 text-sm leading-5 text-ink">
+          <p>
+            <span className="font-semibold">{t("overview.greeting", { name })}</span>{" "}
+            {bufferFirst ? t("overview.bufferFirst") : t("overview.habitReady")}
+          </p>
+          <p className="mt-1.5 text-slate">
+            {t(storyKey, {
+              income: incomeNames || "—",
+              spend: spendNames || "—",
+            })}
+          </p>
+        </div>
       </section>
+
+      <SensiOverviewCard profile={profile} />
+
+      {onboarding &&
+      (onboarding.debts.length > 0 ||
+        onboarding.chamaMemberships.length > 0 ||
+        onboarding.goal.kind !== "other" ||
+        onboarding.goal.notes) ? (
+        <section className="rounded-[20px] border border-line bg-surface px-4 py-3 shadow-card">
+          <p className="text-[11px] font-semibold tracking-[0.12em] text-slate uppercase">
+            {t("overview.alsoTold")}
+          </p>
+          <ul className="mt-2 space-y-1 text-sm leading-5 text-ink">
+            {onboarding.debts.map((debt) => (
+              <li key={`debt-${debt.label}`}>
+                {t("overview.alsoDebt", {
+                  label: debt.label,
+                  balance: kes(debt.monthlyPaymentKes ?? debt.balanceKes),
+                })}
+              </li>
+            ))}
+            {onboarding.chamaMemberships.map((chama) => (
+              <li key={`chama-${chama.name}`}>
+                {t("overview.alsoChama", {
+                  name: chama.name,
+                  amount: kes(chama.monthlyContributionKes),
+                })}
+              </li>
+            ))}
+            {onboarding.goal.notes || onboarding.goal.kind !== "other" ? (
+              <li>
+                {t("overview.alsoGoal", {
+                  goal: onboarding.goal.notes?.trim() || onboarding.goal.kind.replace(/_/g, " "),
+                })}
+              </li>
+            ) : null}
+          </ul>
+        </section>
+      ) : null}
 
       <MoneyMap profile={profile} isDemo={isDemo} focusRequest={pathFocus} />
 

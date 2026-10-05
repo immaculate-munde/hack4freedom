@@ -25,4 +25,10 @@ describe("synthetic M-Pesa statement PDF", () => {
     expect(bytes.includes(Buffer.from("Pay Bill"))).toBe(false);
     expect(DEMO_STATEMENT_PASSWORD).toBe("demo-statement");
   });
+
+  it("documents the only demo password bots and docs should quote", () => {
+    // Keep in lockstep with packages/telegram pdfPasswordPrompt and README.
+    expect(DEMO_STATEMENT_PASSWORD).toBe("demo-statement");
+    expect(DEMO_STATEMENT_FILE).toBe("amina-statement.pdf");
+  });
 });

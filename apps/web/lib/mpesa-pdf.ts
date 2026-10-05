@@ -8,9 +8,9 @@ export async function extractTextFromMpesaPdf(
   password: string,
 ): Promise<string> {
   const pdfjs = await import("pdfjs-dist");
-  if (!pdfjs.GlobalWorkerOptions.workerSrc) {
-    pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
-  }
+  // pdf.js defaults workerSrc to "./pdf.worker.mjs", which 404s from app routes.
+  // Always point at the matching CDN build for this package version.
+  pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
   const data = new Uint8Array(await file.arrayBuffer());
   const loadingTask = pdfjs.getDocument({

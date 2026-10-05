@@ -65,6 +65,7 @@ export function RegulatoryDisclosure({ variant = "card" }: { variant?: "card" | 
         ))}
       </ul>
       <p className="mt-4 text-xs leading-5 text-slate">{t("trust.partner")}</p>
+      <p className="mt-3 text-xs leading-5 text-slate">{t("trust.privacyPaths")}</p>
     </>
   );
 

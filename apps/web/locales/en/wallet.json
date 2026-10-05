@@ -71,6 +71,13 @@
       "tooManyRequests": "Too many requests. Wait a minute."
     }
   },
+  "withdrawDemo": {
+    "title": "M-Pesa off-ramp (demo)",
+    "body": "After a Bitika buy, sats sit in your Breez wallet. To cash out to M-Pesa, PesaSense pays your phone’s bitcoin.co.ke Lightning address (07…@bitcoin.co.ke). bitcoin.co.ke settles KES to your line.",
+    "open": "Preview withdraw steps",
+    "simulateSuccess": "Simulate successful withdraw",
+    "note": "Demo only — example {sats} sats to 0712345678@bitcoin.co.ke. A real withdraw needs sats in your wallet after a filled buy."
+  },
   "withdraw": {
     "aria": "Withdraw to M-Pesa",
     "title": "Withdraw to M-Pesa",

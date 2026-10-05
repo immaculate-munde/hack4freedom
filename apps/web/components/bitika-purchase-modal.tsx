@@ -39,7 +39,7 @@ export function BitikaPurchaseModal({
       role="dialog"
       aria-modal="true"
       aria-label={t("invest.purchase.aria")}
-      className="fixed inset-0 z-[50]"
+      className="fixed inset-0 z-[50] flex items-end justify-center p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:items-center sm:p-6"
     >
       <div
         className="absolute inset-0 bg-ink/60 backdrop-blur-sm"
@@ -47,15 +47,13 @@ export function BitikaPurchaseModal({
         onClick={status === "confirm" ? onClose : undefined}
       />
 
-      <div
-        className="absolute inset-x-0 bottom-0 flex max-h-[min(88dvh,calc(100dvh-3rem))] flex-col overflow-y-auto rounded-t-[28px] bg-paper p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-[0_-8px_40px_rgb(0_0_0/0.18)] max-lg:mb-[calc(3.75rem+env(safe-area-inset-bottom))] sm:inset-0 sm:m-auto sm:mb-0 sm:h-fit sm:max-h-[90dvh] sm:max-w-sm sm:rounded-[28px]"
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-teal text-on-primary text-xs font-bold tracking-tight">
+      <div className="relative flex w-full max-h-[min(90dvh,42rem)] max-w-lg flex-col overflow-y-auto rounded-[24px] bg-paper p-5 shadow-[0_12px_48px_rgb(0_0_0/0.22)] max-lg:mb-[calc(3.75rem+env(safe-area-inset-bottom))] sm:mb-0 sm:rounded-[28px] sm:p-6">
+        <div className="flex shrink-0 items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-teal text-on-primary text-xs font-bold tracking-tight">
               ₿
             </span>
-            <div>
+            <div className="min-w-0">
               <p className="text-sm font-semibold text-ink">Bitika</p>
               <p className="text-[11px] text-slate">{t("invest.purchase.rail")}</p>
             </div>
@@ -65,7 +63,7 @@ export function BitikaPurchaseModal({
               type="button"
               aria-label={t("common.close")}
               onClick={onClose}
-              className="btn flex h-8 w-8 items-center justify-center rounded-full bg-pearl text-slate"
+              className="btn flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-pearl text-slate"
             >
               <CloseIcon />
             </button>
@@ -74,7 +72,7 @@ export function BitikaPurchaseModal({
 
         {status === "confirm" && (
           <>
-            <div className="mt-6 space-y-3">
+            <div className="mt-5 space-y-3 sm:mt-6">
               <Row label={t("invest.purchase.debit")} value={kes(kesAmount)} bold />
               <Row
                 label={t("invest.purchase.receive")}
@@ -166,7 +164,7 @@ function Row({
     <div className="flex items-baseline justify-between gap-3 border-b border-line pb-3 last:border-0 last:pb-0">
       <span className="shrink-0 text-xs text-slate">{label}</span>
       <span
-        className={`min-w-0 text-right text-sm break-all ${bold ? "font-bold text-ink" : "font-medium text-ink"} ${truncate ? "truncate sm:break-all" : ""}`}
+        className={`min-w-0 text-right text-sm break-all ${bold ? "font-bold text-ink" : "font-medium text-ink"} ${truncate ? "max-w-[65%] truncate sm:max-w-[70%] sm:break-all" : ""}`}
         title={truncate ? value : undefined}
       >
         {value}
