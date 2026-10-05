@@ -183,7 +183,6 @@ async function tryTimestampTrigger(
   locale: Locale,
 ): Promise<boolean> {
   const when = nextFirst(new Date());
-  const amount = formatKes(amountKes, locale);
   const title = reminderTitle(locale);
   const body = dueBody(amountKes, locale);
   const host = globalThis as { TimestampTrigger?: new (timestamp: number) => unknown };
