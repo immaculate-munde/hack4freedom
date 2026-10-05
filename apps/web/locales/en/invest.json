@@ -10,6 +10,7 @@
   "setHabit": "Set the habit",
   "setHabitFirst": "Save a habit amount first. A purchase waits until you review and approve it. Nothing is sent on its own.",
   "demoProfile": "Demo profile ({name}, invented).",
+  "demoFlowHint": "Choose your amount, review the Bitika screen, then approve. You do not need to save a habit first on demo profiles.",
   "importedProfile": "Amounts use your imported profile on this phone.",
   "missingKey": "Set BITIKA_API_KEY in apps/web/.env.local to run purchases.",
   "sandboxAwaiting": "Sandbox: no M-Pesa prompt on your phone. Payment is simulated in a few seconds.",

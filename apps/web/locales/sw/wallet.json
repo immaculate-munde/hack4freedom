@@ -71,6 +71,12 @@
       "tooManyRequests": "Maombi mengi sana. Subiri dakika moja."
     }
   },
+  "withdrawDemo": {
+    "title": "Kutoa kwenda M-Pesa (mfano)",
+    "body": "Baada ya ununuzi wa Bitika, sats ziko kwenye mkoba wako wa Breez. Kutoa kwa M-Pesa, PesaSense hulipa anwani yako ya bitcoin.co.ke (07…@bitcoin.co.ke). bitcoin.co.ke hutuma KES kwenye laini yako.",
+    "open": "Angalia hatua za kutoa",
+    "note": "Mfano tu — sats {sats} kwa 0712345678@bitcoin.co.ke. Kutoa halisi unahitaji sats baada ya ununuzi ulio kamilika."
+  },
   "withdraw": {
     "aria": "Toa kwenda M-Pesa",
     "title": "Toa kwenda M-Pesa",

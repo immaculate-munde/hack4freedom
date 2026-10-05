@@ -10,6 +10,7 @@
   "setHabit": "Weka tabia",
   "setHabitFirst": "Hifadhi kiasi cha tabia kwanza. Ununuzi unasubiri uhakiki na uidhinishe. Hakuna kinachotumwa peke yake.",
   "demoProfile": "Wasifu wa mfano ({name}, uliobuniwa).",
+  "demoFlowHint": "Chagua kiasi, kagua skrini ya Bitika, kisha idhinisha. Kwa wasifu wa mfano huna haja ya kuhifadhi tabia kwanza.",
   "importedProfile": "Kiasi kinatumia wasifu ulioingizwa kwenye simu hii.",
   "missingKey": "Weka BITIKA_API_KEY katika apps/web/.env.local ili kuendesha ununuzi.",
   "sandboxAwaiting": "Sandbox: hakuna ombi la M-Pesa kwenye simu yako. Malipo yanaigwa kwa sekunde chache.",
