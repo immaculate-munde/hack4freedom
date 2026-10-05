@@ -12,8 +12,6 @@ export function isUssdLang(value: unknown): value is UssdLang {
 type Copy = {
   unlinked: string;
   main: string;
-  learn: string;
-  lessons: Record<string, string>;
   notLinked: string;
   wentWrong: string;
   numberKeys: string;
@@ -69,6 +67,7 @@ type Copy = {
   paidNotSent: string;
   couldNotFill: string;
   inProgress: string;
+  quoted: string;
   languageMenu: string;
   notAuthorised: string;
   couldNotRead: string;
@@ -88,13 +87,6 @@ type Copy = {
 const en: Copy = {
   unlinked: "Welcome to PesaSense\n1 Link with code\n2 Demo Amina\n3 Demo Brian\n9 Language\n0 Exit",
   main: "Welcome to PesaSense\n1 Surplus\n2 Habit\n3 Buy Bitcoin\n4 Buy status\n5 Learn\n6 Chama\n9 Language\n0 Exit",
-  learn: "Learn\n1 What is Bitcoin\n2 Why 3 to 5 years\n3 Self-custody\n4 Scam flags\n0 Exit",
-  lessons: {
-    "1": "Bitcoin is money you hold yourself. No manager. The price moves, so leave it alone.",
-    "2": "A short wait can be a bad time to need the money. This habit is for 3 to 5 years.",
-    "3": "Sats go to a wallet you control. PesaSense does not hold the keys.",
-    "4": "Scams: guaranteed returns, trading managers, anyone asking for recovery words.",
-  },
   notLinked: "This number is not linked. Dial again.",
   wentWrong: "Something went wrong. Dial again.",
   numberKeys: "Use the number keys. Dial again.",
@@ -110,7 +102,7 @@ const en: Copy = {
   startingBuy: "Starting your buy.",
   confirmOrCancel: "Reply 1 to confirm or 2 to cancel. Dial again.",
   checkOrDial: "Reply 1 to check again, or dial again.",
-  lessonRange: "Reply 1 to 4, or dial again.",
+  lessonRange: "Reply with a lesson number, or dial again.",
   bufferFirstBuy: "Build a buffer before buying Bitcoin.",
   amountRefused: "This amount is not allowed.",
   amountBetween: "Amount must be between {min} and {max} KES.",
@@ -150,6 +142,7 @@ const en: Copy = {
   paidNotSent: "Paid, sats not sent yet.",
   couldNotFill: "Could not fill.",
   inProgress: "In progress.",
+  quoted: "Quote ready.",
   languageMenu: "Language\n1 English\n2 Kiswahili\n0 Back",
   notAuthorised: "Not authorised.",
   couldNotRead: "Could not read this request.",
@@ -169,13 +162,6 @@ const en: Copy = {
 const sw: Copy = {
   unlinked: "Karibu PesaSense\n1 Unganisha kwa msimbo\n2 Mfano Amina\n3 Mfano Brian\n9 Lugha\n0 Toka",
   main: "Karibu PesaSense\n1 Ziada\n2 Tabia\n3 Nunua Bitcoin\n4 Hali ya ununuzi\n5 Jifunze\n6 Chama\n9 Lugha\n0 Toka",
-  learn: "Jifunze\n1 Bitcoin ni nini\n2 Kwa nini miaka 3 hadi 5\n3 Mkoba wako\n4 Ishara za ulaghai\n0 Toka",
-  lessons: {
-    "1": "Bitcoin ni pesa unayoshika mwenyewe. Hakuna msimamizi. Bei hubadilika, kwa hiyo iache.",
-    "2": "Muda mfupi unaweza kuwa mbaya ukihitaji pesa. Tabia hii ni ya miaka 3 hadi 5.",
-    "3": "Sats huenda kwenye mkoba unaodhibiti. PesaSense haishiki funguo.",
-    "4": "Ulaghai: faida ya uhakika, wasimamizi wa biashara, mtu anayeomba maneno ya kurejesha.",
-  },
   notLinked: "Nambari hii haijaunganishwa. Piga tena.",
   wentWrong: "Hitilafu imetokea. Piga tena.",
   numberKeys: "Tumia vitufe vya nambari. Piga tena.",
@@ -191,7 +177,7 @@ const sw: Copy = {
   startingBuy: "Ununuzi unaanza.",
   confirmOrCancel: "Jibu 1 kuthibitisha au 2 kufuta. Piga tena.",
   checkOrDial: "Jibu 1 kuangalia tena, au piga tena.",
-  lessonRange: "Jibu 1 hadi 4, au piga tena.",
+  lessonRange: "Jibu nambari ya somo, au piga tena.",
   bufferFirstBuy: "Jenga akiba kabla ya kununua Bitcoin.",
   amountRefused: "Kiasi hiki hakiruhusiwi.",
   amountBetween: "Kiasi lazima kiwe kati ya {min} na {max} KES.",
@@ -231,6 +217,7 @@ const sw: Copy = {
   paidNotSent: "Imelipwa, sats bado hazijatumwa.",
   couldNotFill: "Haikuweza kukamilika.",
   inProgress: "Inaendelea.",
+  quoted: "Bei iko tayari.",
   languageMenu: "Lugha\n1 English\n2 Kiswahili\n0 Rudi",
   notAuthorised: "Hauruhusiwi.",
   couldNotRead: "Hatukuweza kusoma ombi hili.",

@@ -50,6 +50,8 @@ export interface UssdDeps {
   startPurchase(input: UssdPurchaseInput): Promise<UssdPurchaseResult>;
   checkStatus(purchaseId: string): Promise<UssdPurchaseResult>;
   facts?: (id: ProfileId) => ReturnType<typeof demoFacts>;
+  /** When false, buffer-first does not block a buy. Matches the web buffer gate. */
+  respectBufferGate?: boolean;
   log?(event: string, fields: Record<string, string | number | boolean | null>): void;
 }
 
@@ -138,7 +140,9 @@ export async function handleUssd(
 
     const account = deps.store.getAccount(phone);
     const flow = existing?.flow ?? (account ? "menu" : "link");
-    const facts = deps.facts ?? demoFacts;
+    const respectBufferGate = deps.respectBufferGate ?? true;
+    const facts =
+      deps.facts ?? ((id: ProfileId) => demoFacts(id, { respectBufferGate }));
     let outcome = runMenu({
       flow,
       segments,
@@ -146,6 +150,7 @@ export async function handleUssd(
       destination: account?.destination ?? null,
       latest: summary(deps.store.latestPurchase(phone)),
       facts,
+      respectBufferGate,
       language: lang,
     });
     if (outcome.setLanguage) deps.store.setLanguage(phone, outcome.setLanguage);

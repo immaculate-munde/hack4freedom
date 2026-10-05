@@ -7,6 +7,7 @@
 import { fill, localizeRefusal, ussdCopy, type UssdLang } from "./copy";
 import type { ProfileId } from "./types";
 import { amountRefusal, type ProfileFacts } from "./facts";
+import { ussdLearnLesson, ussdLearnMenu } from "./learn";
 import { ussdDestination } from "./destination";
 import { con, end, kes } from "./text";
 
@@ -23,6 +24,8 @@ export interface MenuInput {
   destination: string | null;
   latest: PurchaseSummary | null;
   facts: (id: ProfileId) => ProfileFacts;
+  /** Same switch as the web buffer gate. On unless the caller turns it off. */
+  respectBufferGate?: boolean;
   /** Handset language. English when the number has not chosen one. */
   language?: UssdLang;
 }
@@ -58,6 +61,7 @@ interface StepContext {
   destination: string | null;
   latest: PurchaseSummary | null;
   facts: (id: ProfileId) => ProfileFacts;
+  respectBufferGate: boolean;
   lang: UssdLang;
 }
 
@@ -94,6 +98,7 @@ export function runMenu(input: MenuInput): MenuOutcome {
     destination,
     latest: input.latest,
     facts: input.facts,
+    respectBufferGate: input.respectBufferGate ?? true,
     lang,
   });
 
@@ -242,7 +247,9 @@ function fromAmount(input: string, ctx: StepContext): Step {
     return halt({ kind: "buy_amount" }, end(copy.wholeShillings));
   }
   const amountKes = Number(input);
-  const refusal = amountRefusal(ctx.profileId, amountKes);
+  const refusal = amountRefusal(ctx.profileId, amountKes, {
+    respectBufferGate: ctx.respectBufferGate,
+  });
   if (refusal) return halt({ kind: "buy_amount" }, end(localizeRefusal(ctx.lang, refusal)));
   const destination = ussdDestination(ctx.destination);
   if (!destination) {
@@ -291,7 +298,7 @@ function fromStatus(input: string, ctx: StepContext): Step {
 function fromLearn(input: string, lang: UssdLang): Step {
   const copy = ussdCopy(lang);
   if (input === "0") return halt({ kind: "learn" }, end(copy.goodbye));
-  const lesson = copy.lessons[input];
+  const lesson = ussdLearnLesson(input);
   if (lesson) return halt({ kind: "learn" }, end(lesson));
   return halt({ kind: "learn" }, end(copy.lessonRange));
 }
@@ -331,7 +338,7 @@ function promptFor(state: MenuState, ctx: StepContext): string {
         ? con(`${statusLine(ctx.latest, ctx.lang)}\n${copy.checkAgain}\n${copy.exit}`)
         : end(copy.noBuyYet);
     case "learn":
-      return con(copy.learn);
+      return con(ussdLearnMenu(ctx.lang));
     default:
       return end(copy.wentWrong);
   }
@@ -416,6 +423,8 @@ function statusLabel(status: string, lang: UssdLang): string {
       return copy.paidNotSent;
     case "cannot_fill":
       return copy.couldNotFill;
+    case "quoted":
+      return copy.quoted;
     default:
       return copy.inProgress;
   }

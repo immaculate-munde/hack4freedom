@@ -17,6 +17,7 @@ Unlinked number:
 1 Link with code
 2 Demo Amina
 3 Demo Brian
+9 Language
 0 Exit
 ```
 
@@ -29,10 +30,11 @@ Linked number:
 4 Buy status
 5 Learn
 6 Chama
+9 Language
 0 Exit
 ```
 
-Buy asks for a whole-shilling amount, shows the Lightning address, then `1` to confirm or `2` to cancel. Brian's profile is refused with the same buffer rule as `/invest?profile=brian`. Amina cannot buy above her surplus floor (KES 2,000).
+Learn uses the same topics as the web Learn page and Telegram. Buy asks for a whole-shilling amount, shows the Lightning address, then `1` to confirm or `2` to cancel. Brian's profile is refused with the same buffer rule as `/invest?profile=brian`. Turning `BUFFER_GATE` or `NEXT_PUBLIC_BUFFER_GATE` off relaxes that block here the same way it does on Invest. Amina cannot buy above her surplus floor (KES 2,000) while the gate is on.
 
 The gateway sends the whole chain each time (`3*1500*1`). A repeated `sessionId` and `text` returns the same screen and does not collect twice. The Bitika idempotency key is a UUID derived from the session and the amount.
 
