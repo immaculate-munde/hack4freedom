@@ -10,6 +10,7 @@ import {
   type UssdPurchaseInput,
 } from "@pesasense/ussd";
 import { getBitikaRamp } from "../../../lib/bitika";
+import { isBufferGateEnabled } from "../../../lib/buffer-gate";
 import {
   rememberPurchase,
   recallPurchase,
@@ -53,6 +54,7 @@ function providedKey(
 export async function POST(req: Request) {
   const bodyText = await req.text();
   const contentType = req.headers.get("content-type");
+  const respectBufferGate = isBufferGateEnabled();
   const result = await handleUssd(
     {
       contentType,
@@ -62,7 +64,8 @@ export async function POST(req: Request) {
     {
       now: () => Date.now(),
       store: getUssdStore(),
-      facts: demoFacts,
+      facts: (id) => demoFacts(id, { respectBufferGate }),
+      respectBufferGate,
       startPurchase,
       checkStatus,
     },

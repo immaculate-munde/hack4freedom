@@ -24,7 +24,10 @@ function config(overrides: Partial<UssdConfig> = {}): UssdConfig {
   };
 }
 
-function harness(store: UssdStore = createMemoryUssdStore()) {
+function harness(
+  store: UssdStore = createMemoryUssdStore(),
+  options?: { respectBufferGate?: boolean },
+) {
   let now = 1_700_000_000_000;
   const purchases: UssdPurchaseInput[] = [];
   const statusCalls: string[] = [];
@@ -51,6 +54,7 @@ function harness(store: UssdStore = createMemoryUssdStore()) {
         amountSats: 1400,
       };
     },
+    respectBufferGate: options?.respectBufferGate,
   };
   async function dial(
     text: string,
@@ -138,6 +142,18 @@ describe("USSD handler", () => {
     await dial("3");
     const refused = await dial("3*3");
     expect(refused.body).toContain("buffer");
+    expect(purchases).toHaveLength(0);
+  });
+
+  it("follows the web buffer gate when that gate is off", async () => {
+    const { dial, purchases } = harness(createMemoryUssdStore(), {
+      respectBufferGate: false,
+    });
+    await dial("");
+    await dial("3");
+    const buy = await dial("3*3");
+    expect(buy.body).toContain("Enter amount");
+    expect(buy.body).not.toContain("buffer");
     expect(purchases).toHaveLength(0);
   });
 

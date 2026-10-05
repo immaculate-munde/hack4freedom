@@ -32,11 +32,18 @@ const LABELS: Record<ProfileId, string> = {
   brian: "Brian",
 };
 
+/** Same switch as the web app's BUFFER_GATE / NEXT_PUBLIC_BUFFER_GATE. */
+export interface UssdRules {
+  respectBufferGate?: boolean;
+}
+
 export function factsFromProfile(
   id: ProfileId,
   profile: FinancialProfile,
+  rules?: UssdRules,
 ): ProfileFacts {
-  const allowance = investAllowance(profile);
+  const respectBufferGate = rules?.respectBufferGate ?? true;
+  const allowance = investAllowance(profile, { respectBufferGate });
   const chama = profile.onboarding?.chamaMemberships[0];
   return {
     id,
@@ -44,7 +51,9 @@ export function factsFromProfile(
     floorKes: profile.surplus.monthlyKes.floor,
     typicalKes: profile.surplus.monthlyKes.typical,
     ceilingKes: profile.surplus.monthlyKes.ceiling,
-    bufferFirst: profile.resilience.bufferFirst || profile.surplus.bufferFirst,
+    bufferFirst:
+      respectBufferGate &&
+      (profile.resilience.bufferFirst || profile.surplus.bufferFirst),
     habitKes: profile.investmentPlan?.amountKes ?? null,
     habitCadence: profile.investmentPlan?.cadence ?? null,
     chamaName: chama?.name ?? null,
@@ -55,14 +64,20 @@ export function factsFromProfile(
   };
 }
 
-export function demoFacts(id: ProfileId): ProfileFacts {
-  return factsFromProfile(id, demoProfiles[id]);
+export function demoFacts(id: ProfileId, rules?: UssdRules): ProfileFacts {
+  return factsFromProfile(id, demoProfiles[id], rules);
 }
 
 /** Same rejection the invest screen uses, shortened only by that function's own text. */
-export function amountRefusal(id: ProfileId, amountKes: number): string | null {
+export function amountRefusal(
+  id: ProfileId,
+  amountKes: number,
+  rules?: UssdRules,
+): string | null {
   try {
-    assertInvestAmount(demoProfiles[id], amountKes);
+    assertInvestAmount(demoProfiles[id], amountKes, {
+      respectBufferGate: rules?.respectBufferGate ?? true,
+    });
     return null;
   } catch (error) {
     return error instanceof Error ? error.message : "This amount is not allowed.";
