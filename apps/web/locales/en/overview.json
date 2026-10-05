@@ -26,6 +26,11 @@
   "personaDemo": "{name} (invented demo)",
   "personaPhone": "Your profile on this phone",
   "disclaimer": "Past performance does not indicate future results. This is education, not financial advice. Bitcoin can lose value.",
+  "sensiCardTitle": "Sensi’s read",
+  "sensiCardLoading": "Sensi is reading your surplus picture…",
+  "sensiCardError": "Sensi could not write a summary right now.",
+  "sensiCardTalk": "Talk to Sensi",
+  "sensiCardRefresh": "Refresh",
   "bufferRing": {
     "label": "Emergency buffer: {covered} out of {target} months covered",
     "progress": "/ {target} mo"

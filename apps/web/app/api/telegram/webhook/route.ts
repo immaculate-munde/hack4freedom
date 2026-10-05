@@ -7,6 +7,7 @@
  * Required env: TELEGRAM_BOT_TOKEN
  * Optional: TELEGRAM_WEBHOOK_SECRET, TELEGRAM_STORE_PATH, TELEGRAM_BOT_USERNAME
  * Purchases also need BITIKA_API_KEY (same as the web invest path).
+ * Sensi coach (same as web): OPENROUTER_API_KEY or QWEN_/DASHSCOPE_ — optional; falls back to deterministic summary.
  */
 
 import { randomUUID } from "node:crypto";
@@ -33,6 +34,8 @@ import {
 } from "../../../../lib/telegram-profile";
 import { getTelegramStore } from "../../../../lib/telegram-server";
 import { rememberPurchase } from "../../../../lib/onramp-purchases";
+import { factsFromProfile } from "../../../../lib/sensi-facts";
+import { sensiLlmChat, sensiLlmOverview } from "../../../../lib/sensi-llm-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -97,6 +100,14 @@ export async function POST(req: Request) {
         amountKes: purchase.amountKes,
         amountSats: purchase.amountSats,
       };
+    },
+    async sensiOverview(profile) {
+      return sensiLlmOverview(factsFromProfile(profile));
+    },
+    async sensiAsk(profile, question) {
+      return sensiLlmChat(factsFromProfile(profile), [
+        { role: "user", content: question.slice(0, 1200) },
+      ]);
     },
   };
 

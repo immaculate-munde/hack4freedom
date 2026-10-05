@@ -59,6 +59,12 @@ export interface TelegramDeps {
   startPurchase(input: TelegramPurchaseInput): Promise<TelegramPurchaseResult>;
   bitikaConfigured(): boolean;
   newIdempotencyKey(): string;
+  /**
+   * Optional Sensi LLM (same model as web Overview / chat).
+   * Return null to fall back to deterministic copy.
+   */
+  sensiOverview?(profile: FinancialProfile): Promise<string | null>;
+  sensiAsk?(profile: FinancialProfile, question: string): Promise<string | null>;
 }
 
 export type TelegramHandleResult = {
@@ -246,24 +252,49 @@ function isPdfPasswordError(message: string): boolean {
   return /password/i.test(message);
 }
 
-function afterProfile(
+async function afterProfile(
   session: TelegramSession,
   profile: FinancialProfile,
   deps: TelegramDeps,
   config: TelegramConfig,
   options: { isDemo?: boolean } = {},
-): TelegramReply[] {
+): Promise<TelegramReply[]> {
   const next = save(
     deps,
     { ...session, profile, step: "ready", pendingPdfFileId: null, ...clearLearn() },
     config,
   );
   const ready = next.profile!;
-  const replies: TelegramReply[] = [
-    reply(profileSummary(ready, { isDemo: options.isDemo }), {
-      replyKeyboard: readyButtons(ready),
-    }),
-  ];
+  const replies: TelegramReply[] = [];
+
+  let sensiRead: string | null = null;
+  if (deps.sensiOverview) {
+    try {
+      sensiRead = (await deps.sensiOverview(ready))?.trim() || null;
+    } catch {
+      sensiRead = null;
+    }
+  }
+
+  if (sensiRead) {
+    const header = options.isDemo
+      ? "Demo data — invented person (Amina). Not a live statement.\n\n"
+      : "";
+    replies.push(
+      reply(
+        `${header}Sensi read your picture:\n\n${sensiRead}\n\nAsk me a question about this picture, or tap a button below.`,
+        { replyKeyboard: readyButtons(ready) },
+      ),
+    );
+    replies.push(reply(profileSummary(ready, { isDemo: false })));
+  } else {
+    replies.push(
+      reply(profileSummary(ready, { isDemo: options.isDemo }), {
+        replyKeyboard: readyButtons(ready),
+      }),
+    );
+  }
+
   const largest = largestPaymentsText(ready);
   if (largest) {
     replies.push(reply(largest));
@@ -285,7 +316,7 @@ async function tryOpenPendingPdf(
   try {
     const bytes = await deps.downloadFile(fileId);
     const profile = await deps.buildFromPdf(bytes, password, session.onboarding);
-    return afterProfile(
+    return await afterProfile(
       { ...session, pendingPdfFileId: null },
       profile,
       deps,
@@ -677,7 +708,7 @@ async function onCallback(
       ];
     }
     const profile = structuredClone(demoProfiles.amina);
-    return afterProfile(session, profile, deps, config, { isDemo: true });
+    return await afterProfile(session, profile, deps, config, { isDemo: true });
   }
 
   if (!session.profile) {
@@ -1085,7 +1116,7 @@ async function onText(
   if (session.step === "awaiting_import" || (session.step === "ready" && looksLikeSms(text))) {
     try {
       const profile = deps.buildFromSms(text, session.onboarding);
-      return afterProfile(session, profile, deps, config);
+      return await afterProfile(session, profile, deps, config);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Could not read those messages.";
@@ -1181,6 +1212,30 @@ async function onText(
       session.purchasePhone ?? "",
       session.purchaseDestination ?? "",
     );
+  }
+
+  if (session.step === "ready" && session.profile) {
+    const question = text.trim();
+    if (question && deps.sensiAsk) {
+      try {
+        const answer = (await deps.sensiAsk(session.profile, question))?.trim();
+        if (answer) {
+          return [
+            reply(answer, { replyKeyboard: readyButtons(session.profile) }),
+          ];
+        }
+      } catch {
+        // Fall through to deterministic summary.
+      }
+    }
+    return [
+      reply(
+        deps.sensiAsk
+          ? "Sensi could not answer just now. Tap a button below, or try your question again."
+          : profileSummary(session.profile),
+        { replyKeyboard: readyButtons(session.profile) },
+      ),
+    ];
   }
 
   if (session.profile) {

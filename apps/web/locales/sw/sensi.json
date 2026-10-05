@@ -27,6 +27,10 @@
   "replyChama": "Chama hapa hakiwezi kukusanya pesa pamoja. Kila mwanachama analipa yule ambaye zamu ni yake, kutoka kwa mkoba anaoendesha mwenyewe.",
   "replyScam": "Simama ikiwa mtu anaahidi faida iliyohakikishwa, anajitolea kusimamia bitcoin kwa niaba yako, au anaomba maneno yako ya kurejesha. Unashika bitcoin mwenyewe.",
   "replyFallback": "Naweza kusaidia kuhusu njia ya matumizi, ziada, tabia, Bitcoin, mkoba, au chama. Uliza kwa sentensi fupi. Hii ni elimu, si ushauri wa kifedha.",
+  "thinking": "Sensi anafikiri…",
+  "needProfile": "Kwanza ingiza au fungua picha ya pesa — kisha nitaongea kuhusu nambari zako.",
+  "liveHint": "Majibu yanatumia wasifu wa simu yako. Kwa sauti,",
+  "openVoice": "fungua Sensi kamili",
   "alt": "Sensi, mwongozo wako",
   "name": "Sensi"
 }

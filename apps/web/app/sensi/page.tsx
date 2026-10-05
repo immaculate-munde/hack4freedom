@@ -7,6 +7,7 @@ import { PAST_PERFORMANCE_DISCLAIMER } from "@pesasense/core";
 import { ProfileRequired } from "../../components/profile-required";
 import { useFormat } from "../../contexts/language-context";
 import { factsFromProfile } from "../../lib/sensi-facts";
+import { fetchSensiChat } from "../../lib/sensi-api";
 import { useActiveProfile } from "../../lib/use-active-profile";
 
 type Turn = {
@@ -164,7 +165,13 @@ function SensiVoiceContent() {
       });
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
-        setError(data.error ?? "Could not play voice.");
+        const message = data.error?.trim() ?? "";
+        if (/API key missing|ELEVENLABS/i.test(message)) {
+          setError("Voice is offline — ElevenLabs key is not set. You can still read replies.");
+        } else {
+          setError(message || "Could not play voice. You can still read the reply.");
+        }
+        setBusy((current) => (current === "speak" ? null : current));
         return;
       }
       const blob = await res.blob();
@@ -188,8 +195,8 @@ function SensiVoiceContent() {
       };
       await audio.play();
     } catch {
-      setError("Could not reach ElevenLabs.");
-      setBusy(null);
+      setError("Could not reach voice. You can still read the reply.");
+      setBusy((current) => (current === "speak" ? null : current));
     }
   }
 
@@ -210,40 +217,29 @@ function SensiVoiceContent() {
     setBusy("chat");
 
     try {
-      const res = await fetch("/api/sensi/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          pictureConfirmed: true,
-          facts,
-          messages: nextTurns.map((turn) => ({
-            role: turn.role,
-            content: turn.text,
-          })),
-        }),
+      const result = await fetchSensiChat({
+        facts,
+        pictureConfirmed: true,
+        messages: nextTurns.map((turn) => ({
+          role: turn.role,
+          content: turn.text,
+        })),
       });
-      const data = (await res.json()) as { reply?: string; error?: string };
-      if (!res.ok) {
-        setError(data.error ?? "Could not get a reply.");
-        setBusy(null);
-        return;
-      }
-      const reply = data.reply?.trim();
-      if (!reply) {
-        setError("Sensi returned an empty reply.");
+      if ("error" in result) {
+        setError(result.error);
         setBusy(null);
         return;
       }
       setTurns((current) => [
         ...current,
-        { id: `a-${Date.now()}`, role: "assistant", text: reply },
+        { id: `a-${Date.now()}`, role: "assistant", text: result.reply },
       ]);
       setBusy(null);
       if (autoSpeak) {
-        await playSpeech(reply);
+        await playSpeech(result.reply);
       }
     } catch {
-      setError("Could not reach Sensi.");
+      setError("Could not reach Sensi. Check your connection and try again.");
       setBusy(null);
     }
   }

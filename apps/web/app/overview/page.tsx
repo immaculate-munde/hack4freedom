@@ -14,6 +14,7 @@ import { ImportTrigger } from "../../components/import-trigger";
 import { showBufferFirstUx } from "../../lib/buffer-gate";
 import { LifeMarkers } from "../../components/life-markers";
 import { buildMoneyStops, MoneyMap } from "../../components/money-map";
+import { SensiOverviewCard } from "../../components/sensi-overview-card";
 import { useFormat, useI18n } from "../../contexts/language-context";
 import {
   hasBusinessIncome,
@@ -146,6 +147,8 @@ function OverviewContent() {
           </p>
         </div>
       </section>
+
+      <SensiOverviewCard profile={profile} />
 
       {onboarding &&
       (onboarding.debts.length > 0 ||

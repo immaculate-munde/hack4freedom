@@ -19,8 +19,8 @@ Primary choices use **reply keyboards** (not inline callbacks). Tapping a choice
    - **Learn about Bitcoin** — education in Telegram only (no statement, no purchase)
 2. Habit path: optional questions (debt / chama / goal) — skip allowed
 3. Import — SMS paste or PDF (password asked only when needed; demo fixture password `demo-statement`)
-4. Summary — income range, bills, money left after bills (careful / typical / high), plan %, how long savings might last
-5. Set habit — whole KES, capped at money left after bills; then Monthly (default) or Weekly on the reply keyboard
+4. Summary — **Sensi LLM overview** (same OpenRouter/Qwen keys as the web app) plus the structured surplus numbers; if no LLM key, deterministic summary only. On the ready step, free-text questions also go to Sensi chat.
+5. Set habit — whole KES, capped by money left after bills; then Monthly (default) or Weekly on the reply keyboard
 6. Remind me on the 1st — stores preference; does not purchase
 7. Make your first transaction today — risk line, phone, Lightning destination, explicit **Approve** only then calls Bitika
 
@@ -39,6 +39,7 @@ Copy into `apps/web/.env.local` (never commit real tokens):
 | `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME` | Bot username without `@`. Enables the welcome CTA. |
 | `TELEGRAM_STORE_PATH` | Optional JSON session file. Dev default: `.data/telegram-sessions.json`. Use `:memory:` to force memory. |
 | `BITIKA_API_KEY` | Same sandbox/live key as web invest. |
+| `OPENROUTER_API_KEY` (or Qwen/DashScope) | Same Sensi coach as web Overview / `/sensi`. Optional — bot falls back to rule-based summary. |
 
 ## Register the webhook
 

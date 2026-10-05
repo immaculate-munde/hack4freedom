@@ -27,6 +27,10 @@
   "replyChama": "A chama here does not pool money. Each member pays the person whose turn it is, from a wallet that member controls.",
   "replyScam": "Pause if someone promises guaranteed returns, offers to manage bitcoin for you, or asks for your recovery words. You hold the bitcoin yourself.",
   "replyFallback": "I can help with your spending path, surplus, habit, Bitcoin, wallet, or a chama. Ask in a short sentence. This is education, not financial advice.",
+  "thinking": "Sensi is thinking…",
+  "needProfile": "Import or open a money picture first — then I can talk about your numbers.",
+  "liveHint": "Replies use your phone profile. For voice,",
+  "openVoice": "open full Sensi",
   "alt": "Sensi, your guide",
   "name": "Sensi"
 }

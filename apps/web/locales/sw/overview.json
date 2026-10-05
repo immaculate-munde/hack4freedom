@@ -26,6 +26,11 @@
   "personaDemo": "{name} (mfano uliobuniwa)",
   "personaPhone": "Wasifu wako kwenye simu hii",
   "disclaimer": "Matokeo ya zamani hayaonyeshi matokeo ya baadaye. Hii ni elimu, si ushauri wa kifedha. Bitcoin inaweza kupoteza thamani.",
+  "sensiCardTitle": "Usomaji wa Sensi",
+  "sensiCardLoading": "Sensi anasoma picha yako ya ziada…",
+  "sensiCardError": "Sensi hakuweza kuandika muhtasari sasa.",
+  "sensiCardTalk": "Ongea na Sensi",
+  "sensiCardRefresh": "Onyesha upya",
   "bufferRing": {
     "label": "Hifadhi ya dharura: miezi {covered} kati ya {target} imefunikwa",
     "progress": "/ miezi {target}"

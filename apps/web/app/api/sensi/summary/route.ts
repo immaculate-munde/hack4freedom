@@ -1,48 +1,21 @@
-import { factsPromptBlock, type SensiFacts } from "../../../../lib/sensi-facts";
+import { type SensiFacts } from "../../../../lib/sensi-facts";
+import {
+  sensiLlmConfigured,
+  sensiLlmOverview,
+  sensiLlmSpokenSummary,
+} from "../../../../lib/sensi-llm-server";
 
 /**
- * Thin LLM summary for Sensi voice (OpenRouter or any OpenAI-compatible chat API).
- * Env key (first match): OPENROUTER_API_KEY, then legacy QWEN_/DASHSCOPE_/ALIBABA_.
- * Optional: OPENROUTER_BASE_URL / QWEN_BASE_URL, OPENROUTER_MODEL / QWEN_MODEL.
- * Never invent numbers — client sends profile facts; the prompt forbids new figures.
+ * Thin LLM summary for Sensi (OpenRouter or OpenAI-compatible).
+ * purpose=overview — Overview card + Telegram post-import
+ * purpose=spoken — /sensi voice walkthrough
  */
 
 type Body = {
   facts?: SensiFacts;
   pictureConfirmed?: boolean;
+  purpose?: "spoken" | "overview";
 };
-
-function apiKey(): string | null {
-  return (
-    process.env.OPENROUTER_API_KEY?.trim() ||
-    process.env.QWEN_API_KEY?.trim() ||
-    process.env.DASHSCOPE_API_KEY?.trim() ||
-    process.env.ALIBABA_CLOUD_API_KEY?.trim() ||
-    null
-  );
-}
-
-function usesOpenRouter(key: string): boolean {
-  return Boolean(process.env.OPENROUTER_API_KEY?.trim()) || key.startsWith("sk-or-");
-}
-
-function baseUrl(key: string): string {
-  const explicit =
-    process.env.OPENROUTER_BASE_URL?.trim() ||
-    process.env.QWEN_BASE_URL?.trim() ||
-    process.env.MODELSCOPE_BASE_URL?.trim();
-  if (explicit) return explicit.replace(/\/$/, "");
-  if (usesOpenRouter(key)) return "https://openrouter.ai/api/v1";
-  return "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
-}
-
-function model(key: string): string {
-  return (
-    process.env.OPENROUTER_MODEL?.trim() ||
-    process.env.QWEN_MODEL?.trim() ||
-    (usesOpenRouter(key) ? "openai/gpt-4o-mini" : "qwen-plus")
-  );
-}
 
 function isFacts(value: unknown): value is SensiFacts {
   if (!value || typeof value !== "object") return false;
@@ -62,8 +35,7 @@ function isFacts(value: unknown): value is SensiFacts {
 }
 
 export async function POST(req: Request) {
-  const key = apiKey();
-  if (!key) {
+  if (!sensiLlmConfigured()) {
     return Response.json(
       {
         error:
@@ -80,7 +52,9 @@ export async function POST(req: Request) {
     return Response.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  if (!body.pictureConfirmed) {
+  const purpose = body.purpose === "overview" ? "overview" : "spoken";
+
+  if (purpose === "spoken" && !body.pictureConfirmed) {
     return Response.json(
       { error: "Confirm you can see Sensi's picture before asking for a spoken summary." },
       { status: 400 },
@@ -88,65 +62,23 @@ export async function POST(req: Request) {
   }
 
   if (!isFacts(body.facts)) {
-    return Response.json({ error: "Profile facts are required and must be numbers from the device profile." }, { status: 400 });
+    return Response.json(
+      { error: "Profile facts are required and must be numbers from the device profile." },
+      { status: 400 },
+    );
   }
 
-  const system = [
-    "You are Sensi, a kind Kenyan money coach in PesaSense — warm, patient, and easy to follow out loud.",
-    "Education only — not financial advice. Bitcoin can go up or down; never promise returns.",
-    "Use ONLY the numbers in the PROFILE FACTS block. Never invent, guess, or round to new amounts.",
-    "Speak in short everyday English for listening. Light Kiswahili or Sheng greetings are fine; keep explanations clear.",
-    "Avoid jargon. Say “money left after bills” before any word like surplus. Be encouraging, not formal. Max 120 words.",
-    "Remind the listener they approve each purchase; nothing is sent on its own.",
-  ].join(" ");
+  const summary =
+    purpose === "overview"
+      ? await sensiLlmOverview(body.facts)
+      : await sensiLlmSpokenSummary(body.facts);
 
-  const user = `PROFILE FACTS:\n${factsPromptBlock(body.facts)}\n\nGive a short spoken walkthrough of this money picture in kind, simple words.`;
-
-  try {
-    const url = `${baseUrl(key)}/chat/completions`;
-    const headers: Record<string, string> = {
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json",
-    };
-    if (usesOpenRouter(key)) {
-      // OpenRouter optional ranking headers; safe defaults for local demos.
-      headers["HTTP-Referer"] = process.env.OPENROUTER_SITE_URL?.trim() || "http://localhost:3000";
-      headers["X-Title"] = process.env.OPENROUTER_APP_NAME?.trim() || "PesaSense Sensi";
-    }
-
-    const res = await fetch(url, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        model: model(key),
-        temperature: 0.5,
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: user },
-        ],
-      }),
-    });
-
-    if (!res.ok) {
-      const detail = await res.text().catch(() => "");
-      console.error("Sensi summary failed", res.status, detail.slice(0, 200));
-      return Response.json(
-        { error: "Sensi could not write a summary. Check the API key and try again." },
-        { status: 502 },
-      );
-    }
-
-    const data = (await res.json()) as {
-      choices?: Array<{ message?: { content?: string } }>;
-    };
-    const summary = data.choices?.[0]?.message?.content?.trim();
-    if (!summary) {
-      return Response.json({ error: "Sensi returned an empty summary." }, { status: 502 });
-    }
-
-    return Response.json({ summary, facts: body.facts });
-  } catch (error) {
-    console.error("Sensi summary error", error);
-    return Response.json({ error: "Could not reach the language model. Try again shortly." }, { status: 502 });
+  if (!summary) {
+    return Response.json(
+      { error: "Sensi could not write a summary. Check the API key and try again." },
+      { status: 502 },
+    );
   }
+
+  return Response.json({ summary, facts: body.facts });
 }
