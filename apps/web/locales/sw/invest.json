@@ -62,6 +62,8 @@
   "withdrawInApp": "Toa kwenda M-Pesa (ndani ya programu)",
   "withdrawHelp": "Msaada wa kutoa / mkoba wa nje",
   "withdrawMpesa": "Toa kwenda M-Pesa",
+  "simulateWithdraw": "iga kutoa kwenda M-Pesa (mfano)",
+  "simulateWithdrawNote": "Mfano tu: inaonyesha njia ya bitcoin.co.ke hadi 07…@bitcoin.co.ke. Hakuna sats zinazohamishwa isipokuwa mkoba wa Breez una salio.",
   "destinationValid": "Muundo wa mahali pa kutuma unaonekana sahihi.",
   "satsGoTo": "Sats zitaenda kwenye mkoba katika {domain}.",
   "enterAddress": "Weka anwani ya Lightning.",

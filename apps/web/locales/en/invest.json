@@ -62,6 +62,8 @@
   "withdrawInApp": "Withdraw to M-Pesa (in app)",
   "withdrawHelp": "Withdraw help / external wallet",
   "withdrawMpesa": "Withdraw to M-Pesa",
+  "simulateWithdraw": "Simulate withdraw to M-Pesa (demo)",
+  "simulateWithdrawNote": "Demo only: shows the bitcoin.co.ke path to your 07…@bitcoin.co.ke address. No sats move unless your Breez wallet is funded.",
   "destinationValid": "Destination format looks valid.",
   "satsGoTo": "Sats will go to a wallet at {domain}.",
   "enterAddress": "Enter a Lightning address.",

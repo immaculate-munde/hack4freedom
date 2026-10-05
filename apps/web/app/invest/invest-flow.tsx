@@ -625,6 +625,24 @@ export function InvestFlow({
               {t("invest.satsBought", { sats: number(satsBoughtTotal) })}
             </p>
           ) : null}
+          {streamlinedDemo &&
+          withdrawAddress &&
+          purchase.status === "filled" ? (
+            <>
+              <button
+                type="button"
+                className="btn btn-primary mt-4 w-full"
+                onClick={() => {
+                  setError(null);
+                  setWithdrawDone(true);
+                  setWithdrawHelpOpen(true);
+                }}
+              >
+                {t("invest.simulateWithdraw")}
+              </button>
+              <p className="mt-2 text-xs leading-5 text-slate">{t("invest.simulateWithdrawNote")}</p>
+            </>
+          ) : null}
           {breezWallet.status === "ready" && withdrawAddress ? (
             <button
               type="button"
@@ -680,8 +698,14 @@ export function InvestFlow({
             onClose={() => setWithdrawHelpOpen(false)}
             withdrawAddress={withdrawAddress ?? ""}
             withdrawDone={withdrawDone}
-            balanceSats={breezWallet.status === "ready" ? breezWallet.balanceSats : undefined}
-            amountSats={purchase.amountSats ?? satsBoughtTotal}
+            balanceSats={
+              breezWallet.status === "ready"
+                ? breezWallet.balanceSats
+                : streamlinedDemo
+                  ? purchase.amountSats ?? satsBoughtTotal ?? estimatedSats ?? 12_500
+                  : undefined
+            }
+            amountSats={purchase.amountSats ?? satsBoughtTotal ?? estimatedSats ?? 12_500}
           />
         </section>
       )}
