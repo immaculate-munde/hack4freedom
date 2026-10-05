@@ -11,7 +11,13 @@ export type {
   UssdSession,
 } from "./types";
 
-export { ussdConfigFromEnv, publicServiceCode, type UssdConfig } from "./config";
+export {
+  HARDCODED_SERVICE_CODES,
+  publicServiceCode,
+  serviceCodeAllowed,
+  ussdConfigFromEnv,
+  type UssdConfig,
+} from "./config";
 export { ussdDestination } from "./destination";
 export { amountRefusal, demoFacts, factsFromProfile, type ProfileFacts } from "./facts";
 export {

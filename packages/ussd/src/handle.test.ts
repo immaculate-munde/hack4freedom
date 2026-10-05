@@ -371,6 +371,25 @@ describe("USSD handler", () => {
     );
     expect(wrongCode.body).toContain("Wrong short code");
 
+    for (const [index, liveCode] of ["*384*65246#", "*789*12350#"].entries()) {
+      const live = await handleUssd(
+        {
+          contentType: "application/json",
+          bodyText: JSON.stringify({
+            sessionId: `session-live-${index}`,
+            serviceCode: liveCode,
+            phoneNumber: PHONE,
+            text: "",
+          }),
+          apiKey: "test-key",
+        },
+        deps,
+        config(),
+      );
+      expect(live.body).toContain("Welcome to PesaSense");
+      expect(live.body).not.toContain("Wrong short code");
+    }
+
     const form = await handleUssd(
       {
         contentType: "application/x-www-form-urlencoded",

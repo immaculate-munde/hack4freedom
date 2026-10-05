@@ -1,6 +1,9 @@
+/** Live short codes. The callback accepts either one even when USSD_SERVICE_CODE names only one of them. */
+export const HARDCODED_SERVICE_CODES = ["*384*65246#", "*789*12350#"] as const;
+
 export interface UssdConfig {
   provider: string;
-  /** When set, the request serviceCode must match. */
+  /** Extra short code from the environment. The hardcoded codes are always accepted too. */
   serviceCode: string | null;
   apiKey: string | null;
   /** Production fails closed when no key is configured. */
@@ -29,14 +32,22 @@ export function ussdConfigFromEnv(
   };
 }
 
-/** Shown in the app when the provider has not assigned a code yet. */
+/** True when this dialed code may open a session. */
+export function serviceCodeAllowed(inbound: string, configured: string | null): boolean {
+  if ((HARDCODED_SERVICE_CODES as readonly string[]).includes(inbound)) return true;
+  if (!configured) return true;
+  return inbound === configured;
+}
+
+/** Shown on the handset card. Both live codes are real, not a placeholder. */
 export function publicServiceCode(env: Record<string, string | undefined>): {
   code: string;
   configured: boolean;
 } {
-  const code = blankToNull(env.USSD_SERVICE_CODE);
-  if (code) return { code, configured: true };
-  return { code: "*384*40401#", configured: false };
+  const extra = blankToNull(env.USSD_SERVICE_CODE);
+  const codes: string[] = [...HARDCODED_SERVICE_CODES];
+  if (extra && !codes.includes(extra)) codes.push(extra);
+  return { code: codes.join(" / "), configured: true };
 }
 
 function blankToNull(value: string | undefined): string | null {

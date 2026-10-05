@@ -5,7 +5,7 @@
 
 import { maskPhone, toBitikaPhone } from "@pesasense/wallet";
 import { ussdCopy } from "./copy";
-import type { UssdConfig } from "./config";
+import { HARDCODED_SERVICE_CODES, serviceCodeAllowed, type UssdConfig } from "./config";
 import { demoFacts } from "./facts";
 import { ussdIdempotencyKey } from "./idempotency";
 import { purchaseResultLine, runMenu, statusLine, type PurchaseSummary } from "./menu";
@@ -70,7 +70,7 @@ export async function handleUssd(
     return text(200, end("Could not read this request."));
   }
 
-  if (config.serviceCode && inbound.serviceCode !== config.serviceCode) {
+  if (!serviceCodeAllowed(inbound.serviceCode, config.serviceCode)) {
     log(deps, "rejected", { reason: "service-code" });
     return text(200, end("Wrong short code."));
   }
@@ -350,6 +350,7 @@ function summary(record: PurchaseRecord | null): PurchaseSummary | null {
 }
 
 function normalizeText(text: string, serviceCode: string | null): string {
+  if ((HARDCODED_SERVICE_CODES as readonly string[]).includes(text)) return "";
   if (serviceCode && text === serviceCode) return "";
   return text;
 }
