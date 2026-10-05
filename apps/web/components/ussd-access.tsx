@@ -98,8 +98,8 @@ export function UssdAccess({ profileId }: { profileId: ProfileId }) {
   const [code, setCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [serviceCode, setServiceCode] = useState("*384*40401#");
-  const [serviceConfigured, setServiceConfigured] = useState(false);
+  const [serviceCode, setServiceCode] = useState("*384*65246# / *789*12350#");
+  const [serviceConfigured, setServiceConfigured] = useState(true);
 
   const explain = useCallback(
     (err: unknown, fallbackKey: string): string => {

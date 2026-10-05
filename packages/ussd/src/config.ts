@@ -1,6 +1,9 @@
+/** Live short codes. Always accepted, in addition to every code in USSD_SERVICE_CODE. */
+export const HARDCODED_SERVICE_CODES = ["*384*65246#", "*789*12350#"] as const;
+
 export interface UssdConfig {
   provider: string;
-  /** When set, the request serviceCode must match. */
+  /** Raw USSD_SERVICE_CODE. Every code in it is accepted, along with the hardcoded ones. */
   serviceCode: string | null;
   apiKey: string | null;
   /** Production fails closed when no key is configured. */
@@ -29,14 +32,34 @@ export function ussdConfigFromEnv(
   };
 }
 
-/** Shown in the app when the provider has not assigned a code yet. */
+/** Codes listed in USSD_SERVICE_CODE. Comma, semicolon, or whitespace separated. */
+export function configuredServiceCodes(configured: string | null): string[] {
+  if (!configured) return [];
+  return configured
+    .split(/[,;\s]+/)
+    .map((code) => code.trim())
+    .filter((code) => code.length > 0);
+}
+
+/** Hardcoded codes always pass. Every env code passes too. With no env code, other codes still pass. */
+export function serviceCodeAllowed(inbound: string, configured: string | null): boolean {
+  if ((HARDCODED_SERVICE_CODES as readonly string[]).includes(inbound)) return true;
+  const fromEnv = configuredServiceCodes(configured);
+  if (fromEnv.length === 0) return true;
+  return fromEnv.includes(inbound);
+}
+
+/** Shown on the handset card. Live codes plus any extra codes from the environment. */
 export function publicServiceCode(env: Record<string, string | undefined>): {
   code: string;
   configured: boolean;
 } {
-  const code = blankToNull(env.USSD_SERVICE_CODE);
-  if (code) return { code, configured: true };
-  return { code: "*384*40401#", configured: false };
+  const fromEnv = configuredServiceCodes(blankToNull(env.USSD_SERVICE_CODE));
+  const codes: string[] = [...HARDCODED_SERVICE_CODES];
+  for (const extra of fromEnv) {
+    if (!codes.includes(extra)) codes.push(extra);
+  }
+  return { code: codes.join(" / "), configured: true };
 }
 
 function blankToNull(value: string | undefined): string | null {

@@ -86,8 +86,8 @@ type Copy = {
 };
 
 const en: Copy = {
-  unlinked: "PesaSense\n1 Link with code\n2 Demo Amina\n3 Demo Brian\n9 Language\n0 Exit",
-  main: "PesaSense\n1 Surplus\n2 Habit\n3 Buy Bitcoin\n4 Buy status\n5 Learn\n6 Chama\n9 Language\n0 Exit",
+  unlinked: "Welcome to PesaSense\n1 Link with code\n2 Demo Amina\n3 Demo Brian\n9 Language\n0 Exit",
+  main: "Welcome to PesaSense\n1 Surplus\n2 Habit\n3 Buy Bitcoin\n4 Buy status\n5 Learn\n6 Chama\n9 Language\n0 Exit",
   learn: "Learn\n1 What is Bitcoin\n2 Why 3 to 5 years\n3 Self-custody\n4 Scam flags\n0 Exit",
   lessons: {
     "1": "Bitcoin is money you hold yourself. No manager. The price moves, so leave it alone.",
@@ -167,8 +167,8 @@ const en: Copy = {
 };
 
 const sw: Copy = {
-  unlinked: "PesaSense\n1 Unganisha kwa msimbo\n2 Mfano Amina\n3 Mfano Brian\n9 Lugha\n0 Toka",
-  main: "PesaSense\n1 Ziada\n2 Tabia\n3 Nunua Bitcoin\n4 Hali ya ununuzi\n5 Jifunze\n6 Chama\n9 Lugha\n0 Toka",
+  unlinked: "Karibu PesaSense\n1 Unganisha kwa msimbo\n2 Mfano Amina\n3 Mfano Brian\n9 Lugha\n0 Toka",
+  main: "Karibu PesaSense\n1 Ziada\n2 Tabia\n3 Nunua Bitcoin\n4 Hali ya ununuzi\n5 Jifunze\n6 Chama\n9 Lugha\n0 Toka",
   learn: "Jifunze\n1 Bitcoin ni nini\n2 Kwa nini miaka 3 hadi 5\n3 Mkoba wako\n4 Ishara za ulaghai\n0 Toka",
   lessons: {
     "1": "Bitcoin ni pesa unayoshika mwenyewe. Hakuna msimamizi. Bei hubadilika, kwa hiyo iache.",
