@@ -13,6 +13,7 @@ export type {
 
 export {
   HARDCODED_SERVICE_CODES,
+  configuredServiceCodes,
   publicServiceCode,
   serviceCodeAllowed,
   ussdConfigFromEnv,

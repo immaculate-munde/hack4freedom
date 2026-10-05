@@ -390,6 +390,23 @@ describe("USSD handler", () => {
       expect(live.body).not.toContain("Wrong short code");
     }
 
+    const fromEnv = await handleUssd(
+      {
+        contentType: "application/json",
+        bodyText: JSON.stringify({
+          sessionId: "session-env-code",
+          serviceCode: "*100#",
+          phoneNumber: PHONE,
+          text: "",
+        }),
+        apiKey: "test-key",
+      },
+      deps,
+      config({ serviceCode: `${SERVICE}, *100#` }),
+    );
+    expect(fromEnv.body).toContain("Welcome to PesaSense");
+    expect(fromEnv.body).not.toContain("Wrong short code");
+
     const form = await handleUssd(
       {
         contentType: "application/x-www-form-urlencoded",

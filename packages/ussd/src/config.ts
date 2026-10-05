@@ -1,9 +1,9 @@
-/** Live short codes. The callback accepts either one even when USSD_SERVICE_CODE names only one of them. */
+/** Live short codes. Always accepted, in addition to every code in USSD_SERVICE_CODE. */
 export const HARDCODED_SERVICE_CODES = ["*384*65246#", "*789*12350#"] as const;
 
 export interface UssdConfig {
   provider: string;
-  /** Extra short code from the environment. The hardcoded codes are always accepted too. */
+  /** Raw USSD_SERVICE_CODE. Every code in it is accepted, along with the hardcoded ones. */
   serviceCode: string | null;
   apiKey: string | null;
   /** Production fails closed when no key is configured. */
@@ -32,21 +32,33 @@ export function ussdConfigFromEnv(
   };
 }
 
-/** True when this dialed code may open a session. */
-export function serviceCodeAllowed(inbound: string, configured: string | null): boolean {
-  if ((HARDCODED_SERVICE_CODES as readonly string[]).includes(inbound)) return true;
-  if (!configured) return true;
-  return inbound === configured;
+/** Codes listed in USSD_SERVICE_CODE. Comma, semicolon, or whitespace separated. */
+export function configuredServiceCodes(configured: string | null): string[] {
+  if (!configured) return [];
+  return configured
+    .split(/[,;\s]+/)
+    .map((code) => code.trim())
+    .filter((code) => code.length > 0);
 }
 
-/** Shown on the handset card. Both live codes are real, not a placeholder. */
+/** Hardcoded codes always pass. Every env code passes too. With no env code, other codes still pass. */
+export function serviceCodeAllowed(inbound: string, configured: string | null): boolean {
+  if ((HARDCODED_SERVICE_CODES as readonly string[]).includes(inbound)) return true;
+  const fromEnv = configuredServiceCodes(configured);
+  if (fromEnv.length === 0) return true;
+  return fromEnv.includes(inbound);
+}
+
+/** Shown on the handset card. Live codes plus any extra codes from the environment. */
 export function publicServiceCode(env: Record<string, string | undefined>): {
   code: string;
   configured: boolean;
 } {
-  const extra = blankToNull(env.USSD_SERVICE_CODE);
+  const fromEnv = configuredServiceCodes(blankToNull(env.USSD_SERVICE_CODE));
   const codes: string[] = [...HARDCODED_SERVICE_CODES];
-  if (extra && !codes.includes(extra)) codes.push(extra);
+  for (const extra of fromEnv) {
+    if (!codes.includes(extra)) codes.push(extra);
+  }
   return { code: codes.join(" / "), configured: true };
 }
 
