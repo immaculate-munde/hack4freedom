@@ -42,3 +42,12 @@ export function touchSession(
     expiresAt: now + ttlMs,
   };
 }
+
+/** Fill fields added after early demos so JSON stores keep working. */
+export function normalizeSession(session: TelegramSession): TelegramSession {
+  return {
+    ...session,
+    learnTopicId: session.learnTopicId ?? null,
+    learnPage: session.learnPage ?? null,
+  };
+}

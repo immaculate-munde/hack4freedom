@@ -6,6 +6,7 @@
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
+import { normalizeSession } from "./session";
 import type { TelegramSession } from "./types";
 
 export interface TelegramStore {
@@ -24,10 +25,10 @@ export function createMemoryTelegramStore(): TelegramStore {
   return {
     getSession(chatId) {
       const row = sessions.get(chatId);
-      return row ? cloneSession(row) : null;
+      return row ? normalizeSession(cloneSession(row)) : null;
     },
     saveSession(session) {
-      sessions.set(session.chatId, cloneSession(session));
+      sessions.set(session.chatId, normalizeSession(cloneSession(session)));
     },
     deleteSession(chatId) {
       sessions.delete(chatId);
@@ -78,11 +79,11 @@ export function openJsonTelegramStore(filename: string): TelegramStore {
     getSession(chatId) {
       const map = read();
       const row = map.get(chatId);
-      return row ? cloneSession(row) : null;
+      return row ? normalizeSession(cloneSession(row)) : null;
     },
     saveSession(session) {
       const map = read();
-      map.set(session.chatId, cloneSession(session));
+      map.set(session.chatId, normalizeSession(cloneSession(session)));
       write(map);
     },
     deleteSession(chatId) {
