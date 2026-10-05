@@ -4,7 +4,7 @@ A private, on-device financial profile that helps someone in Kenya start a small
 
 Built for [Hack4Freedom](https://www.hack4freedom.com/) Nairobi.
 
-Live site at [Pesasense](https://pesasense.vercel.app/).
+Live site at [PesaSense](https://pesasense.vercel.app/).
 
 ## For judges
 
