@@ -21,7 +21,7 @@ export {
   inboundFromUpdate,
   type TelegramUpdate,
 } from "./parse-update";
-export { emptyOnboarding, newSession, touchSession } from "./session";
+export { emptyOnboarding, newSession, normalizeSession, touchSession } from "./session";
 export {
   createMemoryTelegramStore,
   openJsonTelegramStore,
