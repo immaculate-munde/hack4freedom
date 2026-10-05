@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { demoProfiles, type FinancialProfile } from "@pesasense/core";
-import { useFormat, useI18n } from "../contexts/language-context";
+import { useI18n } from "../contexts/language-context";
 import { useProfile } from "../contexts/profile-context";
+import { ImportAnalysisCard } from "./import-analysis-card";
 import { PdfImportForm } from "./pdf-import-form";
 import { ShareImportHint } from "./share-import-hint";
 import { SmsImportForm } from "./sms-import-form";
@@ -36,16 +37,25 @@ export interface ImportMpesaModalProps {
 
 export function ImportMpesaModal({ isOpen, onClose }: ImportMpesaModalProps) {
   const { t } = useI18n();
-  const { kes, number } = useFormat();
   const router = useRouter();
   const { setProfile } = useProfile();
   const [result, setResult] = useState<FinancialProfile | null>(null);
+  const [transactionCount, setTransactionCount] = useState<number | undefined>(undefined);
 
   if (!isOpen) return null;
 
   function handleClose() {
     setResult(null);
+    setTransactionCount(undefined);
     onClose();
+  }
+
+  function handleProfileReady(
+    profile: FinancialProfile,
+    meta?: { transactionCount: number },
+  ) {
+    setResult(profile);
+    setTransactionCount(meta?.transactionCount);
   }
 
   function handleCommit() {
@@ -86,7 +96,11 @@ export function ImportMpesaModal({ isOpen, onClose }: ImportMpesaModalProps) {
       />
 
       <div className="pointer-events-none absolute inset-0 flex items-end justify-center lg:left-[15.5rem] lg:items-center">
-        <div className="pointer-events-auto relative mb-[var(--spacing-nav)] w-full max-w-sm overflow-y-auto rounded-t-2xl border border-sand bg-paper shadow-2xl lg:mb-0 lg:rounded-3xl">
+        <div
+          className={`pointer-events-auto relative mb-[var(--spacing-nav)] max-h-[min(92dvh,52rem)] w-full overflow-y-auto rounded-t-2xl border border-sand bg-paper shadow-2xl lg:mb-0 lg:rounded-3xl ${
+            result ? "max-w-lg" : "max-w-sm"
+          }`}
+        >
           <div
             className="mx-auto mt-3 h-1 w-10 rounded-full bg-sand/80 lg:hidden"
             aria-hidden="true"
@@ -108,58 +122,46 @@ export function ImportMpesaModal({ isOpen, onClose }: ImportMpesaModalProps) {
               </button>
             </div>
 
-            <div className="mt-4 flex items-start gap-2 rounded-xl bg-moss/8 p-3">
-              <svg
-                className="mt-0.5 h-4 w-4 shrink-0 text-moss"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                />
-              </svg>
-              <div className="flex flex-col gap-1">
-                <p className="text-xs leading-5 text-ink-soft">{t("import.neverLeave")}</p>
-                <p className="text-[11px] leading-4 text-slate">{t("import.passwordNote")}</p>
+            {!result ? (
+              <div className="mt-4 flex items-start gap-2 rounded-xl bg-moss/8 p-3">
+                <svg
+                  className="mt-0.5 h-4 w-4 shrink-0 text-moss"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                  />
+                </svg>
+                <div className="flex flex-col gap-1">
+                  <p className="text-xs leading-5 text-ink-soft">{t("import.neverLeave")}</p>
+                  <p className="text-[11px] leading-4 text-slate">{t("import.passwordNote")}</p>
+                </div>
               </div>
-            </div>
+            ) : null}
 
             {result ? (
-              <div className="mt-5 space-y-3 rounded-2xl border border-mint/60 bg-mint/25 p-4">
-                <p className="text-sm font-semibold text-pine">{t("import.complete")}</p>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-ink-soft">{t("import.safeSurplus")}</span>
-                    <span className="font-semibold text-ink">
-                      {kes(result.surplus.monthlyKes.floor)} – {number(result.surplus.monthlyKes.ceiling)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-ink-soft">{t("import.resilience")}</span>
-                    <span className="font-semibold text-ink">
-                      {t("import.months", { count: result.resilience.monthsOfExpensesCovered })}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-ink-soft">{t("import.commitments")}</span>
-                    <span className="font-semibold text-ink">
-                      {t("import.detected", { count: result.commitments.length })}
-                    </span>
-                  </div>
-                </div>
-                <button onClick={handleCommit} className="btn btn-primary mt-2 w-full">
-                  {routeAfterImport(result) === "/habit" ? t("import.setHabit") : t("import.useProfile")}
-                </button>
+              <div className="mt-4">
+                <ImportAnalysisCard
+                  profile={result}
+                  transactionCount={transactionCount}
+                  primaryActionLabel={
+                    routeAfterImport(result) === "/habit"
+                      ? t("import.setHabit")
+                      : t("import.useProfile")
+                  }
+                  onPrimaryAction={handleCommit}
+                />
               </div>
             ) : (
               <div className="mt-5 space-y-5">
                 <ShareImportHint />
                 <SmsImportForm
-                  onProfileReady={setResult}
+                  onProfileReady={handleProfileReady}
                   onDemoFallback={handleUseDemo}
                 />
                 <div className="border-t border-sand/50 pt-4">
@@ -167,7 +169,7 @@ export function ImportMpesaModal({ isOpen, onClose }: ImportMpesaModalProps) {
                     {t("import.orPdf")}
                   </p>
                   <PdfImportForm
-                    onProfileReady={setResult}
+                    onProfileReady={handleProfileReady}
                     onDemoFallback={handleUseDemo}
                   />
                 </div>

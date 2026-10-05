@@ -14,7 +14,7 @@ export function PdfImportForm({
   onProfileReady,
   onDemoFallback,
 }: {
-  onProfileReady: (profile: FinancialProfile) => void;
+  onProfileReady: (profile: FinancialProfile, meta?: { transactionCount: number }) => void;
   onDemoFallback: () => void;
 }) {
   const { t } = useI18n();
@@ -51,7 +51,7 @@ export function PdfImportForm({
       }
       const profile = buildProfileFromTransactions(transactions);
       clearOnboardingDraft();
-      onProfileReady(profile);
+      onProfileReady(profile, { transactionCount: transactions.length });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "";
       if (message.includes("Not implemented")) {
